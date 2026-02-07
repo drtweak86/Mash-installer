@@ -83,6 +83,7 @@ pub fn run_doctor() -> Result<()> {
     let cargo_tools = [
         "cargo-watch",
         "cargo-audit",
+        "cargo-maelstrom",
         "cargo-add",
         "bacon",
         "just",
