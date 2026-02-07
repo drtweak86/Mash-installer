@@ -20,13 +20,22 @@ translates package names automatically.
 
 ## Quick start
 
+Option 1 — One-liner (downloads latest release and runs it)
 ```bash
-# One-liner (downloads latest release and runs it):
-curl -fsSL https://raw.githubusercontent.com/drtweak86/Mash-installer-/main/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/drtweak86/Mash-installer-/master/bootstrap.sh | bash
+```
 
-# Or with options:
-curl -fsSL https://raw.githubusercontent.com/drtweak86/Mash-installer-/main/bootstrap.sh \
+Option 2 — One-liner with installer options (pass options to the bootstrap script)
+```bash
+curl -fsSL https://raw.githubusercontent.com/drtweak86/Mash-installer-/master/bootstrap.sh \
   | bash -s -- --profile dev --staging-dir /mnt/data/mash-installer
+```
+
+You can also download the bootstrap script first and inspect or run it locally if you prefer:
+```bash
+curl -fsSL -o bootstrap.sh https://raw.githubusercontent.com/drtweak86/Mash-installer-/master/bootstrap.sh
+less bootstrap.sh   # inspect
+bash bootstrap.sh --profile dev --staging-dir /mnt/data/mash-installer
 ```
 
 ## Commands
@@ -203,3 +212,4 @@ cross build --release --target aarch64-unknown-linux-gnu
 ## License
 
 MIT
+
