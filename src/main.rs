@@ -99,6 +99,8 @@ pub struct InstallContext {
     pub enable_argon: bool,
     pub docker_data_root: bool,
     pub mp: MultiProgress,
+    /// Overall progress bar (% done + ETA).
+    pub overall: ProgressBar,
     pub config: config::MashConfig,
     pub platform: platform::PlatformInfo,
 }
@@ -113,7 +115,9 @@ pub enum ProfileLevel {
 impl InstallContext {
     /// Create a spinner-style progress bar attached to the MultiProgress.
     pub fn phase_spinner(&self, msg: &str) -> ProgressBar {
-        let pb = self.mp.add(ProgressBar::new_spinner());
+        let pb = self
+            .mp
+            .insert_before(&self.overall, ProgressBar::new_spinner());
         pb.set_style(
             ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] {msg}")
                 .unwrap()
@@ -124,18 +128,20 @@ impl InstallContext {
         pb
     }
 
-    /// Finish a spinner with a checkmark.
-    pub fn finish_phase(pb: &ProgressBar, msg: &str) {
+    /// Finish a spinner with a checkmark and advance the overall bar.
+    pub fn finish_phase(&self, pb: &ProgressBar, msg: &str) {
         pb.set_style(ProgressStyle::with_template("{prefix} {msg}").unwrap());
         pb.set_prefix("✓");
         pb.finish_with_message(msg.to_string());
+        self.overall.inc(1);
     }
 
-    /// Finish a spinner indicating it was skipped.
-    pub fn skip_phase(pb: &ProgressBar, msg: &str) {
+    /// Finish a spinner indicating it was skipped and advance the overall bar.
+    pub fn skip_phase(&self, pb: &ProgressBar, msg: &str) {
         pb.set_style(ProgressStyle::with_template("{prefix} {msg}").unwrap());
         pb.set_prefix("–");
         pb.finish_with_message(msg.to_string());
+        self.overall.inc(1);
     }
 }
 
@@ -186,6 +192,13 @@ fn main() -> Result<()> {
     }
 }
 
+/// Descriptor for a single install phase.
+struct Phase {
+    label: &'static str,
+    done_msg: &'static str,
+    run: fn(&InstallContext) -> Result<()>,
+}
+
 fn run_install(
     profile: ProfileLevel,
     staging_dir_override: Option<PathBuf>,
@@ -214,7 +227,75 @@ fn run_install(
     let staging = staging::resolve(staging_dir_override.as_deref(), &cfg)?;
     info!("Staging directory: {}", staging.display());
 
+    // ── Build phase list based on profile / flags ───────────────
+    let mut phases: Vec<Phase> = vec![
+        Phase {
+            label: "APT core packages",
+            done_msg: "APT core packages installed",
+            run: apt::install_phase,
+        },
+        Phase {
+            label: "Rust toolchain + cargo tools",
+            done_msg: "Rust toolchain ready",
+            run: rust::install_phase,
+        },
+        Phase {
+            label: "Git, GitHub CLI, SSH",
+            done_msg: "Git / GitHub CLI ready",
+            run: github::install_phase,
+        },
+    ];
+
+    if profile >= ProfileLevel::Dev {
+        phases.push(Phase {
+            label: "Buildroot dependencies",
+            done_msg: "Buildroot dependencies ready",
+            run: buildroot::install_phase,
+        });
+        phases.push(Phase {
+            label: "Docker Engine",
+            done_msg: "Docker Engine ready",
+            run: docker::install_phase,
+        });
+        phases.push(Phase {
+            label: "Shell & UX (zsh, starship)",
+            done_msg: "Shell & UX ready",
+            run: zsh::install_phase,
+        });
+        phases.push(Phase {
+            label: "Fonts",
+            done_msg: "Fonts installed",
+            run: fonts::install_phase,
+        });
+        phases.push(Phase {
+            label: "rclone",
+            done_msg: "rclone ready",
+            run: rclone::install_phase,
+        });
+    }
+
+    if enable_argon {
+        phases.push(Phase {
+            label: "Argon One fan script",
+            done_msg: "Argon One installed",
+            run: argon::install_phase,
+        });
+    }
+
+    let total = phases.len() as u64;
+
+    // ── Set up progress bars ────────────────────────────────────
     let mp = MultiProgress::new();
+    let overall = mp.add(ProgressBar::new(total));
+    overall.set_style(
+        ProgressStyle::with_template(
+            "{spinner:.cyan} [{bar:30.green/dim}] {pos}/{len} phases  {percent}%  ETA {eta}  [{elapsed}]",
+        )
+        .unwrap()
+        .progress_chars("━╸─")
+        .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏ "),
+    );
+    overall.enable_steady_tick(std::time::Duration::from_millis(200));
 
     let ctx = InstallContext {
         profile,
@@ -225,66 +306,28 @@ fn run_install(
         enable_argon,
         docker_data_root,
         mp,
+        overall,
         config: cfg,
         platform: plat,
     };
 
-    // ── Phase 1: APT core packages ──────────────────────────────
-    let pb = ctx.phase_spinner("Phase 1/9 · APT core packages");
-    apt::install_phase(&ctx)?;
-    InstallContext::finish_phase(&pb, "APT core packages installed");
-
-    // ── Phase 2: Rust toolchain ─────────────────────────────────
-    let pb = ctx.phase_spinner("Phase 2/9 · Rust toolchain + cargo tools");
-    rust::install_phase(&ctx)?;
-    InstallContext::finish_phase(&pb, "Rust toolchain ready");
-
-    // ── Phase 3: GitHub / Git / SSH ─────────────────────────────
-    let pb = ctx.phase_spinner("Phase 3/9 · Git, GitHub CLI, SSH");
-    github::install_phase(&ctx)?;
-    InstallContext::finish_phase(&pb, "Git / GitHub CLI ready");
-
-    // ── Phase 4: Buildroot deps ─────────────────────────────────
-    if ctx.profile >= ProfileLevel::Dev {
-        let pb = ctx.phase_spinner("Phase 4/9 · Buildroot dependencies");
-        buildroot::install_phase(&ctx)?;
-        InstallContext::finish_phase(&pb, "Buildroot dependencies ready");
+    // ── Execute phases ──────────────────────────────────────────
+    for (i, phase) in phases.iter().enumerate() {
+        let label = format!("Phase {}/{} · {}", i + 1, total, phase.label,);
+        let pb = ctx.phase_spinner(&label);
+        match (phase.run)(&ctx) {
+            Ok(()) => ctx.finish_phase(&pb, phase.done_msg),
+            Err(e) => {
+                pb.set_style(ProgressStyle::with_template("{prefix} {msg}").unwrap());
+                pb.set_prefix("✗");
+                pb.finish_with_message(format!("{} FAILED: {e:#}", phase.label));
+                ctx.overall.inc(1);
+                return Err(e);
+            }
+        }
     }
 
-    // ── Phase 5: Docker ─────────────────────────────────────────
-    if ctx.profile >= ProfileLevel::Dev {
-        let pb = ctx.phase_spinner("Phase 5/9 · Docker Engine");
-        docker::install_phase(&ctx)?;
-        InstallContext::finish_phase(&pb, "Docker Engine ready");
-    }
-
-    // ── Phase 6: Shell / UX ─────────────────────────────────────
-    if ctx.profile >= ProfileLevel::Dev {
-        let pb = ctx.phase_spinner("Phase 6/9 · Shell & UX (zsh, starship)");
-        zsh::install_phase(&ctx)?;
-        InstallContext::finish_phase(&pb, "Shell & UX ready");
-    }
-
-    // ── Phase 7: Fonts ──────────────────────────────────────────
-    if ctx.profile >= ProfileLevel::Dev {
-        let pb = ctx.phase_spinner("Phase 7/9 · Fonts");
-        fonts::install_phase(&ctx)?;
-        InstallContext::finish_phase(&pb, "Fonts installed");
-    }
-
-    // ── Phase 8: rclone ─────────────────────────────────────────
-    if ctx.profile >= ProfileLevel::Dev {
-        let pb = ctx.phase_spinner("Phase 8/9 · rclone");
-        rclone::install_phase(&ctx)?;
-        InstallContext::finish_phase(&pb, "rclone ready");
-    }
-
-    // ── Phase 9: Argon One (optional) ───────────────────────────
-    if ctx.enable_argon {
-        let pb = ctx.phase_spinner("Phase 9/9 · Argon One fan script");
-        argon::install_phase(&ctx)?;
-        InstallContext::finish_phase(&pb, "Argon One installed");
-    }
+    ctx.overall.finish_and_clear();
 
     // ── Summary ─────────────────────────────────────────────────
     println!();
