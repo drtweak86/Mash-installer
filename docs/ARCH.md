@@ -8,8 +8,8 @@
 1. Keep the CLI thin: it handles argument parsing, tracing setup, the three-stage menu (auto vs select distro, modules, profile), and driver selection.
 2. Let `installer-core` own installation invariants so other UIs (for example a GUI or tests) can reuse the same phases and logging.
 3. Distro drivers implement `DistroDriver` so each platform exposes metadata and backend hints without coupling to the core crate.
+4. Module toggles are aliased (A=Argon, P=Powerlevel10k, D=Docker data-root) in the CLI menu, and each `DistroDriver` provides package translations, repository metadata, and service names so the core phases can run the same pipeline across Debian/Arch/Fedora.
 
 ## Next steps
-- Continue fleshing out distro drivers (pkg repos, service helpers) so Fedora and Debian can exercise their own backends.
-- Expose `DistroDriver`-specific hooks inside `installer-core` (pkg repositories, service helpers) so the core phases use the selected driver when needed.
-- Document the workspace layout, menu flow, and driver expectations in README and release notes.
+- Add automated tests that verify driver translations/repo hooks and the module selection alias flow, keeping the pipeline safe and reproducible.
+- Keep README/docs/ARCH updated whenever new module toggles or driver hooks are introduced.
