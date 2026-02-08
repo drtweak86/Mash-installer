@@ -188,7 +188,7 @@ fn configure_data_root(ctx: &InstallContext, data_root: &std::path::Path) -> Res
         return Ok(());
     }
 
-    fs::create_dir_all(&data_root)?;
+    fs::create_dir_all(data_root)?;
 
     let mut config: serde_json::Value = if daemon_json.exists() {
         let text = fs::read_to_string(daemon_json)?;

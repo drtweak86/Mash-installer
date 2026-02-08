@@ -433,9 +433,21 @@ fn ensure_dialog_available(dry_run: bool) -> bool {
 }
 
 fn dialog_profile_menu(current: ProfileLevel) -> Result<Option<ProfileLevel>> {
-    let default_min = if current == ProfileLevel::Minimal { "on" } else { "off" };
-    let default_dev = if current == ProfileLevel::Dev { "on" } else { "off" };
-    let default_full = if current == ProfileLevel::Full { "on" } else { "off" };
+    let default_min = if current == ProfileLevel::Minimal {
+        "on"
+    } else {
+        "off"
+    };
+    let default_dev = if current == ProfileLevel::Dev {
+        "on"
+    } else {
+        "off"
+    };
+    let default_full = if current == ProfileLevel::Full {
+        "on"
+    } else {
+        "off"
+    };
 
     let output = Command::new("dialog")
         .args([
@@ -514,7 +526,7 @@ fn dialog_feature_menu(
 
     let out = match output {
         Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout).trim().to_string(),
-        _ => return Ok((None, None, None, None)),
+        _ => return Ok((None, None, None)),
     };
 
     let has = |tag: &str| out.split_whitespace().any(|t| t == tag);
@@ -540,10 +552,7 @@ fn text_prompt_menu(
     };
 
     let input_profile = prompt_line(
-        &format!(
-            "Profile [minimal/dev/full] (default: {}): ",
-            current
-        ),
+        &format!("Profile [minimal/dev/full] (default: {}): ", current),
         current,
     )?;
 
@@ -577,7 +586,12 @@ fn text_prompt_menu(
         &default_features,
     )?;
 
-    let mut has = |name: &str| input_features.split(',').map(|s| s.trim()).any(|s| s == name);
+    let has = |name: &str| {
+        input_features
+            .split(',')
+            .map(|s| s.trim())
+            .any(|s| s == name)
+    };
 
     let mut selected = MenuSelection {
         profile: selected_profile,
