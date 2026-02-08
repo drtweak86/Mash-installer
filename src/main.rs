@@ -443,11 +443,14 @@ fn ensure_dialog_available(dry_run: bool) -> bool {
         return true;
     }
     if dry_run {
+        tracing::info!("dialog unavailable; skipping dialog mode in dry-run");
         return false;
     }
-    if crate::pkg::ensure_packages(&["dialog"], false).is_ok() {
-        return which::which("dialog").is_ok();
-    }
+    tracing::warn!(
+        "dialog is not available. Install it (`sudo apt install dialog` or \
+         `sudo pacman -S dialog`) to enable the dialog UI, otherwise the installer \
+         will fall back to text prompts."
+    );
     false
 }
 
