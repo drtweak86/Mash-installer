@@ -56,3 +56,88 @@ pub trait DistroDriver: Sync + Send {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::platform::PlatformInfo;
+    use crate::PkgBackend;
+
+    struct TestDriver;
+
+    impl DistroDriver for TestDriver {
+        fn name(&self) -> &'static str {
+            "test-driver"
+        }
+
+        fn description(&self) -> &'static str {
+            "uses default service names"
+        }
+
+        fn matches(&self, _: &PlatformInfo) -> bool {
+            true
+        }
+
+        fn pkg_backend(&self) -> PkgBackend {
+            PkgBackend::Apt
+        }
+
+        fn translate_package(&self, canonical: &str) -> Option<String> {
+            Some(canonical.to_string())
+        }
+    }
+
+    struct CustomServiceDriver;
+
+    impl DistroDriver for CustomServiceDriver {
+        fn name(&self) -> &'static str {
+            "custom"
+        }
+
+        fn description(&self) -> &'static str {
+            "customizes services"
+        }
+
+        fn matches(&self, _: &PlatformInfo) -> bool {
+            true
+        }
+
+        fn pkg_backend(&self) -> PkgBackend {
+            PkgBackend::Pacman
+        }
+
+        fn translate_package(&self, canonical: &str) -> Option<String> {
+            Some(canonical.to_string())
+        }
+
+        fn service_unit(&self, service: ServiceName) -> &'static str {
+            match service {
+                ServiceName::Docker => "custom-docker.service",
+                ServiceName::ArgonOne => "custom-argononed.service",
+            }
+        }
+    }
+
+    #[test]
+    fn default_service_names_are_returned() {
+        let driver = TestDriver;
+        assert_eq!(driver.service_unit(ServiceName::Docker), "docker.service");
+        assert_eq!(
+            driver.service_unit(ServiceName::ArgonOne),
+            "argononed.service"
+        );
+    }
+
+    #[test]
+    fn custom_driver_overrides_service_names() {
+        let driver = CustomServiceDriver;
+        assert_eq!(
+            driver.service_unit(ServiceName::Docker),
+            "custom-docker.service"
+        );
+        assert_eq!(
+            driver.service_unit(ServiceName::ArgonOne),
+            "custom-argononed.service"
+        );
+    }
+}

@@ -287,4 +287,15 @@ mod tests {
         assert!(selection.enable_p10k);
         assert!(selection.docker_data_root);
     }
+
+    #[test]
+    fn module_selection_aliases_are_case_insensitive() {
+        let mut selection = ModuleSelection::default();
+        assert!(selection.apply_alias("p", true));
+        assert!(selection.enable_p10k);
+        assert!(selection.apply_alias("D", true));
+        assert!(selection.docker_data_root);
+        assert!(selection.apply_alias("P", false));
+        assert!(!selection.enable_p10k);
+    }
 }

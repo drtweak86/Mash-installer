@@ -15,3 +15,4 @@ installer-fedora = { path = "../installer-fedora" }
 installer-core = { path = "../installer-core" }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+which = "4"

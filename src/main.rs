@@ -439,19 +439,7 @@ fn prompt_install_menu(
 }
 
 fn ensure_dialog_available(dry_run: bool) -> bool {
-    if which::which("dialog").is_ok() {
-        return true;
-    }
-    if dry_run {
-        tracing::info!("dialog unavailable; skipping dialog mode in dry-run");
-        return false;
-    }
-    tracing::warn!(
-        "dialog is not available. Install it (`sudo apt install dialog` or \
-         `sudo pacman -S dialog`) to enable the dialog UI, otherwise the installer \
-         will fall back to text prompts."
-    );
-    false
+    which::which("dialog").is_ok()
 }
 
 fn dialog_profile_menu(current: ProfileLevel) -> Result<Option<ProfileLevel>> {
