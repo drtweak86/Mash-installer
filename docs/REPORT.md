@@ -7,11 +7,26 @@
   - `src/main.rs` defines the CLI and orchestrates install phases via `pkg`, `rust`, `github`, `buildroot`, `docker`, `zsh`, `fonts`, `rclone`, and optional `argon`.
 - Installer flow:
   1. Detect platform (distro family, arch, optional Pi model).
+  2. If `--interactive` and a TTY is present, prompt for profile and options using `dialog` (auto-installs `dialog` if missing) or fall back to a text prompt.
   2. Resolve staging dir (config/CLI), check space, create.
   3. Build phase list by profile/flags.
   4. Run phases sequentially (idempotent checks per phase).
   5. Print post-install notes.
 - Safety guarantees stated: idempotent package installs, config backups, pacman `--needed`, staging space guard on root, dry-run support.
+
+## Current architecture summary
+- `bootstrap.sh` handles package-manager detection, minimal deps, release download, and `mash-setup` handoff.
+- `mash-setup` is a Rust CLI with subcommands: `install`, `doctor`, and `config`.
+- Install phases are pure functions per module: `pkg`, `rust`, `github`, `buildroot`, `docker`, `zsh`, `fonts`, `rclone`, `argon`.
+- Cross-distro logic is centralized in `pkg` and `platform`, with per-distro actions in phase modules.
+- Optional UX: `dialog`-based selection when `--interactive` is used; otherwise non-interactive defaults.
+
+## Validation notes (accuracy + gaps)
+- Accurate: the overall flow, idempotent package checks, and staging space guard remain as previously described.
+- Accurate: the trust model is unchanged; `bootstrap.sh` still downloads “latest” and only verifies a checksum if present.
+- Accurate: `--enable-ollama` flag still does not map to any install phase.
+- New/missing: interactive selection now installs `dialog` on-demand and falls back to a text prompt when `dialog` is unavailable or no TTY exists.
+- New/missing: config deserialization is now defaulted at the struct level, which reduces parse failures from missing fields.
 
 ## Risks (High/Medium/Low)
 - High
@@ -25,6 +40,7 @@
 - Low
   - `bootstrap.sh` installs into `/usr/local/bin` without checking for existing binaries; it always overwrites.
   - `zsh` / `oh-my-zsh` modifies `.zshrc`; backups are made for starship/p10k changes but not for the OEM `oh-my-zsh` script’s edits.
+  - `dialog` is installed on-demand for interactive mode; if the package manager is unavailable or locked, interactive mode silently falls back to text prompts.
 
 ## Missing safety checks & idempotency gaps
 - No mandatory signature or checksum verification for downloaded binaries or scripts. `.sha256` is optional and not enforced.
@@ -51,6 +67,12 @@
 - Assumes `/etc/apt/keyrings` and `/etc/apt/sources.list.d` are present and writable.
 - Assumes `sudo` is available; root containers without `sudo` will fail.
 
+## Known technical debt
+- No automated tests or harnesses for phase behavior, dry-run invariants, or platform detection.
+- Core logic is tightly coupled to system commands and mutable global state (package manager, systemctl, network scripts).
+- External scripts and git clones are unpinned, which complicates reproducibility and long-term stability.
+- Config/data-root changes are not transactional; partial failure can leave system state inconsistent.
+
 ## Recommended changes
 - Add mandatory integrity checks for the release binary:
   - Require `.sha256` and fail if missing, or
@@ -64,3 +86,11 @@
   - Unit tests for package translation, platform detection, and staging resolution.
   - Dry-run integration tests that simulate phase execution without system changes.
   - Shell tests for `bootstrap.sh` (e.g., with `bats` or `shellcheck` plus mocked `curl`).
+
+## Concrete next steps
+- Add basic unit tests for `platform`, `pkg`, and `staging`, plus a dry-run integration test harness.
+- Add a distro-aware Docker repo selection for Debian vs Ubuntu, with explicit error messages.
+- Enforce a required checksum or signed manifest for release binaries.
+- Introduce a config-driven “skip network scripts” mode for offline or deterministic installs.
+- Add a preflight check for systemd availability before Docker/service operations.
+- Document the interactive `dialog` flow and fallback prompts in `README.md`.
