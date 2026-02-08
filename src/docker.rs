@@ -192,11 +192,22 @@ fn configure_data_root(ctx: &InstallContext, data_root: &std::path::Path) -> Res
 
     let mut config: serde_json::Value = if daemon_json.exists() {
         let text = fs::read_to_string(daemon_json)?;
-        let parsed: serde_json::Value =
-            serde_json::from_str(&text).context("parsing /etc/docker/daemon.json")?;
-        match parsed {
-            serde_json::Value::Object(_) => parsed,
-            _ => anyhow::bail!("/etc/docker/daemon.json must be a JSON object"),
+        match serde_json::from_str::<serde_json::Value>(&text) {
+            Ok(obj) => match obj {
+                serde_json::Value::Object(_) => obj,
+                _ => {
+                    anyhow::bail!(
+                        "{} must be a JSON object; please fix or remove it before rerunning.",
+                        daemon_json.display()
+                    )
+                }
+            },
+            Err(err) => {
+                anyhow::bail!(
+                    "Failed to parse {}: {err}. Please repair the file (comments are not allowed) before rerunning.",
+                    daemon_json.display()
+                )
+            }
         }
     } else {
         serde_json::json!({})
