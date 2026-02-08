@@ -5,16 +5,15 @@ use std::process::Command;
 use crate::{
     apt_repo,
     driver::{RepoKind, ServiceName},
-    pkg::PkgBackend,
-    systemd, InstallContext,
+    package_manager, systemd, InstallContext, PkgBackend,
 };
 
 pub fn install_phase(ctx: &InstallContext) -> Result<()> {
     let backend = ctx.pkg_backend;
 
     let already = match backend {
-        PkgBackend::Apt => crate::pkg::is_installed(ctx.driver, "docker-ce"),
-        PkgBackend::Pacman => crate::pkg::is_installed(ctx.driver, "docker"),
+        PkgBackend::Apt => package_manager::is_installed(ctx.driver, "docker-ce"),
+        PkgBackend::Pacman => package_manager::is_installed(ctx.driver, "docker"),
     };
 
     if already {
@@ -54,7 +53,7 @@ fn install_docker_apt(ctx: &InstallContext) -> Result<()> {
         "docker-buildx-plugin",
         "docker-compose-plugin",
     ];
-    crate::pkg::ensure_packages(ctx.driver, &pkgs, ctx.dry_run)
+    package_manager::ensure_packages(ctx.driver, &pkgs, ctx.dry_run)
 }
 
 // ── Pacman path ─────────────────────────────────────────────────
@@ -62,7 +61,7 @@ fn install_docker_apt(ctx: &InstallContext) -> Result<()> {
 fn install_docker_pacman(ctx: &InstallContext) -> Result<()> {
     // On Arch/Manjaro, Docker is in the community repo
     let pkgs = ["docker", "docker-buildx", "docker-compose"];
-    crate::pkg::ensure_packages(ctx.driver, &pkgs, ctx.dry_run)
+    package_manager::ensure_packages(ctx.driver, &pkgs, ctx.dry_run)
 }
 
 // ── Common ──────────────────────────────────────────────────────

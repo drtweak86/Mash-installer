@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use std::process::Command;
 
-use crate::InstallContext;
+use crate::{package_manager, InstallContext};
 
 pub fn install_phase(ctx: &InstallContext) -> Result<()> {
     if which::which("rclone").is_ok() {
@@ -20,7 +20,7 @@ pub fn install_phase(ctx: &InstallContext) -> Result<()> {
 }
 
 fn try_pkg(ctx: &InstallContext) -> Result<bool> {
-    if crate::pkg::is_installed(ctx.driver, "rclone") {
+    if package_manager::is_installed(ctx.driver, "rclone") {
         return Ok(true);
     }
 
@@ -31,7 +31,7 @@ fn try_pkg(ctx: &InstallContext) -> Result<bool> {
     }
 
     // ensure_packages uses the right backend automatically
-    match crate::pkg::ensure_packages(ctx.driver, &["rclone"], false) {
+    match package_manager::ensure_packages(ctx.driver, &["rclone"], false) {
         Ok(()) => {
             tracing::info!("Installed rclone via package manager");
             Ok(true)

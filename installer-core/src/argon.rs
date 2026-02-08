@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use std::path::Path;
 use std::process::Command;
 
-use crate::{driver::ServiceName, pkg::PkgBackend, systemd, InstallContext};
+use crate::{driver::ServiceName, package_manager, systemd, InstallContext, PkgBackend};
 
 /// Clone target for the argononed C daemon.
 const ARGONONED_REPO: &str = "https://gitlab.com/DarkElvenAngel/argononed.git";
@@ -63,7 +63,7 @@ fn install_argononed(ctx: &InstallContext) -> Result<()> {
 fn ensure_argononed_deps(ctx: &InstallContext) -> Result<()> {
     // dtc = device tree compiler, needed by argononed's build
     // git is already installed from earlier phases
-    crate::pkg::ensure_packages(ctx.driver, &["dtc"], ctx.dry_run)?;
+    package_manager::ensure_packages(ctx.driver, &["dtc"], ctx.dry_run)?;
     Ok(())
 }
 

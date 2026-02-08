@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::process::Command;
 
-use crate::{apt_repo, driver::RepoKind, pkg::PkgBackend, InstallContext};
+use crate::{apt_repo, driver::RepoKind, package_manager, InstallContext, PkgBackend};
 
 pub fn install_phase(ctx: &InstallContext) -> Result<()> {
     install_git(ctx)?;
@@ -13,7 +13,7 @@ pub fn install_phase(ctx: &InstallContext) -> Result<()> {
 }
 
 fn install_git(ctx: &InstallContext) -> Result<()> {
-    crate::pkg::ensure_packages(ctx.driver, &["git", "git-lfs"], ctx.dry_run)?;
+    package_manager::ensure_packages(ctx.driver, &["git", "git-lfs"], ctx.dry_run)?;
 
     if !ctx.dry_run {
         let _ = Command::new("git").args(["lfs", "install"]).status();
@@ -30,7 +30,7 @@ fn install_gh(ctx: &InstallContext) -> Result<()> {
     match ctx.pkg_backend {
         PkgBackend::Pacman => {
             // On Arch/Manjaro gh is `github-cli` in community
-            crate::pkg::ensure_packages(ctx.driver, &["gh"], ctx.dry_run)?;
+            package_manager::ensure_packages(ctx.driver, &["gh"], ctx.dry_run)?;
         }
         PkgBackend::Apt => {
             apt_repo::ensure_repo(ctx, RepoKind::GitHubCli)?;
@@ -42,12 +42,12 @@ fn install_gh(ctx: &InstallContext) -> Result<()> {
 }
 
 fn install_gh_apt(ctx: &InstallContext) -> Result<()> {
-    crate::pkg::ensure_packages(ctx.driver, &["gh"], false)?;
+    package_manager::ensure_packages(ctx.driver, &["gh"], false)?;
     Ok(())
 }
 
 fn install_ssh_tools(ctx: &InstallContext) -> Result<()> {
-    crate::pkg::ensure_packages(ctx.driver, &["openssh-client"], ctx.dry_run)?;
+    package_manager::ensure_packages(ctx.driver, &["openssh-client"], ctx.dry_run)?;
     Ok(())
 }
 

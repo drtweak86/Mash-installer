@@ -4,7 +4,7 @@ use std::process::Command;
 
 use crate::{
     driver::{AptRepoConfig, RepoKind},
-    pkg, InstallContext,
+    package_manager, InstallContext,
 };
 
 /// Ensure the named apt repository is configured according to the distro driver.
@@ -26,7 +26,7 @@ pub fn ensure_repo(ctx: &InstallContext, repo: RepoKind) -> Result<()> {
 
     add_gpg_key(&config, ctx)?;
     if add_sources_list(&config, ctx)? {
-        pkg::update(ctx.driver, false)?;
+        package_manager::update(ctx.driver, false)?;
     }
 
     Ok(())

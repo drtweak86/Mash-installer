@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::SystemTime;
 
-use crate::InstallContext;
+use crate::{package_manager, InstallContext, PkgBackend};
 
 fn home_dir() -> PathBuf {
     dirs::home_dir().unwrap_or_else(|| PathBuf::from("/root"))
@@ -32,7 +32,7 @@ pub fn install_phase(ctx: &InstallContext) -> Result<()> {
 }
 
 fn install_zsh(ctx: &InstallContext) -> Result<()> {
-    crate::pkg::ensure_packages(ctx.driver, &["zsh"], ctx.dry_run)?;
+    package_manager::ensure_packages(ctx.driver, &["zsh"], ctx.dry_run)?;
     Ok(())
 }
 
@@ -122,9 +122,9 @@ fn install_p10k(ctx: &InstallContext) -> Result<()> {
 /// Returns true if it succeeded (or was already installed).
 fn try_p10k_pkg(ctx: &InstallContext) -> Result<bool> {
     match ctx.pkg_backend {
-        crate::pkg::PkgBackend::Pacman => {
+        PkgBackend::Pacman => {
             // Manjaro/Arch: available as `zsh-theme-powerlevel10k`
-            if crate::pkg::is_installed(ctx.driver, "zsh-theme-powerlevel10k")
+            if package_manager::is_installed(ctx.driver, "zsh-theme-powerlevel10k")
                 || Path::new("/usr/share/zsh-theme-powerlevel10k").exists()
             {
                 tracing::info!("Powerlevel10k already installed via package manager");
@@ -135,7 +135,8 @@ fn try_p10k_pkg(ctx: &InstallContext) -> Result<bool> {
                 tracing::info!("[dry-run] would install zsh-theme-powerlevel10k");
                 return Ok(true);
             }
-            match crate::pkg::ensure_packages(ctx.driver, &["zsh-theme-powerlevel10k"], false) {
+            match package_manager::ensure_packages(ctx.driver, &["zsh-theme-powerlevel10k"], false)
+            {
                 Ok(()) => {
                     tracing::info!("Installed Powerlevel10k via pacman");
                     Ok(true)
@@ -148,7 +149,7 @@ fn try_p10k_pkg(ctx: &InstallContext) -> Result<bool> {
                 }
             }
         }
-        crate::pkg::PkgBackend::Apt => {
+        PkgBackend::Apt => {
             // Not in standard Ubuntu/Debian repos
             Ok(false)
         }
