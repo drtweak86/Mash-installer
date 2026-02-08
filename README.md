@@ -18,6 +18,10 @@ A two-layer installer:
 The installer auto-detects your package manager (`apt` or `pacman`) and
 translates package names automatically.
 
+> **Note:** The CLI previously accepted `--enable-ollama`, but no install
+> phase ever existed for it. That flag has been removed to avoid the
+> misleading experience described in `docs/QAREPORT.md` (Medium 4).
+
 ## Quick start
 
 Option 1 — One-liner (downloads latest release and runs it)
