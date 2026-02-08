@@ -10,6 +10,7 @@ mod platform;
 mod rclone;
 mod rust;
 mod staging;
+mod systemd;
 mod zsh;
 
 use anyhow::Result;
@@ -18,7 +19,7 @@ use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use std::io::{self, IsTerminal, Write};
 use std::path::PathBuf;
 use std::process::Command;
-use tracing::info;
+use tracing::{error, info};
 
 /// Mash Installer – idempotent mega-installer for Raspberry Pi / Ubuntu dev machines.
 #[derive(Parser)]
@@ -331,16 +332,32 @@ fn run_install(
     };
 
     // ── Execute phases ──────────────────────────────────────────
+    let mut completed_phases = Vec::new();
     for (i, phase) in phases.iter().enumerate() {
         let label = format!("Phase {}/{} · {}", i + 1, total, phase.label,);
         let pb = ctx.phase_spinner(&label);
         match (phase.run)(&ctx) {
-            Ok(()) => ctx.finish_phase(&pb, phase.done_msg),
+            Ok(()) => {
+                ctx.finish_phase(&pb, phase.done_msg);
+                completed_phases.push(phase.label);
+            }
             Err(e) => {
                 pb.set_style(ProgressStyle::with_template("{prefix} {msg}").unwrap());
                 pb.set_prefix("✗");
                 pb.finish_with_message(format!("{} FAILED: {e:#}", phase.label));
                 ctx.overall.inc(1);
+                let completed = if completed_phases.is_empty() {
+                    "none".to_string()
+                } else {
+                    completed_phases.join(", ")
+                };
+                error!(
+                    "Installation aborted during {} (staging dir: {}). Completed phases: {}. \
+                     Rerun `mash-setup doctor` or remove the staging directory before retrying.",
+                    phase.label,
+                    ctx.staging_dir.display(),
+                    completed
+                );
                 return Err(e);
             }
         }

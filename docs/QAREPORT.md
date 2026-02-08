@@ -34,3 +34,4 @@ The `cargo fmt --check` command was run to check the code formatting. The comman
 The `shellcheck` command was not run on the `bootstrap.sh` script because it was not installed on the system and could not be installed due to permission errors.
 
 **Recommendation:** Install `shellcheck` on the system and run it on the `bootstrap.sh` script to check for any issues.
+

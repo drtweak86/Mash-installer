@@ -2,8 +2,7 @@ use anyhow::{Context, Result};
 use std::fs;
 use std::process::Command;
 
-use crate::pkg::PkgBackend;
-use crate::InstallContext;
+use crate::{pkg::PkgBackend, systemd, InstallContext};
 
 pub fn install_phase(ctx: &InstallContext) -> Result<()> {
     let backend = crate::pkg::detect_backend();
@@ -106,12 +105,10 @@ fn add_docker_apt_repo(ctx: &InstallContext) -> Result<()> {
 }
 
 fn docker_repo_os(ctx: &InstallContext) -> Result<&'static str> {
-    match ctx.platform.distro.as_str() {
-        "ubuntu" | "linuxmint" | "pop" => Ok("ubuntu"),
-        "debian" | "raspbian" => Ok("debian"),
-        other if ctx.platform.distro_family == "debian" => {
-            anyhow::bail!("Unsupported Debian-family distro '{other}' for Docker repo setup")
-        }
+    let distro = ctx.platform.distro.to_lowercase();
+    match distro.as_str() {
+        "ubuntu" | "linuxmint" | "pop" | "elementary" | "zorin" => Ok("ubuntu"),
+        _ if ctx.platform.distro_family == "debian" => Ok("debian"),
         other => anyhow::bail!("Unsupported distro '{other}' for Docker repo setup"),
     }
 }
@@ -173,6 +170,10 @@ fn enable_docker_service(ctx: &InstallContext) -> Result<()> {
         tracing::info!("[dry-run] would enable docker.service");
         return Ok(());
     }
+    if !systemd::is_available() {
+        tracing::warn!("systemd not detected; skipping docker.service enable");
+        return Ok(());
+    }
     let _ = Command::new("sudo")
         .args(["systemctl", "enable", "--now", "docker.service"])
         .status();
@@ -192,11 +193,22 @@ fn configure_data_root(ctx: &InstallContext, data_root: &std::path::Path) -> Res
 
     let mut config: serde_json::Value = if daemon_json.exists() {
         let text = fs::read_to_string(daemon_json)?;
-        let parsed: serde_json::Value =
-            serde_json::from_str(&text).context("parsing /etc/docker/daemon.json")?;
-        match parsed {
-            serde_json::Value::Object(_) => parsed,
-            _ => anyhow::bail!("/etc/docker/daemon.json must be a JSON object"),
+        match serde_json::from_str::<serde_json::Value>(&text) {
+            Ok(obj) => match obj {
+                serde_json::Value::Object(_) => obj,
+                _ => {
+                    anyhow::bail!(
+                        "{} must be a JSON object; please fix or remove it before rerunning.",
+                        daemon_json.display()
+                    )
+                }
+            },
+            Err(err) => {
+                anyhow::bail!(
+                    "Failed to parse {}: {err}. Please repair the file (comments are not allowed) before rerunning.",
+                    daemon_json.display()
+                )
+            }
         }
     } else {
         serde_json::json!({})

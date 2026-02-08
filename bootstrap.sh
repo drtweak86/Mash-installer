@@ -55,7 +55,12 @@ detect_arch() {
     case "$arch" in
         aarch64|arm64) echo "aarch64-unknown-linux-gnu" ;;
         x86_64|amd64)  echo "x86_64-unknown-linux-gnu" ;;
-        *)             die "Unsupported architecture: $arch" ;;
+        armv7l|armhf)
+            die "Unsupported architecture: $arch (32-bit ARM). Switch to a 64-bit OS (aarch64) to run this installer."
+            ;;
+        *)
+            die "Unsupported architecture: $arch"
+            ;;
     esac
 }
 
@@ -127,16 +132,15 @@ download_binary() {
     curl -fsSL -o "${tmp_dir}/${asset_name}" "${base_url}/${asset_name}" \
         || die "Failed to download ${base_url}/${asset_name}"
 
-    # Verify checksum if available
+    # Require checksum verification
     local sha_file="${asset_name}.sha256"
-    if curl -fsSL -o "${tmp_dir}/${sha_file}" "${base_url}/${sha_file}" 2>/dev/null; then
-        info "Verifying SHA-256 checksum …"
-        (cd "$tmp_dir" && sha256sum -c "$sha_file") \
-            || die "Checksum verification failed!"
-        info "Checksum OK"
-    else
-        warn "No .sha256 file found; skipping verification"
+    if ! curl -fsSL -o "${tmp_dir}/${sha_file}" "${base_url}/${sha_file}"; then
+        die "Checksum file ${sha_file} missing for ${asset_name}"
     fi
+    info "Verifying SHA-256 checksum …"
+    (cd "$tmp_dir" && sha256sum -c "$sha_file") \
+        || die "Checksum verification failed!"
+    info "Checksum OK"
 
     chmod +x "${tmp_dir}/${asset_name}"
     echo "${tmp_dir}/${asset_name}"

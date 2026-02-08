@@ -18,6 +18,10 @@ A two-layer installer:
 The installer auto-detects your package manager (`apt` or `pacman`) and
 translates package names automatically.
 
+> **Note:** The CLI previously accepted `--enable-ollama`, but no install
+> phase ever existed for it. That flag has been removed to avoid the
+> misleading experience described in `docs/QAREPORT.md` (Medium 4).
+
 ## Quick start
 
 Option 1 — One-liner (downloads latest release and runs it)
@@ -30,6 +34,8 @@ Option 2 — One-liner with installer options (pass options to the bootstrap scr
 curl -fsSL https://raw.githubusercontent.com/drtweak86/Mash-installer-/master/bootstrap.sh \
   | bash -s -- --profile dev --staging-dir /mnt/data/mash-installer
 ```
+
+The bootstrapper now *requires* a `.sha256` checksum file for the downloaded `mash-setup` binary; the script exits if the checksum is missing or fails to verify, matching the QA report's High Priority 1 recommendation (see `docs/QAREPORT.md`).
 
 You can also download the bootstrap script first and inspect or run it locally if you prefer:
 ```bash
