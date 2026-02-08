@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use std::process::Command;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::InstallContext;
 
@@ -10,6 +11,8 @@ pub enum PkgBackend {
     Apt,
     Pacman,
 }
+
+static PACMAN_SYNCED: AtomicBool = AtomicBool::new(false);
 
 /// Auto-detect the system package manager.
 pub fn detect_backend() -> PkgBackend {
@@ -92,7 +95,7 @@ pub fn is_installed(pkg: &str) -> bool {
 pub fn update(dry_run: bool) -> Result<()> {
     match detect_backend() {
         PkgBackend::Apt => apt_update(dry_run),
-        PkgBackend::Pacman => pacman_sync(dry_run),
+        PkgBackend::Pacman => ensure_pacman_synced(dry_run),
     }
 }
 
@@ -106,7 +109,10 @@ pub fn ensure_packages(pkgs: &[&str], dry_run: bool) -> Result<()> {
 
     match backend {
         PkgBackend::Apt => apt_ensure(&native_refs, dry_run),
-        PkgBackend::Pacman => pacman_ensure(&native_refs, dry_run),
+        PkgBackend::Pacman => {
+            ensure_pacman_synced(dry_run)?;
+            pacman_ensure(&native_refs, dry_run)
+        }
     }
 }
 
@@ -240,6 +246,19 @@ fn pacman_sync(dry_run: bool) -> Result<()> {
         anyhow::bail!("pacman -Syu failed");
     }
     Ok(())
+}
+
+fn ensure_pacman_synced(dry_run: bool) -> Result<()> {
+    if PACMAN_SYNCED.load(Ordering::SeqCst) {
+        return Ok(());
+    }
+
+    // Run `pacman -Syu` before any installs to avoid the partial-upgrade risk noted in docs/QAREPORT.md.
+    let res = pacman_sync(dry_run);
+    if res.is_ok() {
+        PACMAN_SYNCED.store(true, Ordering::SeqCst);
+    }
+    res
 }
 
 fn pacman_ensure(pkgs: &[&str], dry_run: bool) -> Result<()> {
