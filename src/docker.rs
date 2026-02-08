@@ -106,12 +106,10 @@ fn add_docker_apt_repo(ctx: &InstallContext) -> Result<()> {
 }
 
 fn docker_repo_os(ctx: &InstallContext) -> Result<&'static str> {
-    match ctx.platform.distro.as_str() {
-        "ubuntu" | "linuxmint" | "pop" => Ok("ubuntu"),
-        "debian" | "raspbian" => Ok("debian"),
-        other if ctx.platform.distro_family == "debian" => {
-            anyhow::bail!("Unsupported Debian-family distro '{other}' for Docker repo setup")
-        }
+    let distro = ctx.platform.distro.to_lowercase();
+    match distro.as_str() {
+        "ubuntu" | "linuxmint" | "pop" | "elementary" | "zorin" => Ok("ubuntu"),
+        _ if ctx.platform.distro_family == "debian" => Ok("debian"),
         other => anyhow::bail!("Unsupported distro '{other}' for Docker repo setup"),
     }
 }
