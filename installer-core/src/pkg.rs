@@ -317,3 +317,53 @@ pub fn install_phase(ctx: &InstallContext) -> Result<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::driver::{RepoKind, ServiceName};
+
+    struct TestDriver;
+
+    impl DistroDriver for TestDriver {
+        fn name(&self) -> &'static str {
+            "test"
+        }
+
+        fn description(&self) -> &'static str {
+            "test driver"
+        }
+
+        fn matches(&self, _: &crate::platform::PlatformInfo) -> bool {
+            true
+        }
+
+        fn pkg_backend(&self) -> PkgBackend {
+            PkgBackend::Apt
+        }
+
+        fn translate_package(&self, canonical: &str) -> Option<String> {
+            match canonical {
+                "foo" => Some("foo-native".to_string()),
+                "drop" => None,
+                _ => Some(canonical.to_string()),
+            }
+        }
+
+        fn apt_repo_config(&self, _repo: RepoKind) -> Option<crate::driver::AptRepoConfig> {
+            None
+        }
+
+        fn service_unit(&self, _service: ServiceName) -> &'static str {
+            "test.service"
+        }
+    }
+
+    #[test]
+    fn translate_names_respects_driver() {
+        let driver = TestDriver;
+        let pkgs = ["foo", "bar", "drop"];
+        let names = translate_names(&driver, &pkgs);
+        assert_eq!(names, vec!["foo-native".to_string(), "bar".to_string()]);
+    }
+}

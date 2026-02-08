@@ -134,6 +134,16 @@ impl ModuleSelection {
             docker_data_root: true,
         }
     }
+
+    fn apply_alias(&mut self, alias: &str, enabled: bool) -> bool {
+        for opt in MODULE_OPTIONS {
+            if opt.alias.eq_ignore_ascii_case(alias) {
+                (opt.setter)(self, enabled);
+                return true;
+            }
+        }
+        false
+    }
 }
 
 struct ModuleOption {
@@ -197,7 +207,7 @@ fn run_module_menu(driver_name: &str) -> ModuleSelection {
         for opt in MODULE_OPTIONS {
             let prompt = format!("Enable {} (alias {})?", opt.label, opt.alias);
             let enabled = prompt_yes_no(&prompt, opt.default);
-            (opt.setter)(&mut selection, enabled);
+            selection.apply_alias(opt.alias, enabled);
         }
         selection
     }
@@ -254,5 +264,27 @@ fn prompt_yes_no(prompt: &str, default: bool) -> bool {
             "n" | "no" => return false,
             _ => println!("Please answer y or n."),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn module_selection_alias_applies() {
+        let mut selection = ModuleSelection::default();
+        assert!(!selection.enable_argon);
+        assert!(selection.apply_alias("A", true));
+        assert!(selection.enable_argon);
+        assert!(!selection.apply_alias("invalid", true));
+    }
+
+    #[test]
+    fn module_selection_full_flag() {
+        let selection = ModuleSelection::full();
+        assert!(selection.enable_argon);
+        assert!(selection.enable_p10k);
+        assert!(selection.docker_data_root);
     }
 }
