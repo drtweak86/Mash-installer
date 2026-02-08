@@ -18,6 +18,25 @@ impl DistroDriver for FedoraDriver {
     fn pkg_backend(&self) -> PkgBackend {
         PkgBackend::Pacman
     }
+
+    fn translate_package(&self, canonical: &str) -> Option<String> {
+        match canonical {
+            "software-properties-common" | "apt-transport-https" | "lsb-release" => None,
+            "g++" => Some("gcc-c++".to_string()),
+            "xz-utils" => Some("xz".to_string()),
+            "fd-find" => Some("fd".to_string()),
+            "libncurses-dev" => Some("ncurses-devel".to_string()),
+            "libssl-dev" => Some("openssl-devel".to_string()),
+            "openssh-client" => Some("openssh-clients".to_string()),
+            "docker-ce" => Some("docker".to_string()),
+            "docker-ce-cli" => None,
+            "containerd.io" => Some("containerd".to_string()),
+            "docker-buildx-plugin" => Some("docker-buildx".to_string()),
+            "docker-compose-plugin" => Some("docker-compose".to_string()),
+            "gh" => Some("gh".to_string()),
+            _ => Some(canonical.to_string()),
+        }
+    }
 }
 
 static FEDORA_DRIVER: FedoraDriver = FedoraDriver;
