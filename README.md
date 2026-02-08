@@ -114,11 +114,19 @@ installer translates names automatically (e.g. `build-essential` → `base-devel
 - `pacman -Syu` is run to sync the database and avoid partial-upgrade issues.
 - `--needed` ensures pacman is idempotent (already-installed packages are skipped).
 
+- Each distro driver implements the shared `DistroDriver` trait, so the core phases
+  ask the driver for package translations, apt repo metadata, and service names
+  before touching Docker/GitHub CLI resources.
+
 ### Ubuntu / Debian
 
 - Docker is installed from Docker's official apt repo (GPG key + sources list).
 - GitHub CLI is installed from GitHub's official apt repo.
 - All installs use `--install-recommends`.
+
+## Interactive module selection
+
+The installer’s interactive flow still runs three steps (distro selection, module selection, profile selection). If you choose `Select modules`, the CLI describes module toggles using aliases: `A` for Argon One fan control, `P` for Powerlevel10k shell polish, and `D` for managing Docker’s data root inside the staging dir. Those alias choices populate `ModuleSelection`, so the resulting flags (`--enable-argon`, `--enable-p10k`, `--docker-data-root`) remain aligned with the menu output.
 
 ## Configuration
 
