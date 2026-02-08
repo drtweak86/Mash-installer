@@ -183,6 +183,16 @@ cargo install cross --git https://github.com/cross-rs/cross
 cross build --release --target aarch64-unknown-linux-gnu
 ```
 
+## Testing & CI
+
+- `cargo fmt --all -- --check`
+- `cargo clippy --all-targets -- -D warnings`
+- `cargo test --all`
+
+CI is gated on running the commands above (see `.github/workflows/ci.yml`), so pull requests should pass them locally before pushing.
+
+`cargo maelstrom` is optional: it requires a compatible host kernel/non-Docker runtime (with the zygote/unprivileged-clone support) and typically cannot run inside Docker-based CI. Run it only when you have a runtime that exposes those primitives.
+
 ## Project structure
 
 ```
