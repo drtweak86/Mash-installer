@@ -289,6 +289,22 @@ mod tests {
     }
 
     #[test]
+    fn module_selection_defaults_off() {
+        let selection = ModuleSelection::default();
+        assert!(!selection.enable_argon);
+        assert!(!selection.enable_p10k);
+        assert!(!selection.docker_data_root);
+    }
+
+    #[test]
+    fn module_selection_allows_disabling_alias() {
+        let mut selection = ModuleSelection::full();
+        assert!(selection.enable_p10k);
+        assert!(selection.apply_alias("P", false));
+        assert!(!selection.enable_p10k);
+    }
+
+    #[test]
     fn module_selection_aliases_are_case_insensitive() {
         let mut selection = ModuleSelection::default();
         assert!(selection.apply_alias("p", true));
