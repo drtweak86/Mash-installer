@@ -54,3 +54,29 @@ static ARCH_DRIVER: ArchDriver = ArchDriver;
 pub fn driver() -> &'static dyn DistroDriver {
     &ARCH_DRIVER
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn builds_translate_to_base_devel() {
+        assert_eq!(
+            driver().translate_package("build-essential"),
+            Some("base-devel".to_string())
+        );
+    }
+
+    #[test]
+    fn docker_package_maps_to_docker() {
+        assert_eq!(
+            driver().translate_package("docker-ce"),
+            Some("docker".to_string())
+        );
+    }
+
+    #[test]
+    fn unsupported_package_returns_none() {
+        assert!(driver().translate_package("apt-transport-https").is_none());
+    }
+}

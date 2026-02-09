@@ -96,3 +96,45 @@ fn github_repo_line(info: &PlatformInfo) -> Result<String> {
         "deb [arch={arch} signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main"
     ))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use installer_core::{PlatformInfo, RepoKind};
+
+    fn sample_platform() -> PlatformInfo {
+        PlatformInfo {
+            arch: "aarch64".to_string(),
+            distro: "ubuntu".to_string(),
+            distro_version: "24.04".to_string(),
+            distro_codename: "lunar".to_string(),
+            distro_family: "debian".to_string(),
+            pi_model: None,
+        }
+    }
+
+    #[test]
+    fn docker_repo_config_is_available() {
+        let info = sample_platform();
+        let config = driver()
+            .apt_repo_config(RepoKind::Docker)
+            .expect("docker config missing");
+        assert_eq!(config.key_path, "/etc/apt/keyrings/docker.asc");
+        let line = (config.repo_line)(&info).expect("repo line failed");
+        assert!(line.contains("download.docker.com"));
+    }
+
+    #[test]
+    fn github_repo_config_headers_match() {
+        let info = sample_platform();
+        let config = driver()
+            .apt_repo_config(RepoKind::GitHubCli)
+            .expect("github config missing");
+        assert_eq!(
+            config.key_path,
+            "/etc/apt/keyrings/githubcli-archive-keyring.gpg"
+        );
+        let line = (config.repo_line)(&info).expect("repo line failed");
+        assert!(line.contains("cli.github.com"));
+    }
+}

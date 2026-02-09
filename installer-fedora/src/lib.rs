@@ -44,3 +44,21 @@ static FEDORA_DRIVER: FedoraDriver = FedoraDriver;
 pub fn driver() -> &'static dyn DistroDriver {
     &FEDORA_DRIVER
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn gpp_translates_to_gcc_cxx() {
+        assert_eq!(
+            driver().translate_package("g++"),
+            Some("gcc-c++".to_string())
+        );
+    }
+
+    #[test]
+    fn optional_packages_translate_to_none() {
+        assert!(driver().translate_package("docker-ce-cli").is_none());
+    }
+}
