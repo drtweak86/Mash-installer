@@ -9,11 +9,11 @@ use crate::{
 };
 
 pub fn install_phase(ctx: &InstallContext) -> Result<()> {
-    let backend = ctx.pkg_backend;
+    let backend = ctx.platform.pkg_backend;
 
     let already = match backend {
-        PkgBackend::Apt => package_manager::is_installed(ctx.driver, "docker-ce"),
-        PkgBackend::Pacman => package_manager::is_installed(ctx.driver, "docker"),
+        PkgBackend::Apt => package_manager::is_installed(ctx.platform.driver, "docker-ce"),
+        PkgBackend::Pacman => package_manager::is_installed(ctx.platform.driver, "docker"),
     };
 
     if already {
@@ -33,10 +33,10 @@ pub fn install_phase(ctx: &InstallContext) -> Result<()> {
     add_user_to_docker_group(ctx)?;
     enable_docker_service(ctx)?;
 
-    let desired_data_root = if ctx.docker_data_root {
-        Some(ctx.staging_dir.join("docker"))
+    let desired_data_root = if ctx.options.docker_data_root {
+        Some(ctx.options.staging_dir.join("docker"))
     } else {
-        ctx.config.docker.data_root.clone()
+        ctx.platform.config.docker.data_root.clone()
     };
     if let Some(data_root) = desired_data_root {
         configure_data_root(ctx, &data_root)?;
@@ -53,7 +53,7 @@ fn install_docker_apt(ctx: &InstallContext) -> Result<()> {
         "docker-buildx-plugin",
         "docker-compose-plugin",
     ];
-    package_manager::ensure_packages(ctx.driver, &pkgs, ctx.dry_run)
+    package_manager::ensure_packages(ctx.platform.driver, &pkgs, ctx.options.dry_run)
 }
 
 // ── Pacman path ─────────────────────────────────────────────────
@@ -61,7 +61,7 @@ fn install_docker_apt(ctx: &InstallContext) -> Result<()> {
 fn install_docker_pacman(ctx: &InstallContext) -> Result<()> {
     // On Arch/Manjaro, Docker is in the community repo
     let pkgs = ["docker", "docker-buildx", "docker-compose"];
-    package_manager::ensure_packages(ctx.driver, &pkgs, ctx.dry_run)
+    package_manager::ensure_packages(ctx.platform.driver, &pkgs, ctx.options.dry_run)
 }
 
 // ── Common ──────────────────────────────────────────────────────
@@ -83,7 +83,7 @@ fn add_user_to_docker_group(ctx: &InstallContext) -> Result<()> {
     }
 
     tracing::info!("Adding user '{user}' to docker group");
-    if ctx.dry_run {
+    if ctx.options.dry_run {
         return Ok(());
     }
 
@@ -98,8 +98,8 @@ fn add_user_to_docker_group(ctx: &InstallContext) -> Result<()> {
 }
 
 fn enable_docker_service(ctx: &InstallContext) -> Result<()> {
-    if ctx.dry_run {
-        let service = ctx.driver.service_unit(ServiceName::Docker);
+    if ctx.options.dry_run {
+        let service = ctx.platform.driver.service_unit(ServiceName::Docker);
         tracing::info!("[dry-run] would enable {service}");
         return Ok(());
     }
@@ -107,7 +107,7 @@ fn enable_docker_service(ctx: &InstallContext) -> Result<()> {
         tracing::warn!("systemd not detected; skipping docker.service enable");
         return Ok(());
     }
-    let service = ctx.driver.service_unit(ServiceName::Docker);
+    let service = ctx.platform.driver.service_unit(ServiceName::Docker);
     let _ = Command::new("sudo")
         .args(["systemctl", "enable", "--now", service])
         .status();
@@ -119,7 +119,7 @@ fn configure_data_root(ctx: &InstallContext, data_root: &std::path::Path) -> Res
 
     tracing::info!("Configuring Docker data-root to {}", data_root.display());
     crate::staging::ensure_space_for_path(data_root)?;
-    if ctx.dry_run {
+    if ctx.options.dry_run {
         return Ok(());
     }
 

@@ -10,7 +10,7 @@ pub fn install_phase(ctx: &InstallContext) -> Result<()> {
         "xfonts-terminus",
     ];
 
-    package_manager::ensure_packages(ctx.driver, &pkgs, ctx.dry_run)?;
+    package_manager::ensure_packages(ctx.platform.driver, &pkgs, ctx.options.dry_run)?;
 
     tracing::info!(
         "Nerd Fonts are not available via system packages. \

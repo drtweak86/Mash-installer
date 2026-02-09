@@ -3,6 +3,7 @@ mod argon;
 mod backend;
 mod buildroot;
 mod config;
+mod context;
 mod distro;
 mod docker;
 mod doctor;
@@ -24,6 +25,7 @@ use std::path::PathBuf;
 use tracing::{error, info};
 
 pub use backend::PkgBackend;
+use context::{OptionsContext, PlatformContext, UiContext};
 pub use driver::{AptRepoConfig, DistroDriver, RepoKind, ServiceName};
 pub use platform::{detect as detect_platform, PlatformInfo};
 
@@ -40,21 +42,9 @@ pub struct InstallOptions {
 
 /// Central context threaded through every install phase.
 pub struct InstallContext {
-    pub profile: ProfileLevel,
-    pub staging_dir: PathBuf,
-    pub dry_run: bool,
-    pub interactive: bool,
-    pub enable_argon: bool,
-    pub enable_p10k: bool,
-    pub docker_data_root: bool,
-    pub mp: MultiProgress,
-    /// Overall progress bar (% done + ETA).
-    pub overall: ProgressBar,
-    pub config: config::MashConfig,
-    pub platform: platform::PlatformInfo,
-    pub driver_name: &'static str,
-    pub driver: &'static dyn DistroDriver,
-    pub pkg_backend: PkgBackend,
+    pub options: OptionsContext,
+    pub platform: PlatformContext,
+    pub ui: UiContext,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -68,8 +58,9 @@ impl InstallContext {
     /// Create a spinner-style progress bar attached to the MultiProgress.
     pub fn phase_spinner(&self, msg: &str) -> ProgressBar {
         let pb = self
+            .ui
             .mp
-            .insert_before(&self.overall, ProgressBar::new_spinner());
+            .insert_before(&self.ui.overall, ProgressBar::new_spinner());
         pb.set_style(
             ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] {msg}")
                 .unwrap()
@@ -85,7 +76,7 @@ impl InstallContext {
         pb.set_style(ProgressStyle::with_template("{prefix} {msg}").unwrap());
         pb.set_prefix("✓");
         pb.finish_with_message(msg.to_string());
-        self.overall.inc(1);
+        self.ui.overall.inc(1);
     }
 
     /// Finish a spinner indicating it was skipped and advance the overall bar.
@@ -93,7 +84,7 @@ impl InstallContext {
         pb.set_style(ProgressStyle::with_template("{prefix} {msg}").unwrap());
         pb.set_prefix("–");
         pb.finish_with_message(msg.to_string());
-        self.overall.inc(1);
+        self.ui.overall.inc(1);
     }
 }
 
@@ -196,7 +187,7 @@ pub fn run_with_driver(driver: &'static dyn DistroDriver, opts: InstallOptions) 
     );
     overall.enable_steady_tick(std::time::Duration::from_millis(200));
 
-    let ctx = InstallContext {
+    let options = OptionsContext {
         profile,
         staging_dir: staging,
         dry_run: opts.dry_run,
@@ -204,13 +195,22 @@ pub fn run_with_driver(driver: &'static dyn DistroDriver, opts: InstallOptions) 
         enable_argon,
         enable_p10k,
         docker_data_root,
-        mp,
-        overall,
+    };
+
+    let platform_ctx = PlatformContext {
         config: cfg,
         platform: plat,
         driver_name: driver.name(),
         driver,
         pkg_backend: driver.pkg_backend(),
+    };
+
+    let ui = UiContext { mp, overall };
+
+    let ctx = InstallContext {
+        options,
+        platform: platform_ctx,
+        ui,
     };
 
     let mut completed_phases = Vec::new();
@@ -226,7 +226,7 @@ pub fn run_with_driver(driver: &'static dyn DistroDriver, opts: InstallOptions) 
                 pb.set_style(ProgressStyle::with_template("{prefix} {msg}").unwrap());
                 pb.set_prefix("✗");
                 pb.finish_with_message(format!("{} FAILED: {e:#}", phase.label));
-                ctx.overall.inc(1);
+                ctx.ui.overall.inc(1);
                 let completed = if completed_phases.is_empty() {
                     "none".to_string()
                 } else {
@@ -236,7 +236,7 @@ pub fn run_with_driver(driver: &'static dyn DistroDriver, opts: InstallOptions) 
                     "Installation aborted during {} (staging dir: {}). Completed phases: {}. \
                      Rerun `mash-setup doctor` or remove the staging directory before retrying.",
                     phase.label,
-                    ctx.staging_dir.display(),
+                    ctx.options.staging_dir.display(),
                     completed
                 );
                 return Err(e);
@@ -244,7 +244,7 @@ pub fn run_with_driver(driver: &'static dyn DistroDriver, opts: InstallOptions) 
         }
     }
 
-    ctx.overall.finish_and_clear();
+    ctx.ui.overall.finish_and_clear();
 
     println!();
     println!("╔══════════════════════════════════════════════╗");
@@ -252,7 +252,7 @@ pub fn run_with_driver(driver: &'static dyn DistroDriver, opts: InstallOptions) 
     println!("╚══════════════════════════════════════════════╝");
     println!();
 
-    if ctx.dry_run {
+    if ctx.options.dry_run {
         println!("(dry-run mode – no changes were made)");
         println!();
     }

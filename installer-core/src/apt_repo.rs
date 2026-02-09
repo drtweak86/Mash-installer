@@ -9,13 +9,13 @@ use crate::{
 
 /// Ensure the named apt repository is configured according to the distro driver.
 pub fn ensure_repo(ctx: &InstallContext, repo: RepoKind) -> Result<()> {
-    let config = match ctx.driver.apt_repo_config(repo) {
+    let config = match ctx.platform.driver.apt_repo_config(repo) {
         Some(cfg) => cfg,
         None => return Ok(()),
     };
 
     tracing::info!("Ensuring apt repository: {}", config.label);
-    if ctx.dry_run {
+    if ctx.options.dry_run {
         tracing::info!(
             "[dry-run] would configure {} apt repo at {}",
             config.label,
@@ -26,7 +26,7 @@ pub fn ensure_repo(ctx: &InstallContext, repo: RepoKind) -> Result<()> {
 
     add_gpg_key(&config, ctx)?;
     if add_sources_list(&config, ctx)? {
-        package_manager::update(ctx.driver, false)?;
+        package_manager::update(ctx.platform.driver, false)?;
     }
 
     Ok(())
@@ -46,7 +46,7 @@ fn add_gpg_key(config: &AptRepoConfig, ctx: &InstallContext) -> Result<()> {
             .context("creating apt keyring directory")?;
     }
 
-    let key_url = (config.key_url)(&ctx.platform)?;
+    let key_url = (config.key_url)(&ctx.platform.platform)?;
     let status = Command::new("sh")
         .arg("-c")
         .arg(format!(
@@ -73,7 +73,7 @@ fn add_sources_list(config: &AptRepoConfig, ctx: &InstallContext) -> Result<bool
         std::fs::create_dir_all(parent)?;
     }
 
-    let repo_line = (config.repo_line)(&ctx.platform)?;
+    let repo_line = (config.repo_line)(&ctx.platform.platform)?;
     let cmd = Command::new("sh")
         .arg("-c")
         .arg(format!(

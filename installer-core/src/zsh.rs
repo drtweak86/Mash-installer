@@ -22,7 +22,7 @@ pub fn install_phase(ctx: &InstallContext) -> Result<()> {
     install_omz(ctx)?;
     install_starship(ctx)?;
 
-    if ctx.enable_p10k {
+    if ctx.options.enable_p10k {
         install_p10k(ctx)?;
     } else {
         tracing::info!("Powerlevel10k skipped (pass --enable-p10k to install)");
@@ -32,7 +32,7 @@ pub fn install_phase(ctx: &InstallContext) -> Result<()> {
 }
 
 fn install_zsh(ctx: &InstallContext) -> Result<()> {
-    package_manager::ensure_packages(ctx.driver, &["zsh"], ctx.dry_run)?;
+    package_manager::ensure_packages(ctx.platform.driver, &["zsh"], ctx.options.dry_run)?;
     Ok(())
 }
 
@@ -44,7 +44,7 @@ fn install_omz(ctx: &InstallContext) -> Result<()> {
     }
 
     tracing::info!("Installing oh-my-zsh (unattended)");
-    if ctx.dry_run {
+    if ctx.options.dry_run {
         tracing::info!("[dry-run] would install oh-my-zsh");
         return Ok(());
     }
@@ -70,7 +70,7 @@ fn install_starship(ctx: &InstallContext) -> Result<()> {
     }
 
     tracing::info!("Installing starship prompt");
-    if ctx.dry_run {
+    if ctx.options.dry_run {
         tracing::info!("[dry-run] would install starship");
         return Ok(());
     }
@@ -121,22 +121,25 @@ fn install_p10k(ctx: &InstallContext) -> Result<()> {
 /// Try installing Powerlevel10k via the system package manager.
 /// Returns true if it succeeded (or was already installed).
 fn try_p10k_pkg(ctx: &InstallContext) -> Result<bool> {
-    match ctx.pkg_backend {
+    match ctx.platform.pkg_backend {
         PkgBackend::Pacman => {
             // Manjaro/Arch: available as `zsh-theme-powerlevel10k`
-            if package_manager::is_installed(ctx.driver, "zsh-theme-powerlevel10k")
+            if package_manager::is_installed(ctx.platform.driver, "zsh-theme-powerlevel10k")
                 || Path::new("/usr/share/zsh-theme-powerlevel10k").exists()
             {
                 tracing::info!("Powerlevel10k already installed via package manager");
                 return Ok(true);
             }
             tracing::info!("Attempting Powerlevel10k install via pacman");
-            if ctx.dry_run {
+            if ctx.options.dry_run {
                 tracing::info!("[dry-run] would install zsh-theme-powerlevel10k");
                 return Ok(true);
             }
-            match package_manager::ensure_packages(ctx.driver, &["zsh-theme-powerlevel10k"], false)
-            {
+            match package_manager::ensure_packages(
+                ctx.platform.driver,
+                &["zsh-theme-powerlevel10k"],
+                false,
+            ) {
                 Ok(()) => {
                     tracing::info!("Installed Powerlevel10k via pacman");
                     Ok(true)
@@ -166,7 +169,7 @@ fn install_p10k_git(ctx: &InstallContext) -> Result<()> {
     }
 
     tracing::info!("Cloning Powerlevel10k to {}", dest.display());
-    if ctx.dry_run {
+    if ctx.options.dry_run {
         tracing::info!(
             "[dry-run] would git clone powerlevel10k to {}",
             dest.display()
@@ -229,7 +232,7 @@ fn add_p10k_source_to_zshrc(ctx: &InstallContext) -> Result<()> {
     writeln!(block, "  source {P10K_THEME_FILE}").unwrap();
     writeln!(block, "fi").unwrap();
 
-    if ctx.dry_run {
+    if ctx.options.dry_run {
         tracing::info!("[dry-run] would append Powerlevel10k source block to .zshrc");
         return Ok(());
     }

@@ -4,7 +4,7 @@ use anyhow::Result;
 // ── Phase 1: core packages ─────────────────────────────────────
 
 pub fn install_phase(ctx: &InstallContext) -> Result<()> {
-    package_manager::update(ctx.driver, ctx.dry_run)?;
+    package_manager::update(ctx.platform.driver, ctx.options.dry_run)?;
 
     // Always-needed core packages (Debian canonical names)
     let mut pkgs: Vec<&str> = vec![
@@ -37,7 +37,7 @@ pub fn install_phase(ctx: &InstallContext) -> Result<()> {
     ]);
 
     // Dev+ packages
-    if ctx.profile >= crate::ProfileLevel::Dev {
+    if ctx.options.profile >= crate::ProfileLevel::Dev {
         pkgs.extend_from_slice(&[
             "python3",
             "python3-pip",
@@ -53,7 +53,7 @@ pub fn install_phase(ctx: &InstallContext) -> Result<()> {
     }
 
     // Full profile extras
-    if ctx.profile >= crate::ProfileLevel::Full {
+    if ctx.options.profile >= crate::ProfileLevel::Full {
         pkgs.extend_from_slice(&["nodejs", "npm"]);
     }
 
@@ -67,15 +67,15 @@ pub fn install_phase(ctx: &InstallContext) -> Result<()> {
         .filter(|p| !optional.contains(p))
         .collect();
 
-    package_manager::ensure_packages(ctx.driver, &required, ctx.dry_run)?;
+    package_manager::ensure_packages(ctx.platform.driver, &required, ctx.options.dry_run)?;
 
     // Always attempt lldb
-    package_manager::try_optional(ctx.driver, "lldb", ctx.dry_run);
+    package_manager::try_optional(ctx.platform.driver, "lldb", ctx.options.dry_run);
 
     // Dev+ optional packages
-    if ctx.profile >= crate::ProfileLevel::Dev {
+    if ctx.options.profile >= crate::ProfileLevel::Dev {
         for pkg in &["btop", "bat", "eza", "yq"] {
-            package_manager::try_optional(ctx.driver, pkg, ctx.dry_run);
+            package_manager::try_optional(ctx.platform.driver, pkg, ctx.options.dry_run);
         }
     }
 

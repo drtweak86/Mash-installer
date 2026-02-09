@@ -31,7 +31,7 @@ pub fn install_phase(ctx: &InstallContext) -> Result<()> {
     install_components(ctx)?;
 
     // 3. Cargo tools (dev+ profile)
-    if ctx.profile >= crate::ProfileLevel::Dev {
+    if ctx.options.profile >= crate::ProfileLevel::Dev {
         install_cargo_tools(ctx)?;
     }
 
@@ -41,14 +41,14 @@ pub fn install_phase(ctx: &InstallContext) -> Result<()> {
 fn install_rustup(ctx: &InstallContext) -> Result<()> {
     if has_rustup() {
         tracing::info!("rustup already installed; updating");
-        if !ctx.dry_run {
+        if !ctx.options.dry_run {
             let _ = Command::new(rustup_bin()).arg("update").status();
         }
         return Ok(());
     }
 
     tracing::info!("Installing rustup + stable toolchain");
-    if ctx.dry_run {
+    if ctx.options.dry_run {
         tracing::info!("[dry-run] curl rustup.rs | sh -s -- -y");
         return Ok(());
     }
@@ -69,7 +69,7 @@ fn install_components(ctx: &InstallContext) -> Result<()> {
     let components = ["rustfmt", "clippy", "rust-src"];
     for comp in &components {
         tracing::info!("Ensuring component: {comp}");
-        if ctx.dry_run {
+        if ctx.options.dry_run {
             continue;
         }
         let _ = Command::new(rustup_bin())
@@ -96,7 +96,7 @@ fn install_cargo_tools(ctx: &InstallContext) -> Result<()> {
             continue;
         }
         tracing::info!("Installing {crate_name} via cargo install");
-        if ctx.dry_run {
+        if ctx.options.dry_run {
             continue;
         }
         let status = Command::new(cargo_bin())
@@ -109,11 +109,11 @@ fn install_cargo_tools(ctx: &InstallContext) -> Result<()> {
     }
 
     // flamegraph – only on full profile (needs perf which is tricky on Pi)
-    if ctx.profile >= crate::ProfileLevel::Full {
+    if ctx.options.profile >= crate::ProfileLevel::Full {
         let bin_path = cargo_home().join("bin/flamegraph");
         if !bin_path.exists() && which::which("flamegraph").is_err() {
             tracing::info!("Installing flamegraph");
-            if !ctx.dry_run {
+            if !ctx.options.dry_run {
                 let _ = Command::new(cargo_bin())
                     .args(["install", "flamegraph"])
                     .status();

@@ -13,9 +13,13 @@ pub fn install_phase(ctx: &InstallContext) -> Result<()> {
 }
 
 fn install_git(ctx: &InstallContext) -> Result<()> {
-    package_manager::ensure_packages(ctx.driver, &["git", "git-lfs"], ctx.dry_run)?;
+    package_manager::ensure_packages(
+        ctx.platform.driver,
+        &["git", "git-lfs"],
+        ctx.options.dry_run,
+    )?;
 
-    if !ctx.dry_run {
+    if !ctx.options.dry_run {
         let _ = Command::new("git").args(["lfs", "install"]).status();
     }
     Ok(())
@@ -27,10 +31,10 @@ fn install_gh(ctx: &InstallContext) -> Result<()> {
         return Ok(());
     }
 
-    match ctx.pkg_backend {
+    match ctx.platform.pkg_backend {
         PkgBackend::Pacman => {
             // On Arch/Manjaro gh is `github-cli` in community
-            package_manager::ensure_packages(ctx.driver, &["gh"], ctx.dry_run)?;
+            package_manager::ensure_packages(ctx.platform.driver, &["gh"], ctx.options.dry_run)?;
         }
         PkgBackend::Apt => {
             apt_repo::ensure_repo(ctx, RepoKind::GitHubCli)?;
@@ -42,12 +46,16 @@ fn install_gh(ctx: &InstallContext) -> Result<()> {
 }
 
 fn install_gh_apt(ctx: &InstallContext) -> Result<()> {
-    package_manager::ensure_packages(ctx.driver, &["gh"], false)?;
+    package_manager::ensure_packages(ctx.platform.driver, &["gh"], false)?;
     Ok(())
 }
 
 fn install_ssh_tools(ctx: &InstallContext) -> Result<()> {
-    package_manager::ensure_packages(ctx.driver, &["openssh-client"], ctx.dry_run)?;
+    package_manager::ensure_packages(
+        ctx.platform.driver,
+        &["openssh-client"],
+        ctx.options.dry_run,
+    )?;
     Ok(())
 }
 

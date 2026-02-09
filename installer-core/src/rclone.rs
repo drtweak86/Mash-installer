@@ -20,18 +20,18 @@ pub fn install_phase(ctx: &InstallContext) -> Result<()> {
 }
 
 fn try_pkg(ctx: &InstallContext) -> Result<bool> {
-    if package_manager::is_installed(ctx.driver, "rclone") {
+    if package_manager::is_installed(ctx.platform.driver, "rclone") {
         return Ok(true);
     }
 
     tracing::info!("Attempting rclone install via package manager");
-    if ctx.dry_run {
+    if ctx.options.dry_run {
         tracing::info!("[dry-run] would try package manager install rclone");
         return Ok(true);
     }
 
     // ensure_packages uses the right backend automatically
-    match package_manager::ensure_packages(ctx.driver, &["rclone"], false) {
+    match package_manager::ensure_packages(ctx.platform.driver, &["rclone"], false) {
         Ok(()) => {
             tracing::info!("Installed rclone via package manager");
             Ok(true)
@@ -45,7 +45,7 @@ fn try_pkg(ctx: &InstallContext) -> Result<bool> {
 
 fn install_via_script(ctx: &InstallContext) -> Result<()> {
     tracing::info!("Installing rclone via official install script");
-    if ctx.dry_run {
+    if ctx.options.dry_run {
         tracing::info!("[dry-run] would run rclone install script");
         return Ok(());
     }

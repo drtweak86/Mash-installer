@@ -19,12 +19,12 @@ const ARGONONED_SRC: &str = "/usr/local/src/argononed";
 /// See: <https://gitlab.com/DarkElvenAngel/argononed>
 pub fn install_phase(ctx: &InstallContext) -> Result<()> {
     // Quick gate: only relevant on Raspberry Pi hardware
-    if ctx.platform.pi_model.is_none() {
+    if ctx.platform.platform.pi_model.is_none() {
         tracing::warn!("Not running on a Raspberry Pi; skipping Argon One");
         return Ok(());
     }
 
-    match ctx.pkg_backend {
+    match ctx.platform.pkg_backend {
         PkgBackend::Pacman => install_argononed(ctx),
         PkgBackend::Apt => install_argon_oem(ctx),
     }
@@ -47,7 +47,7 @@ fn install_argononed(ctx: &InstallContext) -> Result<()> {
     // Ensure build deps: gcc/make already in base-devel, we need dtc
     ensure_argononed_deps(ctx)?;
 
-    if ctx.dry_run {
+    if ctx.options.dry_run {
         tracing::info!("[dry-run] would clone, build, and install argononed");
         return Ok(());
     }
@@ -63,7 +63,7 @@ fn install_argononed(ctx: &InstallContext) -> Result<()> {
 fn ensure_argononed_deps(ctx: &InstallContext) -> Result<()> {
     // dtc = device tree compiler, needed by argononed's build
     // git is already installed from earlier phases
-    package_manager::ensure_packages(ctx.driver, &["dtc"], ctx.dry_run)?;
+    package_manager::ensure_packages(ctx.platform.driver, &["dtc"], ctx.options.dry_run)?;
     Ok(())
 }
 
@@ -129,7 +129,7 @@ fn enable_argononed_service(ctx: &InstallContext) -> Result<()> {
     let _ = Command::new("sudo")
         .args(["systemctl", "daemon-reload"])
         .status();
-    let service = ctx.driver.service_unit(ServiceName::ArgonOne);
+    let service = ctx.platform.driver.service_unit(ServiceName::ArgonOne);
     let status = Command::new("sudo")
         .args(["systemctl", "enable", service])
         .status()
@@ -149,7 +149,7 @@ fn install_argon_oem(ctx: &InstallContext) -> Result<()> {
     }
 
     tracing::info!("Installing Argon One fan control via OEM script (Debian/Ubuntu path)");
-    if ctx.dry_run {
+    if ctx.options.dry_run {
         tracing::info!("[dry-run] would run Argon40 OEM install script");
         return Ok(());
     }
