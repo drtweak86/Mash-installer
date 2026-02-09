@@ -119,58 +119,58 @@ pub fn run_with_driver(driver: &'static dyn DistroDriver, opts: InstallOptions) 
     let enable_p10k = opts.enable_p10k;
     let docker_data_root = opts.docker_data_root;
 
-    let mut phases: Vec<Phase> = vec![
-        Phase {
-            label: "System packages",
-            done_msg: "System packages installed",
-            run: pkg::install_phase,
-        },
-        Phase {
-            label: "Rust toolchain + cargo tools",
-            done_msg: "Rust toolchain ready",
-            run: rust::install_phase,
-        },
-        Phase {
-            label: "Git, GitHub CLI, SSH",
-            done_msg: "Git / GitHub CLI ready",
-            run: github::install_phase,
-        },
+    let mut phases: Vec<Box<dyn Phase>> = vec![
+        Box::new(FunctionPhase::new(
+            "System packages",
+            "System packages installed",
+            pkg::install_phase,
+        )),
+        Box::new(FunctionPhase::new(
+            "Rust toolchain + cargo tools",
+            "Rust toolchain ready",
+            rust::install_phase,
+        )),
+        Box::new(FunctionPhase::new(
+            "Git, GitHub CLI, SSH",
+            "Git / GitHub CLI ready",
+            github::install_phase,
+        )),
     ];
 
     if profile >= ProfileLevel::Dev {
-        phases.push(Phase {
-            label: "Buildroot dependencies",
-            done_msg: "Buildroot dependencies ready",
-            run: buildroot::install_phase,
-        });
-        phases.push(Phase {
-            label: "Docker Engine",
-            done_msg: "Docker Engine ready",
-            run: docker::install_phase,
-        });
-        phases.push(Phase {
-            label: "Shell & UX (zsh, starship)",
-            done_msg: "Shell & UX ready",
-            run: zsh::install_phase,
-        });
-        phases.push(Phase {
-            label: "Fonts",
-            done_msg: "Fonts installed",
-            run: fonts::install_phase,
-        });
-        phases.push(Phase {
-            label: "rclone",
-            done_msg: "rclone ready",
-            run: rclone::install_phase,
-        });
+        phases.push(Box::new(FunctionPhase::new(
+            "Buildroot dependencies",
+            "Buildroot dependencies ready",
+            buildroot::install_phase,
+        )));
+        phases.push(Box::new(FunctionPhase::new(
+            "Docker Engine",
+            "Docker Engine ready",
+            docker::install_phase,
+        )));
+        phases.push(Box::new(FunctionPhase::new(
+            "Shell & UX (zsh, starship)",
+            "Shell & UX ready",
+            zsh::install_phase,
+        )));
+        phases.push(Box::new(FunctionPhase::new(
+            "Fonts",
+            "Fonts installed",
+            fonts::install_phase,
+        )));
+        phases.push(Box::new(FunctionPhase::new(
+            "rclone",
+            "rclone ready",
+            rclone::install_phase,
+        )));
     }
 
     if enable_argon {
-        phases.push(Phase {
-            label: "Argon One fan script",
-            done_msg: "Argon One installed",
-            run: argon::install_phase,
-        });
+        phases.push(Box::new(FunctionPhase::new(
+            "Argon One fan script",
+            "Argon One installed",
+            argon::install_phase,
+        )));
     }
 
     let total = phases.len() as u64;
@@ -215,17 +215,17 @@ pub fn run_with_driver(driver: &'static dyn DistroDriver, opts: InstallOptions) 
 
     let mut completed_phases = Vec::new();
     for (i, phase) in phases.iter().enumerate() {
-        let label = format!("Phase {}/{} · {}", i + 1, total, phase.label);
+        let label = format!("Phase {}/{} · {}", i + 1, total, phase.label());
         let pb = ctx.phase_spinner(&label);
-        match (phase.run)(&ctx) {
+        match phase.execute(&ctx) {
             Ok(()) => {
-                ctx.finish_phase(&pb, phase.done_msg);
-                completed_phases.push(phase.label);
+                ctx.finish_phase(&pb, phase.done_msg());
+                completed_phases.push(phase.label());
             }
             Err(e) => {
                 pb.set_style(ProgressStyle::with_template("{prefix} {msg}").unwrap());
                 pb.set_prefix("✗");
-                pb.finish_with_message(format!("{} FAILED: {e:#}", phase.label));
+                pb.finish_with_message(format!("{} FAILED: {e:#}", phase.label()));
                 ctx.ui.overall.inc(1);
                 let completed = if completed_phases.is_empty() {
                     "none".to_string()
@@ -235,7 +235,7 @@ pub fn run_with_driver(driver: &'static dyn DistroDriver, opts: InstallOptions) 
                 error!(
                     "Installation aborted during {} (staging dir: {}). Completed phases: {}. \
                      Rerun `mash-setup doctor` or remove the staging directory before retrying.",
-                    phase.label,
+                    phase.label(),
                     ctx.options.staging_dir.display(),
                     completed
                 );
@@ -266,8 +266,45 @@ pub fn run_with_driver(driver: &'static dyn DistroDriver, opts: InstallOptions) 
     Ok(())
 }
 
-struct Phase {
+pub trait Phase {
+    fn label(&self) -> &'static str;
+    fn done_msg(&self) -> &'static str;
+    fn should_run(&self, _: &OptionsContext) -> bool {
+        true
+    }
+    fn execute(&self, ctx: &InstallContext) -> Result<()>;
+}
+
+pub struct FunctionPhase {
     label: &'static str,
     done_msg: &'static str,
     run: fn(&InstallContext) -> Result<()>,
+}
+
+impl Phase for FunctionPhase {
+    fn label(&self) -> &'static str {
+        self.label
+    }
+
+    fn done_msg(&self) -> &'static str {
+        self.done_msg
+    }
+
+    fn execute(&self, ctx: &InstallContext) -> Result<()> {
+        (self.run)(ctx)
+    }
+}
+
+impl FunctionPhase {
+    pub fn new(
+        label: &'static str,
+        done_msg: &'static str,
+        run: fn(&InstallContext) -> Result<()>,
+    ) -> Self {
+        Self {
+            label,
+            done_msg,
+            run,
+        }
+    }
 }
