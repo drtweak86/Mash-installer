@@ -1,8 +1,8 @@
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use crate::{backend::PkgBackend, distro, driver::DistroDriver};
+use crate::{backend::PkgBackend, cmd, distro, driver::DistroDriver};
 
 static PACMAN_SYNCED: AtomicBool = AtomicBool::new(false);
 
@@ -65,15 +65,14 @@ impl PackageInstaller for AptInstaller {
             tracing::info!("[dry-run] would attempt optional: {pkg}");
             return;
         }
-        let status = Command::new("sudo")
-            .args(["apt-get", "install", "-y", "--install-recommends", pkg])
+        let mut cmd = Command::new("sudo");
+        cmd.args(["apt-get", "install", "-y", "--install-recommends", pkg])
             .env("DEBIAN_FRONTEND", "noninteractive")
             .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .status();
-        match status {
-            Ok(s) if s.success() => tracing::info!("Installed optional package: {pkg}"),
-            _ => tracing::warn!("Optional package '{pkg}' not available; skipping"),
+            .stderr(std::process::Stdio::null());
+        match cmd::run(&mut cmd) {
+            Ok(_) => tracing::info!("Installed optional package: {pkg}"),
+            Err(_) => tracing::warn!("Optional package '{pkg}' not available; skipping"),
         }
     }
 }
@@ -100,26 +99,23 @@ impl PackageInstaller for PacmanInstaller {
             tracing::info!("[dry-run] would attempt optional: {pkg}");
             return;
         }
-        let status = Command::new("sudo")
-            .args(["pacman", "-S", "--noconfirm", "--needed", pkg])
+        let mut cmd = Command::new("sudo");
+        cmd.args(["pacman", "-S", "--noconfirm", "--needed", pkg])
             .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .status();
-        match status {
-            Ok(s) if s.success() => tracing::info!("Installed optional package: {pkg}"),
-            _ => tracing::warn!("Optional package '{pkg}' not available; skipping"),
+            .stderr(std::process::Stdio::null());
+        match cmd::run(&mut cmd) {
+            Ok(_) => tracing::info!("Installed optional package: {pkg}"),
+            Err(_) => tracing::warn!("Optional package '{pkg}' not available; skipping"),
         }
     }
 }
 
 fn apt_is_installed(pkg: &str) -> bool {
-    Command::new("dpkg")
-        .args(["-s", pkg])
+    let mut cmd = Command::new("dpkg");
+    cmd.args(["-s", pkg])
         .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()
-        .map(|s| s.success())
-        .unwrap_or(false)
+        .stderr(std::process::Stdio::null());
+    cmd::run(&mut cmd).map(|_| true).unwrap_or(false)
 }
 
 fn apt_update(dry_run: bool) -> Result<()> {
@@ -127,13 +123,9 @@ fn apt_update(dry_run: bool) -> Result<()> {
         tracing::info!("[dry-run] apt-get update");
         return Ok(());
     }
-    let status = Command::new("sudo")
-        .args(["apt-get", "update", "-qq"])
-        .status()
-        .context("running apt-get update")?;
-    if !status.success() {
-        anyhow::bail!("apt-get update failed");
-    }
+    let mut cmd = Command::new("sudo");
+    cmd.args(["apt-get", "update", "-qq"]);
+    cmd::run(&mut cmd).context("running apt-get update")?;
     Ok(())
 }
 
@@ -161,24 +153,19 @@ fn apt_ensure(pkgs: &[&str], dry_run: bool) -> Result<()> {
     for p in &missing {
         cmd.arg(p);
     }
-    let status = cmd
-        .env("DEBIAN_FRONTEND", "noninteractive")
-        .status()
-        .context("running apt-get install")?;
-    if !status.success() {
-        anyhow::bail!("apt-get install failed for: {}", missing.join(" "));
-    }
+    cmd.env("DEBIAN_FRONTEND", "noninteractive");
+    cmd::run(&mut cmd)
+        .context("running apt-get install")
+        .map_err(|err| anyhow!("apt-get install failed for {}: {err}", missing.join(" ")))?;
     Ok(())
 }
 
 fn pacman_is_installed(pkg: &str) -> bool {
-    Command::new("pacman")
-        .args(["-Q", pkg])
+    let mut cmd = Command::new("pacman");
+    cmd.args(["-Q", pkg])
         .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()
-        .map(|s| s.success())
-        .unwrap_or(false)
+        .stderr(std::process::Stdio::null());
+    cmd::run(&mut cmd).map(|_| true).unwrap_or(false)
 }
 
 fn pacman_sync(dry_run: bool) -> Result<()> {
@@ -186,13 +173,9 @@ fn pacman_sync(dry_run: bool) -> Result<()> {
         tracing::info!("[dry-run] pacman -Syu");
         return Ok(());
     }
-    let status = Command::new("sudo")
-        .args(["pacman", "-Syu", "--noconfirm"])
-        .status()
-        .context("running pacman -Syu")?;
-    if !status.success() {
-        anyhow::bail!("pacman -Syu failed");
-    }
+    let mut cmd = Command::new("sudo");
+    cmd.args(["pacman", "-Syu", "--noconfirm"]);
+    cmd::run(&mut cmd).context("running pacman -Syu")?;
     Ok(())
 }
 
@@ -221,9 +204,8 @@ fn pacman_ensure(pkgs: &[&str], dry_run: bool) -> Result<()> {
     for p in pkgs {
         cmd.arg(p);
     }
-    let status = cmd.status().context("running pacman -S")?;
-    if !status.success() {
-        anyhow::bail!("pacman -S failed for: {}", pkgs.join(" "));
-    }
+    cmd::run(&mut cmd)
+        .context("running pacman -S")
+        .map_err(|err| anyhow!("pacman -S failed for {}: {err}", pkgs.join(" ")))?;
     Ok(())
 }

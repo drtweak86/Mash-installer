@@ -3,7 +3,7 @@ use std::fs;
 use std::process::Command;
 
 use crate::{
-    apt_repo,
+    apt_repo, cmd,
     driver::{RepoKind, ServiceName},
     package_manager, systemd, InstallContext, PkgBackend,
 };
@@ -75,7 +75,9 @@ fn add_user_to_docker_group(ctx: &InstallContext) -> Result<()> {
         return Ok(());
     }
 
-    let groups_out = Command::new("id").arg("-nG").arg(&user).output()?;
+    let mut id_cmd = Command::new("id");
+    id_cmd.arg("-nG").arg(&user);
+    let groups_out = cmd::run(&mut id_cmd)?;
     let groups = String::from_utf8_lossy(&groups_out.stdout);
     if groups.split_whitespace().any(|g| g == "docker") {
         tracing::info!("User '{user}' already in docker group");
@@ -87,12 +89,10 @@ fn add_user_to_docker_group(ctx: &InstallContext) -> Result<()> {
         return Ok(());
     }
 
-    let status = Command::new("sudo")
-        .args(["usermod", "-aG", "docker", &user])
-        .status()
-        .context("adding user to docker group")?;
-    if !status.success() {
-        tracing::warn!("Failed to add user to docker group");
+    let mut usermod = Command::new("sudo");
+    usermod.args(["usermod", "-aG", "docker", &user]);
+    if let Err(err) = cmd::run(&mut usermod).context("adding user to docker group") {
+        tracing::warn!("Failed to add user to docker group ({err})");
     }
     Ok(())
 }
@@ -108,9 +108,9 @@ fn enable_docker_service(ctx: &InstallContext) -> Result<()> {
         return Ok(());
     }
     let service = ctx.platform.driver.service_unit(ServiceName::Docker);
-    let _ = Command::new("sudo")
-        .args(["systemctl", "enable", "--now", service])
-        .status();
+    let mut enable_cmd = Command::new("sudo");
+    enable_cmd.args(["systemctl", "enable", "--now", service]);
+    let _ = cmd::run(&mut enable_cmd);
     Ok(())
 }
 
@@ -157,18 +157,17 @@ fn configure_data_root(ctx: &InstallContext, data_root: &std::path::Path) -> Res
         fs::copy(daemon_json, &backup)?;
     }
 
-    Command::new("sh")
-        .arg("-c")
-        .arg(format!(
-            "echo '{}' | sudo tee {} > /dev/null",
-            content,
-            daemon_json.display()
-        ))
-        .status()?;
+    let mut tee_cmd = Command::new("sh");
+    tee_cmd.arg("-c").arg(format!(
+        "echo '{}' | sudo tee {} > /dev/null",
+        content,
+        daemon_json.display()
+    ));
+    cmd::run(&mut tee_cmd)?;
 
-    let _ = Command::new("sudo")
-        .args(["systemctl", "restart", "docker"])
-        .status();
+    let mut restart_cmd = Command::new("sudo");
+    restart_cmd.args(["systemctl", "restart", "docker"]);
+    let _ = cmd::run(&mut restart_cmd);
 
     Ok(())
 }

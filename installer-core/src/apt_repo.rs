@@ -1,8 +1,9 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result};
 use std::path::Path;
 use std::process::Command;
 
 use crate::{
+    cmd,
     driver::{AptRepoConfig, RepoKind},
     package_manager, InstallContext,
 };
@@ -40,25 +41,18 @@ fn add_gpg_key(config: &AptRepoConfig, ctx: &InstallContext) -> Result<()> {
 
     if let Some(parent) = key_path.parent() {
         let dir = parent.to_string_lossy();
-        Command::new("sudo")
-            .args(["install", "-m", "0755", "-d", dir.as_ref()])
-            .status()
-            .context("creating apt keyring directory")?;
+        let mut cmd = Command::new("sudo");
+        cmd.args(["install", "-m", "0755", "-d", dir.as_ref()]);
+        cmd::run(&mut cmd).context("creating apt keyring directory")?;
     }
 
     let key_url = (config.key_url)(&ctx.platform.platform)?;
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(format!(
-            "curl -fsSL {key_url} | sudo tee {path} > /dev/null && sudo chmod go+r {path}",
-            path = config.key_path
-        ))
-        .status()
-        .context("downloading apt repo GPG key")?;
-
-    if !status.success() {
-        bail!("Failed to download GPG key for {}", config.label);
-    }
+    let mut cmd = Command::new("sh");
+    cmd.arg("-c").arg(format!(
+        "curl -fsSL {key_url} | sudo tee {path} > /dev/null && sudo chmod go+r {path}",
+        path = config.key_path
+    ));
+    cmd::run(&mut cmd).context("downloading apt repo GPG key")?;
 
     Ok(())
 }
@@ -74,18 +68,12 @@ fn add_sources_list(config: &AptRepoConfig, ctx: &InstallContext) -> Result<bool
     }
 
     let repo_line = (config.repo_line)(&ctx.platform.platform)?;
-    let cmd = Command::new("sh")
-        .arg("-c")
-        .arg(format!(
-            "echo '{repo_line}' | sudo tee {path} > /dev/null",
-            path = config.sources_path
-        ))
-        .status()
-        .context("writing apt sources list")?;
-
-    if !cmd.success() {
-        bail!("Failed to write sources list for {}", config.label);
-    }
+    let mut cmd = Command::new("sh");
+    cmd.arg("-c").arg(format!(
+        "echo '{repo_line}' | sudo tee {path} > /dev/null",
+        path = config.sources_path
+    ));
+    cmd::run(&mut cmd).context("writing apt sources list")?;
 
     Ok(true)
 }

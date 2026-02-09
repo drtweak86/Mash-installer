@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::SystemTime;
 
-use crate::{package_manager, InstallContext, PkgBackend};
+use crate::{cmd, package_manager, InstallContext, PkgBackend};
 
 fn home_dir() -> PathBuf {
     dirs::home_dir().unwrap_or_else(|| PathBuf::from("/root"))
@@ -49,16 +49,14 @@ fn install_omz(ctx: &InstallContext) -> Result<()> {
         return Ok(());
     }
 
-    let status = Command::new("sh")
+    let mut install_cmd = Command::new("sh");
+    install_cmd
         .arg("-c")
         .arg(
             r#"RUNZSH=no CHSH=no sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)""#,
-        )
-        .status()
-        .context("installing oh-my-zsh")?;
-
-    if !status.success() {
-        tracing::warn!("oh-my-zsh installation returned non-zero; continuing");
+        );
+    if let Err(err) = cmd::run(&mut install_cmd) {
+        tracing::warn!("oh-my-zsh installation returned non-zero; continuing ({err})");
     }
     Ok(())
 }
@@ -75,17 +73,13 @@ fn install_starship(ctx: &InstallContext) -> Result<()> {
         return Ok(());
     }
 
-    let status = Command::new("sh")
-        .arg("-c")
-        .arg(format!(
-            "STARSHIP_VERSION={} curl -sS https://starship.rs/install.sh | sh -s -- -y",
-            STARSHIP_VERSION
-        ))
-        .status()
-        .context("installing starship")?;
-
-    if !status.success() {
-        tracing::warn!("starship installation failed; continuing");
+    let mut install_cmd = Command::new("sh");
+    install_cmd.arg("-c").arg(format!(
+        "STARSHIP_VERSION={} curl -sS https://starship.rs/install.sh | sh -s -- -y",
+        STARSHIP_VERSION
+    ));
+    if let Err(err) = cmd::run(&mut install_cmd) {
+        tracing::warn!("starship installation failed; continuing ({err})");
     }
 
     // Add starship init to .zshrc if not already there
@@ -177,23 +171,18 @@ fn install_p10k_git(ctx: &InstallContext) -> Result<()> {
         return Ok(());
     }
 
-    let status = Command::new("sudo")
-        .args([
-            "git",
-            "clone",
-            "--depth=1",
-            "--branch",
-            P10K_TAG,
-            "--single-branch",
-            "https://github.com/romkatv/powerlevel10k.git",
-            P10K_SYSTEM_DIR,
-        ])
-        .status()
-        .context("cloning powerlevel10k")?;
-
-    if !status.success() {
-        anyhow::bail!("Failed to clone Powerlevel10k");
-    }
+    let mut clone_cmd = Command::new("sudo");
+    clone_cmd.args([
+        "git",
+        "clone",
+        "--depth=1",
+        "--branch",
+        P10K_TAG,
+        "--single-branch",
+        "https://github.com/romkatv/powerlevel10k.git",
+        P10K_SYSTEM_DIR,
+    ]);
+    cmd::run(&mut clone_cmd).context("cloning powerlevel10k")?;
 
     tracing::info!("Powerlevel10k installed to {}", dest.display());
     Ok(())

@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use std::process::Command;
 
-use crate::{package_manager, InstallContext};
+use crate::{cmd, package_manager, InstallContext};
 
 pub fn install_phase(ctx: &InstallContext) -> Result<()> {
     if which::which("rclone").is_ok() {
@@ -50,14 +50,12 @@ fn install_via_script(ctx: &InstallContext) -> Result<()> {
         return Ok(());
     }
 
-    let status = Command::new("sh")
+    let mut install_cmd = Command::new("sh");
+    install_cmd
         .arg("-c")
-        .arg("curl -fsSL https://rclone.org/install.sh | sudo bash")
-        .status()
-        .context("running rclone install script")?;
-
-    if !status.success() {
-        tracing::warn!("rclone install script failed; continuing");
+        .arg("curl -fsSL https://rclone.org/install.sh | sudo bash");
+    if let Err(err) = cmd::run(&mut install_cmd).context("running rclone install script") {
+        tracing::warn!("rclone install script failed; continuing ({err})");
     }
     Ok(())
 }

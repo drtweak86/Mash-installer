@@ -2,6 +2,7 @@ mod apt_repo;
 mod argon;
 mod backend;
 mod buildroot;
+mod cmd;
 mod config;
 mod context;
 mod distro;
@@ -319,7 +320,8 @@ mod tests {
         }
 
         fn on_phase_failure(&mut self, index: usize, label: &'static str, err: &Error) {
-            self.events.push(format!("failure:{}:{}:{}", index, label, err));
+            self.events
+                .push(format!("failure:{}:{}:{}", index, label, err));
         }
 
         fn on_phase_skipped(&mut self, index: usize, label: &'static str) {
@@ -436,9 +438,24 @@ mod tests {
     fn phase_runner_notifies_observer_and_records_success() -> Result<()> {
         let ctx = build_test_context()?;
         let phases: Vec<Box<dyn Phase>> = vec![
-            Box::new(TestPhase::new("phase-one", "phase one done", true, success_phase)),
-            Box::new(TestPhase::new("phase-skip", "phase skip done", false, success_phase)),
-            Box::new(TestPhase::new("phase-two", "phase two done", true, success_phase)),
+            Box::new(TestPhase::new(
+                "phase-one",
+                "phase one done",
+                true,
+                success_phase,
+            )),
+            Box::new(TestPhase::new(
+                "phase-skip",
+                "phase skip done",
+                false,
+                success_phase,
+            )),
+            Box::new(TestPhase::new(
+                "phase-two",
+                "phase two done",
+                true,
+                success_phase,
+            )),
         ];
         let runner = PhaseRunner::from_phases(phases);
         let mut observer = RecordingObserver::new();
@@ -465,9 +482,24 @@ mod tests {
     fn phase_runner_stops_on_error() -> Result<()> {
         let ctx = build_test_context()?;
         let phases: Vec<Box<dyn Phase>> = vec![
-            Box::new(TestPhase::new("phase-one", "phase one done", true, success_phase)),
-            Box::new(TestPhase::new("phase-error", "phase error done", true, failing_phase)),
-            Box::new(TestPhase::new("phase-three", "phase three done", true, success_phase)),
+            Box::new(TestPhase::new(
+                "phase-one",
+                "phase one done",
+                true,
+                success_phase,
+            )),
+            Box::new(TestPhase::new(
+                "phase-error",
+                "phase error done",
+                true,
+                failing_phase,
+            )),
+            Box::new(TestPhase::new(
+                "phase-three",
+                "phase three done",
+                true,
+                success_phase,
+            )),
         ];
         let runner = PhaseRunner::from_phases(phases);
         let mut observer = RecordingObserver::new();
@@ -489,9 +521,24 @@ mod tests {
     fn phase_runner_reports_skipped_phases() -> Result<()> {
         let ctx = build_test_context()?;
         let phases: Vec<Box<dyn Phase>> = vec![
-            Box::new(TestPhase::new("phase-one", "phase one done", true, success_phase)),
-            Box::new(TestPhase::new("phase-skip", "phase skip done", false, success_phase)),
-            Box::new(TestPhase::new("phase-two", "phase two done", true, success_phase)),
+            Box::new(TestPhase::new(
+                "phase-one",
+                "phase one done",
+                true,
+                success_phase,
+            )),
+            Box::new(TestPhase::new(
+                "phase-skip",
+                "phase skip done",
+                false,
+                success_phase,
+            )),
+            Box::new(TestPhase::new(
+                "phase-two",
+                "phase two done",
+                true,
+                success_phase,
+            )),
         ];
         let runner = PhaseRunner::from_phases(phases);
         let mut observer = RecordingObserver::new();

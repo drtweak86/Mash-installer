@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::process::Command;
 
-use crate::{apt_repo, driver::RepoKind, package_manager, InstallContext, PkgBackend};
+use crate::{apt_repo, cmd, driver::RepoKind, package_manager, InstallContext, PkgBackend};
 
 pub fn install_phase(ctx: &InstallContext) -> Result<()> {
     install_git(ctx)?;
@@ -20,7 +20,9 @@ fn install_git(ctx: &InstallContext) -> Result<()> {
     )?;
 
     if !ctx.options.dry_run {
-        let _ = Command::new("git").args(["lfs", "install"]).status();
+        let mut git_lfs = Command::new("git");
+        git_lfs.args(["lfs", "install"]);
+        let _ = cmd::run(&mut git_lfs);
     }
     Ok(())
 }
@@ -64,17 +66,14 @@ fn remind_gh_auth_if_needed() {
         return;
     }
 
-    let status = Command::new("gh")
-        .args(["auth", "status", "-h", "github.com"])
+    let mut cmd = Command::new("gh");
+    cmd.args(["auth", "status", "-h", "github.com"])
         .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status();
-
-    match status {
-        Ok(s) if s.success() => {}
-        _ => tracing::info!(
+        .stderr(std::process::Stdio::null());
+    if let Err(_) = cmd::run(&mut cmd) {
+        tracing::info!(
             "GitHub CLI is not authenticated. Run `gh auth login` (select SSH) when you need GitHub access."
-        ),
+        );
     }
 }
 
