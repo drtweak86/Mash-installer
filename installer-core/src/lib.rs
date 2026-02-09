@@ -173,6 +173,7 @@ pub trait PhaseObserver {
     fn on_phase_started(&mut self, _index: usize, _total: usize, _label: &'static str) {}
     fn on_phase_success(&mut self, _index: usize, _done_msg: &'static str) {}
     fn on_phase_failure(&mut self, _index: usize, _label: &'static str, _err: &Error) {}
+    fn on_phase_skipped(&mut self, _index: usize, _label: &'static str) {}
 }
 
 #[derive(Debug)]
@@ -200,6 +201,7 @@ impl PhaseRunner {
 
         for (i, phase) in self.phases.iter().enumerate() {
             if !phase.should_run(&ctx.options) {
+                observer.on_phase_skipped(i + 1, phase.label());
                 continue;
             }
 
@@ -318,6 +320,10 @@ mod tests {
 
         fn on_phase_failure(&mut self, index: usize, label: &'static str, err: &Error) {
             self.events.push(format!("failure:{}:{}:{}", index, label, err));
+        }
+
+        fn on_phase_skipped(&mut self, index: usize, label: &'static str) {
+            self.events.push(format!("skipped:{}:{}", index, label));
         }
     }
 
@@ -440,11 +446,18 @@ mod tests {
 
         assert_eq!(result.completed_phases, vec!["phase-one", "phase-two"]);
         assert_eq!(observer.total, Some(3));
-        assert!(observer.events.iter().any(|evt| evt.starts_with("start:1:phase-one")));
+        assert!(observer
+            .events
+            .iter()
+            .any(|evt| evt.starts_with("start:1:phase-one")));
         assert!(observer
             .events
             .iter()
             .any(|evt| evt.starts_with("success:3:phase two done")));
+        assert!(observer
+            .events
+            .iter()
+            .any(|evt| evt.starts_with("skipped:2:phase-skip")));
         Ok(())
     }
 
@@ -469,6 +482,26 @@ mod tests {
             .events
             .iter()
             .any(|evt| evt.starts_with("start:1:phase-one")));
+        Ok(())
+    }
+
+    #[test]
+    fn phase_runner_reports_skipped_phases() -> Result<()> {
+        let ctx = build_test_context()?;
+        let phases: Vec<Box<dyn Phase>> = vec![
+            Box::new(TestPhase::new("phase-one", "phase one done", true, success_phase)),
+            Box::new(TestPhase::new("phase-skip", "phase skip done", false, success_phase)),
+            Box::new(TestPhase::new("phase-two", "phase two done", true, success_phase)),
+        ];
+        let runner = PhaseRunner::from_phases(phases);
+        let mut observer = RecordingObserver::new();
+
+        let result = runner.run(&ctx, &mut observer)?;
+        assert_eq!(result.completed_phases, vec!["phase-one", "phase-two"]);
+        assert!(observer
+            .events
+            .iter()
+            .any(|evt| evt.starts_with("skipped:2:phase-skip")));
         Ok(())
     }
 }

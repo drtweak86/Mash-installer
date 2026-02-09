@@ -196,6 +196,11 @@ impl PhaseObserver for CliPhaseObserver {
         self.finish_spinner("✗", &message);
         self.overall.inc(1);
     }
+
+    fn on_phase_skipped(&mut self, _index: usize, label: &'static str) {
+        self.finish_spinner("–", label);
+        self.overall.inc(1);
+    }
 }
 
 impl CliPhaseObserver {
