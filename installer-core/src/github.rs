@@ -70,7 +70,7 @@ fn remind_gh_auth_if_needed() {
     cmd.args(["auth", "status", "-h", "github.com"])
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null());
-    if let Err(_) = cmd::run(&mut cmd) {
+    if cmd::run(&mut cmd).is_err() {
         tracing::info!(
             "GitHub CLI is not authenticated. Run `gh auth login` (select SSH) when you need GitHub access."
         );
