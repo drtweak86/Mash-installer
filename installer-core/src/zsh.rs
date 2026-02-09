@@ -1,7 +1,6 @@
 use anyhow::{Context, Result};
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::time::SystemTime;
 
 use crate::{cmd, package_manager, InstallContext, PkgBackend};
@@ -49,13 +48,13 @@ fn install_omz(ctx: &InstallContext) -> Result<()> {
         return Ok(());
     }
 
-    let mut install_cmd = Command::new("sh");
-    install_cmd
+    if let Err(err) = cmd::Command::new("sh")
         .arg("-c")
         .arg(
             r#"RUNZSH=no CHSH=no sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)""#,
-        );
-    if let Err(err) = cmd::run(&mut install_cmd) {
+        )
+        .execute()
+    {
         tracing::warn!("oh-my-zsh installation returned non-zero; continuing ({err})");
     }
     Ok(())
@@ -73,12 +72,14 @@ fn install_starship(ctx: &InstallContext) -> Result<()> {
         return Ok(());
     }
 
-    let mut install_cmd = Command::new("sh");
-    install_cmd.arg("-c").arg(format!(
-        "STARSHIP_VERSION={} curl -sS https://starship.rs/install.sh | sh -s -- -y",
-        STARSHIP_VERSION
-    ));
-    if let Err(err) = cmd::run(&mut install_cmd) {
+    if let Err(err) = cmd::Command::new("sh")
+        .arg("-c")
+        .arg(format!(
+            "STARSHIP_VERSION={} curl -sS https://starship.rs/install.sh | sh -s -- -y",
+            STARSHIP_VERSION
+        ))
+        .execute()
+    {
         tracing::warn!("starship installation failed; continuing ({err})");
     }
 
@@ -171,18 +172,19 @@ fn install_p10k_git(ctx: &InstallContext) -> Result<()> {
         return Ok(());
     }
 
-    let mut clone_cmd = Command::new("sudo");
-    clone_cmd.args([
-        "git",
-        "clone",
-        "--depth=1",
-        "--branch",
-        P10K_TAG,
-        "--single-branch",
-        "https://github.com/romkatv/powerlevel10k.git",
-        P10K_SYSTEM_DIR,
-    ]);
-    cmd::run(&mut clone_cmd).context("cloning powerlevel10k")?;
+    cmd::Command::new("sudo")
+        .args([
+            "git",
+            "clone",
+            "--depth=1",
+            "--branch",
+            P10K_TAG,
+            "--single-branch",
+            "https://github.com/romkatv/powerlevel10k.git",
+            P10K_SYSTEM_DIR,
+        ])
+        .execute()
+        .context("cloning powerlevel10k")?;
 
     tracing::info!("Powerlevel10k installed to {}", dest.display());
     Ok(())
