@@ -1,0 +1,35 @@
+[phases.system_packages]
+label = "System packages"
+description = "System packages installed"
+
+[phases.rust_toolchain]
+label = "Rust toolchain + cargo tools"
+description = "Rust toolchain ready"
+
+[phases.git_cli]
+label = "Git, GitHub CLI, SSH"
+description = "Git / GitHub CLI ready"
+
+[phases.buildroot_dependencies]
+label = "Buildroot dependencies"
+description = "Buildroot dependencies ready"
+
+[phases.docker_engine]
+label = "Docker Engine"
+description = "Docker Engine ready"
+
+[phases.shell_ux]
+label = "Shell & UX (zsh, starship)"
+description = "Shell & UX ready"
+
+[phases.fonts]
+label = "Fonts"
+description = "Fonts installed"
+
+[phases.rclone]
+label = "rclone"
+description = "rclone ready"
+
+[phases.argon_one]
+label = "Argon One fan script"
+description = "Argon One installed"
