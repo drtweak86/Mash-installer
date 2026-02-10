@@ -2,8 +2,8 @@ use anyhow::{Context, Error, Result};
 use clap::Parser;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use installer_core::{
-    detect_platform, DistroDriver, InstallOptions, PhaseEvent, PhaseObserver, PlatformInfo,
-    ProfileLevel, RunSummary,
+    detect_platform, DistroDriver, InstallOptions, InstallerRunError, PhaseEvent, PhaseObserver,
+    PlatformInfo, ProfileLevel, RunSummary,
 };
 use std::io::{self, Write};
 use std::path::PathBuf;
@@ -112,6 +112,38 @@ fn print_completion_message(summary: &RunSummary, dry_run: bool) {
     println!();
 }
 
+fn print_error_report(summary: &RunSummary) {
+    if summary.errors.is_empty() {
+        println!("No additional error details were recorded.");
+        return;
+    }
+
+    let completed = if summary.completed_phases.is_empty() {
+        "none".to_string()
+    } else {
+        summary.completed_phases.join(", ")
+    };
+
+    println!();
+    println!("╔══════════════════════════════════════════════╗");
+    println!("║       Installation completed with errors     ║");
+    println!("╚══════════════════════════════════════════════╝");
+    println!();
+    println!("Completed phases: {}", completed);
+    println!("Staging directory: {}", summary.staging_dir.display());
+    println!();
+
+    for err in &summary.errors {
+        println!("  • Phase: {} – {}", err.phase, err.user_message());
+        if let Some(advice) = &err.advice {
+            println!("    Advice: {}", advice);
+        }
+        println!("    Context: {}", err.state);
+        println!("    Details: {}", err.developer_message());
+        println!();
+    }
+}
+
 fn run_installer_with_ui(
     driver: &'static dyn DistroDriver,
     options: InstallOptions,
@@ -127,7 +159,10 @@ fn run_installer_with_ui(
             print_completion_message(&summary, dry_run);
             Ok(())
         }
-        Err(err) => Err(err),
+        Err(err) => {
+            print_error_report(&err.summary);
+            Err(err.into())
+        }
     }
 }
 

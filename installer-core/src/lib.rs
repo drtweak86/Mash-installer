@@ -9,6 +9,7 @@ mod distro;
 mod docker;
 mod doctor;
 mod driver;
+mod error;
 mod fonts;
 mod github;
 mod package_manager;
@@ -20,13 +21,15 @@ mod staging;
 mod systemd;
 mod zsh;
 
+use crate::error::InstallerStateSnapshot;
 use anyhow::Result;
-use std::path::PathBuf;
+use std::{fmt, path::PathBuf};
 use tracing::{error, info};
 
 pub use backend::PkgBackend;
 pub use context::{ConfigService, PhaseContext, PlatformContext, UIContext, UserOptionsContext};
 pub use driver::{AptRepoConfig, DistroDriver, RepoKind, ServiceName};
+pub use error::{ErrorSeverity, InstallerError, InstallerRunError, RunSummary};
 pub use platform::{detect as detect_platform, PlatformInfo};
 
 /// Options provided by the CLI that drive `run_with_driver`.
@@ -70,7 +73,7 @@ pub fn run_with_driver(
     driver: &'static dyn DistroDriver,
     opts: InstallOptions,
     observer: &mut dyn PhaseObserver,
-) -> Result<RunSummary> {
+) -> Result<RunSummary, InstallerRunError> {
     let plat = platform::detect()?;
     info!(
         "Platform: {} {} on {}",
@@ -115,12 +118,27 @@ pub fn run_with_driver(
 
     let phases = build_phase_list(&ctx.options);
     let runner = PhaseRunner::from_phases(phases);
-    let result = runner.run(&ctx, observer)?;
-
-    Ok(RunSummary {
-        completed_phases: result.completed_phases,
-        staging_dir: ctx.options.staging_dir.clone(),
-    })
+    match runner.run(&ctx, observer) {
+        Ok(result) => Ok(RunSummary {
+            completed_phases: result.completed_phases,
+            staging_dir: ctx.options.staging_dir.clone(),
+            errors: result.errors,
+        }),
+        Err(err) => {
+            let PhaseRunError {
+                result: run_result,
+                source,
+            } = err;
+            Err(InstallerRunError {
+                summary: RunSummary {
+                    completed_phases: run_result.completed_phases,
+                    staging_dir: ctx.options.staging_dir.clone(),
+                    errors: run_result.errors,
+                },
+                source,
+            })
+        }
+    }
 }
 
 fn build_phase_list(options: &UserOptionsContext) -> Vec<Box<dyn Phase>> {
@@ -185,22 +203,58 @@ fn build_phase_list(options: &UserOptionsContext) -> Vec<Box<dyn Phase>> {
 pub struct PhaseRunResult {
     pub completed_phases: Vec<&'static str>,
     pub events: Vec<PhaseEvent>,
+    pub errors: Vec<InstallerError>,
+}
+
+#[derive(Debug)]
+pub struct PhaseRunError {
+    pub result: PhaseRunResult,
+    pub source: InstallerError,
+}
+
+impl fmt::Display for PhaseRunError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.source)
+    }
+}
+
+impl std::error::Error for PhaseRunError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.source)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PhaseErrorPolicy {
+    FailFast,
+    ContinueOnError,
+}
+
+impl Default for PhaseErrorPolicy {
+    fn default() -> Self {
+        PhaseErrorPolicy::FailFast
+    }
 }
 
 pub struct PhaseRunner {
     phases: Vec<Box<dyn Phase>>,
+    policy: PhaseErrorPolicy,
 }
 
 impl PhaseRunner {
     pub fn from_phases(phases: Vec<Box<dyn Phase>>) -> Self {
-        Self { phases }
+        Self::with_policy(phases, PhaseErrorPolicy::default())
+    }
+
+    pub fn with_policy(phases: Vec<Box<dyn Phase>>, policy: PhaseErrorPolicy) -> Self {
+        Self { phases, policy }
     }
 
     pub fn run(
         &self,
         ctx: &InstallContext,
         observer: &mut dyn PhaseObserver,
-    ) -> Result<PhaseRunResult> {
+    ) -> Result<PhaseRunResult, PhaseRunError> {
         let total = self.phases.len();
         fn emit_event(
             observer: &mut dyn PhaseObserver,
@@ -214,6 +268,7 @@ impl PhaseRunner {
         let mut events = Vec::new();
         emit_event(observer, &mut events, PhaseEvent::Total { total });
         let mut completed = Vec::new();
+        let mut errors = Vec::new();
 
         for (i, phase) in self.phases.iter().enumerate() {
             if !phase.should_run(ctx) {
@@ -252,7 +307,19 @@ impl PhaseRunner {
                     completed.push(phase.name());
                 }
                 Err(e) => {
-                    let error_message = format!("{e:#}");
+                    let severity = phase.error_severity();
+                    let installer_error = InstallerError::new(
+                        phase.name(),
+                        phase.description(),
+                        severity,
+                        e,
+                        InstallerStateSnapshot::from_options(&ctx.options),
+                        Some(
+                            "Rerun `mash-setup doctor` or remove the staging directory before retrying."
+                                .to_string(),
+                        ),
+                    );
+                    let error_message = installer_error.message.clone();
                     emit_event(
                         observer,
                         &mut events,
@@ -262,6 +329,7 @@ impl PhaseRunner {
                             error: error_message.clone(),
                         },
                     );
+                    errors.push(installer_error.clone());
                     let completed_list = if completed.is_empty() {
                         "none".to_string()
                     } else {
@@ -274,7 +342,23 @@ impl PhaseRunner {
                         ctx.options.staging_dir.display(),
                         completed_list
                     );
-                    return Err(e);
+                    let should_continue = matches!(self.policy, PhaseErrorPolicy::ContinueOnError)
+                        && severity == ErrorSeverity::Recoverable;
+
+                    if should_continue {
+                        continue;
+                    }
+
+                    let run_result = PhaseRunResult {
+                        completed_phases: completed,
+                        events,
+                        errors,
+                    };
+
+                    return Err(PhaseRunError {
+                        result: run_result,
+                        source: installer_error,
+                    });
                 }
             }
         }
@@ -282,13 +366,9 @@ impl PhaseRunner {
         Ok(PhaseRunResult {
             completed_phases: completed,
             events,
+            errors,
         })
     }
-}
-
-pub struct RunSummary {
-    pub completed_phases: Vec<&'static str>,
-    pub staging_dir: PathBuf,
 }
 
 #[derive(Clone, Debug)]
@@ -326,6 +406,9 @@ pub trait Phase {
     fn description(&self) -> &'static str;
     fn should_run(&self, _ctx: &InstallContext) -> bool {
         true
+    }
+    fn error_severity(&self) -> ErrorSeverity {
+        ErrorSeverity::Fatal
     }
     fn execute(&self, ctx: &mut PhaseContext) -> Result<()>;
 }
@@ -419,6 +502,7 @@ mod tests {
         name: &'static str,
         description: &'static str,
         should_run: bool,
+        severity: ErrorSeverity,
         run: fn(&mut PhaseContext) -> Result<()>,
     }
 
@@ -438,6 +522,10 @@ mod tests {
         fn execute(&self, ctx: &mut PhaseContext) -> Result<()> {
             (self.run)(ctx)
         }
+
+        fn error_severity(&self) -> ErrorSeverity {
+            self.severity
+        }
     }
 
     impl TestPhase {
@@ -445,12 +533,14 @@ mod tests {
             name: &'static str,
             description: &'static str,
             should_run: bool,
+            severity: ErrorSeverity,
             run: fn(&mut PhaseContext) -> Result<()>,
         ) -> Self {
             Self {
                 name,
                 description,
                 should_run,
+                severity,
                 run,
             }
         }
@@ -529,18 +619,21 @@ mod tests {
                 "phase-one",
                 "phase one done",
                 true,
+                ErrorSeverity::Fatal,
                 success_phase,
             )),
             Box::new(TestPhase::new(
                 "phase-skip",
                 "phase skip done",
                 false,
+                ErrorSeverity::Fatal,
                 success_phase,
             )),
             Box::new(TestPhase::new(
                 "phase-two",
                 "phase two done",
                 true,
+                ErrorSeverity::Fatal,
                 success_phase,
             )),
         ];
@@ -573,18 +666,21 @@ mod tests {
                 "phase-one",
                 "phase one done",
                 true,
+                ErrorSeverity::Fatal,
                 success_phase,
             )),
             Box::new(TestPhase::new(
                 "phase-error",
                 "phase error done",
                 true,
+                ErrorSeverity::Fatal,
                 failing_phase,
             )),
             Box::new(TestPhase::new(
                 "phase-three",
                 "phase three done",
                 true,
+                ErrorSeverity::Fatal,
                 success_phase,
             )),
         ];
@@ -592,15 +688,57 @@ mod tests {
         let mut observer = RecordingObserver::new();
 
         let err = runner.run(&ctx, &mut observer).unwrap_err();
-        assert_eq!(err.to_string(), "boom");
+        assert_eq!(err.source.phase, "phase-error");
+        assert_eq!(err.source.user_message(), "phase-error failed: boom");
+        assert_eq!(err.result.errors.len(), 1);
         assert!(observer
             .events
             .iter()
-            .any(|evt| evt.starts_with("failure:2:phase-error:boom")));
+            .any(|evt| evt.starts_with("failure:2:phase-error:phase-error failed: boom")));
         assert!(observer
             .events
             .iter()
             .any(|evt| evt.starts_with("start:1:phase-one")));
+        Ok(())
+    }
+
+    #[test]
+    fn phase_runner_continues_on_recoverable_errors() -> Result<()> {
+        let ctx = build_test_context()?;
+        let phases: Vec<Box<dyn Phase>> = vec![
+            Box::new(TestPhase::new(
+                "phase-one",
+                "phase one done",
+                true,
+                ErrorSeverity::Fatal,
+                success_phase,
+            )),
+            Box::new(TestPhase::new(
+                "phase-error",
+                "phase error done",
+                true,
+                ErrorSeverity::Recoverable,
+                failing_phase,
+            )),
+            Box::new(TestPhase::new(
+                "phase-three",
+                "phase three done",
+                true,
+                ErrorSeverity::Fatal,
+                success_phase,
+            )),
+        ];
+        let mut observer = RecordingObserver::new();
+        let runner = PhaseRunner::with_policy(phases, PhaseErrorPolicy::ContinueOnError);
+
+        let result = runner.run(&ctx, &mut observer)?;
+        assert_eq!(result.completed_phases, vec!["phase-one", "phase-three"]);
+        assert_eq!(result.errors.len(), 1);
+        assert_eq!(result.errors[0].severity, ErrorSeverity::Recoverable);
+        assert!(observer
+            .events
+            .iter()
+            .any(|evt| evt.starts_with("failure:2:phase-error:phase-error failed: boom")));
         Ok(())
     }
 
@@ -612,18 +750,21 @@ mod tests {
                 "phase-one",
                 "phase one done",
                 true,
+                ErrorSeverity::Fatal,
                 success_phase,
             )),
             Box::new(TestPhase::new(
                 "phase-skip",
                 "phase skip done",
                 false,
+                ErrorSeverity::Fatal,
                 success_phase,
             )),
             Box::new(TestPhase::new(
                 "phase-two",
                 "phase two done",
                 true,
+                ErrorSeverity::Fatal,
                 success_phase,
             )),
         ];
