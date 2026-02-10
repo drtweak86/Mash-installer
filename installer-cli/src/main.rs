@@ -27,6 +27,9 @@ struct Cli {
 
     #[arg(long, short)]
     verbose: bool,
+
+    #[arg(long)]
+    continue_on_error: bool,
 }
 
 fn main() -> Result<()> {
@@ -70,6 +73,7 @@ fn main() -> Result<()> {
         enable_argon: modules.enable_argon,
         enable_p10k: modules.enable_p10k,
         docker_data_root: modules.docker_data_root,
+        continue_on_error: cli.continue_on_error,
     };
 
     info!(

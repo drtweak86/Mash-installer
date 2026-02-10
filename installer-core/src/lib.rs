@@ -21,7 +21,6 @@ mod staging;
 mod systemd;
 mod zsh;
 
-use crate::error::InstallerStateSnapshot;
 use anyhow::Result;
 use std::{fmt, path::PathBuf};
 use tracing::{error, info};
@@ -29,7 +28,9 @@ use tracing::{error, info};
 pub use backend::PkgBackend;
 pub use context::{ConfigService, PhaseContext, PlatformContext, UIContext, UserOptionsContext};
 pub use driver::{AptRepoConfig, DistroDriver, RepoKind, ServiceName};
-pub use error::{ErrorSeverity, InstallerError, InstallerRunError, RunSummary};
+pub use error::{
+    ErrorSeverity, InstallerError, InstallerRunError, InstallerStateSnapshot, RunSummary,
+};
 pub use platform::{detect as detect_platform, PlatformInfo};
 
 /// Options provided by the CLI that drive `run_with_driver`.
@@ -42,6 +43,7 @@ pub struct InstallOptions {
     pub enable_argon: bool,
     pub enable_p10k: bool,
     pub docker_data_root: bool,
+    pub continue_on_error: bool,
 }
 
 /// Central context threaded through every install phase.
@@ -117,7 +119,12 @@ pub fn run_with_driver(
     };
 
     let phases = build_phase_list(&ctx.options);
-    let runner = PhaseRunner::from_phases(phases);
+    let policy = if opts.continue_on_error {
+        PhaseErrorPolicy::ContinueOnError
+    } else {
+        PhaseErrorPolicy::default()
+    };
+    let runner = PhaseRunner::with_policy(phases, policy);
     match runner.run(&ctx, observer) {
         Ok(result) => Ok(RunSummary {
             completed_phases: result.completed_phases,
