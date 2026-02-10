@@ -1,9 +1,9 @@
-use anyhow::{Context, Error, Result};
+use anyhow::{Context, Result};
 use clap::Parser;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use installer_core::{
-    detect_platform, DistroDriver, InstallOptions, InstallerRunError, PhaseEvent, PhaseObserver,
-    PlatformInfo, ProfileLevel, RunSummary,
+    detect_platform, DistroDriver, ErrorSeverity, InstallOptions, InstallerError,
+    InstallerStateSnapshot, PhaseEvent, PhaseObserver, PlatformInfo, ProfileLevel, RunSummary,
 };
 use std::io::{self, Write};
 use std::path::PathBuf;
@@ -113,9 +113,14 @@ fn print_completion_message(summary: &RunSummary, dry_run: bool) {
 }
 
 fn print_error_report(summary: &RunSummary) {
+    let mut stdout = io::stdout();
+    let _ = write_error_report(summary, &mut stdout);
+}
+
+fn write_error_report(summary: &RunSummary, out: &mut dyn Write) -> std::io::Result<()> {
     if summary.errors.is_empty() {
-        println!("No additional error details were recorded.");
-        return;
+        writeln!(out, "No additional error details were recorded.")?;
+        return Ok(());
     }
 
     let completed = if summary.completed_phases.is_empty() {
@@ -124,23 +129,68 @@ fn print_error_report(summary: &RunSummary) {
         summary.completed_phases.join(", ")
     };
 
-    println!();
-    println!("╔══════════════════════════════════════════════╗");
-    println!("║       Installation completed with errors     ║");
-    println!("╚══════════════════════════════════════════════╝");
-    println!();
-    println!("Completed phases: {}", completed);
-    println!("Staging directory: {}", summary.staging_dir.display());
-    println!();
+    writeln!(out)?;
+    writeln!(out, "╔══════════════════════════════════════════════╗")?;
+    writeln!(out, "║       Installation completed with errors     ║")?;
+    writeln!(out, "╚══════════════════════════════════════════════╝")?;
+    writeln!(out)?;
+    writeln!(out, "Completed phases: {}", completed)?;
+    writeln!(out, "Staging directory: {}", summary.staging_dir.display())?;
+    writeln!(out)?;
 
     for err in &summary.errors {
-        println!("  • Phase: {} – {}", err.phase, err.user_message());
+        writeln!(out, "  • Phase: {} – {}", err.phase, err.user_message())?;
         if let Some(advice) = &err.advice {
-            println!("    Advice: {}", advice);
+            writeln!(out, "    Advice: {}", advice)?;
         }
-        println!("    Context: {}", err.state);
-        println!("    Details: {}", err.developer_message());
-        println!();
+        writeln!(out, "    Context: {}", err.state)?;
+        writeln!(out, "    Details: {}", err.developer_message())?;
+        writeln!(out)?;
+    }
+
+    Ok(())
+}
+
+#[cfg(test)]
+mod error_report_tests {
+    use super::*;
+    use anyhow::anyhow;
+    use std::path::PathBuf;
+
+    fn make_summary_with_error() -> RunSummary {
+        let error = InstallerError::new(
+            "phase-one",
+            "phase one failed",
+            ErrorSeverity::Recoverable,
+            anyhow!("boom"),
+            InstallerStateSnapshot::default(),
+            Some("Check connectivity".to_string()),
+        );
+        RunSummary {
+            completed_phases: vec!["phase-one"],
+            staging_dir: PathBuf::from("/tmp/staging"),
+            errors: vec![error],
+        }
+    }
+
+    #[test]
+    fn write_error_report_prints_phase_and_advice() {
+        let summary = make_summary_with_error();
+        let mut buf = Vec::new();
+        write_error_report(&summary, &mut buf).expect("write failed");
+        let output = String::from_utf8(buf).expect("invalid utf8");
+        assert!(output.contains("Phase: phase-one"));
+        assert!(output.contains("Advice: Check connectivity"));
+        assert!(output.contains("Context: profile=Minimal"));
+    }
+
+    #[test]
+    fn write_error_report_outputs_no_errors_message() {
+        let summary = RunSummary::default();
+        let mut buf = Vec::new();
+        write_error_report(&summary, &mut buf).expect("write failed");
+        let output = String::from_utf8(buf).expect("invalid utf8");
+        assert!(output.contains("No additional error details were recorded."));
     }
 }
 
