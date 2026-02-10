@@ -1,9 +1,10 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::backend::PkgBackend;
 use crate::config;
 use crate::driver::DistroDriver;
 use crate::platform::PlatformInfo;
+use crate::staging;
 use anyhow::Result;
 
 /// CLI-supplied options that guide the installation.
@@ -17,20 +18,48 @@ pub struct UserOptionsContext {
     pub docker_data_root: bool,
 }
 
-/// Service that loads and exposes the Mash config.
+/// Options that override values in the persisted Mash config.
+#[derive(Debug, Clone, Default)]
+pub struct ConfigOverrides {
+    pub staging_dir: Option<PathBuf>,
+}
+
+impl ConfigOverrides {
+    pub fn staging_dir(&self) -> Option<&Path> {
+        self.staging_dir.as_deref()
+    }
+}
+
+/// Service that loads and exposes the Mash config along with any overrides.
 pub struct ConfigService {
     config: config::MashConfig,
+    overrides: ConfigOverrides,
 }
 
 impl ConfigService {
     pub fn load() -> Result<Self> {
-        Ok(Self {
-            config: config::load_or_default()?,
-        })
+        Self::load_with_overrides(ConfigOverrides::default())
+    }
+
+    pub fn load_with_overrides(overrides: ConfigOverrides) -> Result<Self> {
+        let config = config::load_or_default()?;
+        Ok(Self { config, overrides })
     }
 
     pub fn config(&self) -> &config::MashConfig {
         &self.config
+    }
+
+    pub fn overrides(&self) -> &ConfigOverrides {
+        &self.overrides
+    }
+
+    pub fn staging_override(&self) -> Option<&Path> {
+        self.overrides.staging_dir()
+    }
+
+    pub fn resolve_staging_dir(&self) -> Result<PathBuf> {
+        staging::resolve(self.staging_override(), self.config())
     }
 }
 
@@ -46,6 +75,41 @@ pub struct PlatformContext {
 impl PlatformContext {
     pub fn config(&self) -> &config::MashConfig {
         self.config_service.config()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    #[test]
+    fn overrides_default_to_none() {
+        let overrides = ConfigOverrides::default();
+        assert!(overrides.staging_dir().is_none());
+    }
+
+    #[test]
+    fn staging_override_returns_specified_path() {
+        let path = PathBuf::from("/tmp/custom-stage");
+        let overrides = ConfigOverrides {
+            staging_dir: Some(path.clone()),
+        };
+        assert_eq!(overrides.staging_dir(), Some(path.as_path()));
+    }
+
+    #[test]
+    fn config_service_resolves_overrides_internally() {
+        let config = config::MashConfig::default();
+        let overrides = ConfigOverrides {
+            staging_dir: Some(PathBuf::from("/tmp/custom-stage")),
+        };
+        let service = ConfigService {
+            config: config.clone(),
+            overrides,
+        };
+        assert_eq!(service.config(), &config);
+        assert!(service.staging_override().is_some());
     }
 }
 

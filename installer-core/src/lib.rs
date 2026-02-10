@@ -26,7 +26,9 @@ use std::{fmt, path::PathBuf};
 use tracing::{error, info};
 
 pub use backend::PkgBackend;
-pub use context::{ConfigService, PhaseContext, PlatformContext, UIContext, UserOptionsContext};
+pub use context::{
+    ConfigOverrides, ConfigService, PhaseContext, PlatformContext, UIContext, UserOptionsContext,
+};
 pub use driver::{AptRepoConfig, DistroDriver, RepoKind, ServiceName};
 pub use error::{
     ErrorSeverity, InstallerError, InstallerRunError, InstallerStateSnapshot, RunSummary,
@@ -90,8 +92,11 @@ pub fn run_with_driver(
         info!("Raspberry Pi model: {}", model);
     }
 
-    let config_service = ConfigService::load()?;
-    let staging = staging::resolve(opts.staging_dir.as_deref(), config_service.config())?;
+    let overrides = ConfigOverrides {
+        staging_dir: opts.staging_dir.clone(),
+    };
+    let config_service = ConfigService::load_with_overrides(overrides)?;
+    let staging = config_service.resolve_staging_dir()?;
     info!("Staging directory: {}", staging.display());
 
     let options = UserOptionsContext {

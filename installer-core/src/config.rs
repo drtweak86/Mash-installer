@@ -166,7 +166,7 @@ impl Default for MashConfig {
 
 // ── public API ──────────────────────────────────────────────────
 
-fn config_path() -> PathBuf {
+pub fn config_path() -> PathBuf {
     home_dir().join(".config/mash-installer/config.toml")
 }
 

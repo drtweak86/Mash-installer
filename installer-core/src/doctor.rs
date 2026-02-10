@@ -7,7 +7,10 @@ use std::path::Path;
 use std::process::Command;
 use std::time::Duration;
 
-use crate::{config, staging};
+use crate::{
+    config,
+    context::{ConfigOverrides, ConfigService},
+};
 
 /// Run diagnostics and print a summary of what is installed / missing.
 #[allow(dead_code)]
@@ -131,9 +134,7 @@ pub fn run_doctor() -> Result<()> {
 
     // ── Config ──
     section("Config");
-    let config_path = dirs::home_dir()
-        .unwrap_or_default()
-        .join(".config/mash-installer/config.toml");
+    let config_path = config::config_path();
     println!(
         "  Config file: {} ({})",
         config_path.display(),
@@ -222,9 +223,13 @@ pub fn run_preflight_checks(staging_override: Option<&Path>) -> Result<()> {
         }
     }
 
-    let cfg = config::load_or_default()?;
-    let staging_dir =
-        staging::resolve(staging_override, &cfg).context("resolving staging directory")?;
+    let overrides = ConfigOverrides {
+        staging_dir: staging_override.map(|p| p.to_path_buf()),
+    };
+    let config_service = ConfigService::load_with_overrides(overrides)?;
+    let staging_dir = config_service
+        .resolve_staging_dir()
+        .context("resolving staging directory")?;
     match check_directory_writeable(&staging_dir) {
         Ok(_) => report(
             format!("  Staging directory writeable: {}", staging_dir.display()),
