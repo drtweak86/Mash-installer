@@ -66,6 +66,10 @@ enum Commands {
         /// Set Docker data-root to staging_dir/docker
         #[arg(long)]
         docker_data_root: bool,
+
+        /// Run pre-flight doctor checks before installation
+        #[arg(long)]
+        pre_flight: bool,
     },
     /// Diagnose the current system state
     Doctor,
@@ -172,6 +176,7 @@ fn main() -> Result<()> {
             enable_argon,
             enable_p10k,
             docker_data_root,
+            pre_flight,
         } => {
             let profile_level = match profile {
                 Profile::Minimal => ProfileLevel::Minimal,
@@ -187,6 +192,7 @@ fn main() -> Result<()> {
                 enable_argon,
                 enable_p10k,
                 docker_data_root,
+                pre_flight,
             )
         }
         Commands::Doctor => doctor::run_doctor(),
@@ -213,6 +219,7 @@ fn run_install(
     mut enable_argon: bool,
     mut enable_p10k: bool,
     mut docker_data_root: bool,
+    pre_flight: bool,
 ) -> Result<()> {
     println!();
     println!("╔══════════════════════════════════════════════╗");
@@ -248,6 +255,12 @@ fn run_install(
     let cfg = config::load_or_default()?;
     let staging = staging::resolve(staging_dir_override.as_deref(), &cfg)?;
     info!("Staging directory: {}", staging.display());
+
+    if pre_flight {
+        info!("Running pre-flight checks");
+        doctor::run_preflight_checks(Some(&staging))
+            .context("pre-flight checks failed; aborting installation")?;
+    }
 
     // ── Build phase list based on profile / flags ───────────────
     let mut phases: Vec<Phase> = vec![

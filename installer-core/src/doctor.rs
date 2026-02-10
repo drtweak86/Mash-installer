@@ -16,7 +16,7 @@ pub fn run_doctor() -> Result<()> {
     println!("==================");
     println!();
 
-    run_preflight_checks()?;
+    run_preflight_checks(None)?;
 
     // ── System info ──
     section("System");
@@ -169,33 +169,36 @@ const CONNECTIVITY_TARGETS: &[(&str, u16)] = &[("github.com", 443), ("crates.io"
 const CONNECTIVITY_TIMEOUT_SECS: u64 = 5;
 const WRITE_TEST_FILE: &str = ".mash-doctor-write-test";
 
-fn run_preflight_checks() -> Result<()> {
+pub fn run_preflight_checks(staging_override: Option<&Path>) -> Result<()> {
     section("Pre-flight checks");
     let mut failures = Vec::new();
 
     for &cmd in REQUIRED_COMMANDS {
         match which::which(cmd) {
-            Ok(path) => println!("  {cmd:<16} {}", path.display()),
+            Ok(path) => report(format!("  {cmd:<16} {}", path.display()), true),
             Err(_) => {
-                println!("  {cmd:<16} MISSING");
+                report(format!("  {cmd:<16} MISSING"), false);
                 failures.push(format!("command '{cmd}' not found in PATH"));
             }
         }
     }
 
     match check_root_space() {
-        Ok(bytes) => println!("  Root partition: {} free", format_bytes(bytes)),
+        Ok(bytes) => report(
+            format!("  Root partition: {} free", format_bytes(bytes)),
+            true,
+        ),
         Err(err) => {
-            println!("  Root partition check failed: {err}");
+            report(format!("  Root partition check failed: {err}"), false);
             failures.push(err.to_string());
         }
     }
 
     for &(host, port) in CONNECTIVITY_TARGETS {
         match check_connectivity(host, port, Duration::from_secs(CONNECTIVITY_TIMEOUT_SECS)) {
-            Ok(_) => println!("  {host}:{port} reachable"),
+            Ok(_) => report(format!("  {host}:{port} reachable"), true),
             Err(err) => {
-                println!("  {host}:{port} unreachable ({err})");
+                report(format!("  {host}:{port} unreachable ({err})"), false);
                 failures.push(err.to_string());
             }
         }
@@ -203,24 +206,37 @@ fn run_preflight_checks() -> Result<()> {
 
     let home_dir = dirs::home_dir().ok_or_else(|| anyhow!("could not determine home directory"))?;
     match check_directory_writeable(&home_dir) {
-        Ok(_) => println!("  Home directory writeable: {}", home_dir.display()),
+        Ok(_) => report(
+            format!("  Home directory writeable: {}", home_dir.display()),
+            true,
+        ),
         Err(err) => {
-            println!(
-                "  Home directory ({}) write check failed: {err}",
-                home_dir.display()
+            report(
+                format!(
+                    "  Home directory ({}) write check failed: {err}",
+                    home_dir.display()
+                ),
+                false,
             );
             failures.push(err.to_string());
         }
     }
 
     let cfg = config::load_or_default()?;
-    let staging_dir = staging::resolve(None, &cfg).context("resolving staging directory")?;
+    let staging_dir =
+        staging::resolve(staging_override, &cfg).context("resolving staging directory")?;
     match check_directory_writeable(&staging_dir) {
-        Ok(_) => println!("  Staging directory writeable: {}", staging_dir.display()),
+        Ok(_) => report(
+            format!("  Staging directory writeable: {}", staging_dir.display()),
+            true,
+        ),
         Err(err) => {
-            println!(
-                "  Staging directory ({}) write check failed: {err}",
-                staging_dir.display()
+            report(
+                format!(
+                    "  Staging directory ({}) write check failed: {err}",
+                    staging_dir.display()
+                ),
+                false,
             );
             failures.push(err.to_string());
         }
@@ -331,6 +347,14 @@ fn check_tool(name: &str, cmd_str: &str) {
         _ => {
             println!("  {name:<20} MISSING");
         }
+    }
+}
+
+fn report(message: impl AsRef<str>, success: bool) {
+    if success {
+        println!("{}", message.as_ref());
+    } else {
+        eprintln!("{}", message.as_ref());
     }
 }
 
