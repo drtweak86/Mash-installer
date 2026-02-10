@@ -2,8 +2,8 @@ use anyhow::{Context, Error, Result};
 use clap::Parser;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use installer_core::{
-    detect_platform, DistroDriver, InstallOptions, PhaseObserver, PlatformInfo, ProfileLevel,
-    RunSummary,
+    detect_platform, DistroDriver, InstallOptions, PhaseEvent, PhaseObserver, PlatformInfo,
+    ProfileLevel, RunSummary,
 };
 use std::io::{self, Write};
 use std::path::PathBuf;
@@ -184,30 +184,32 @@ impl CliPhaseObserver {
 }
 
 impl PhaseObserver for CliPhaseObserver {
-    fn total_phases(&mut self, total: usize) {
-        self.overall.set_length(total as u64);
-    }
-
-    fn on_phase_started(&mut self, index: usize, total: usize, label: &'static str) {
-        self.finish_spinner(" ", "");
-        let display = format!("Phase {}/{} · {}", index, total, label);
-        self.start_spinner(&display);
-    }
-
-    fn on_phase_success(&mut self, _index: usize, done_msg: &'static str) {
-        self.finish_spinner("✓", done_msg);
-        self.overall.inc(1);
-    }
-
-    fn on_phase_failure(&mut self, _index: usize, label: &'static str, err: &Error) {
-        let message = format!("{label} FAILED: {err}");
-        self.finish_spinner("✗", &message);
-        self.overall.inc(1);
-    }
-
-    fn on_phase_skipped(&mut self, _index: usize, label: &'static str) {
-        self.finish_spinner("–", label);
-        self.overall.inc(1);
+    fn on_event(&mut self, event: PhaseEvent) {
+        match event {
+            PhaseEvent::Total { total } => self.overall.set_length(total as u64),
+            PhaseEvent::Started {
+                index,
+                total,
+                phase,
+            } => {
+                self.finish_spinner(" ", "");
+                let display = format!("Phase {}/{} · {}", index, total, phase);
+                self.start_spinner(&display);
+            }
+            PhaseEvent::Completed { description, .. } => {
+                self.finish_spinner("✓", description);
+                self.overall.inc(1);
+            }
+            PhaseEvent::Failed { error, .. } => {
+                let message = format!("Phase FAILED: {error}");
+                self.finish_spinner("✗", &message);
+                self.overall.inc(1);
+            }
+            PhaseEvent::Skipped { phase, .. } => {
+                self.finish_spinner("–", phase);
+                self.overall.inc(1);
+            }
+        }
     }
 }
 

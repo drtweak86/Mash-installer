@@ -20,7 +20,7 @@ mod staging;
 mod systemd;
 mod zsh;
 
-use anyhow::{Error, Result};
+use anyhow::Result;
 use std::path::PathBuf;
 use tracing::{error, info};
 
@@ -181,14 +181,6 @@ fn build_phase_list(options: &UserOptionsContext) -> Vec<Box<dyn Phase>> {
     phases
 }
 
-pub trait PhaseObserver {
-    fn total_phases(&mut self, _total: usize) {}
-    fn on_phase_started(&mut self, _index: usize, _total: usize, _label: &'static str) {}
-    fn on_phase_success(&mut self, _index: usize, _done_msg: &'static str) {}
-    fn on_phase_failure(&mut self, _index: usize, _label: &'static str, _err: &Error) {}
-    fn on_phase_skipped(&mut self, _index: usize, _label: &'static str) {}
-}
-
 #[derive(Debug)]
 pub struct PhaseRunResult {
     pub completed_phases: Vec<&'static str>,
@@ -209,24 +201,40 @@ impl PhaseRunner {
         observer: &mut dyn PhaseObserver,
     ) -> Result<PhaseRunResult> {
         let total = self.phases.len();
-        observer.total_phases(total);
+        observer.on_event(PhaseEvent::Total { total });
         let mut completed = Vec::new();
 
         for (i, phase) in self.phases.iter().enumerate() {
             if !phase.should_run(ctx) {
-                observer.on_phase_skipped(i + 1, phase.name());
+                observer.on_event(PhaseEvent::Skipped {
+                    index: i + 1,
+                    phase: phase.name(),
+                });
                 continue;
             }
 
-            observer.on_phase_started(i + 1, total, phase.name());
+            observer.on_event(PhaseEvent::Started {
+                index: i + 1,
+                total,
+                phase: phase.name(),
+            });
             let mut phase_ctx = ctx.phase_context();
             match phase.execute(&mut phase_ctx) {
                 Ok(()) => {
-                    observer.on_phase_success(i + 1, phase.description());
+                    observer.on_event(PhaseEvent::Completed {
+                        index: i + 1,
+                        phase: phase.name(),
+                        description: phase.description(),
+                    });
                     completed.push(phase.name());
                 }
                 Err(e) => {
-                    observer.on_phase_failure(i + 1, phase.name(), &e);
+                    let error_message = format!("{e:#}");
+                    observer.on_event(PhaseEvent::Failed {
+                        index: i + 1,
+                        phase: phase.name(),
+                        error: error_message,
+                    });
                     let completed_list = if completed.is_empty() {
                         "none".to_string()
                     } else {
@@ -253,6 +261,35 @@ impl PhaseRunner {
 pub struct RunSummary {
     pub completed_phases: Vec<&'static str>,
     pub staging_dir: PathBuf,
+}
+
+pub enum PhaseEvent {
+    Total {
+        total: usize,
+    },
+    Started {
+        index: usize,
+        total: usize,
+        phase: &'static str,
+    },
+    Completed {
+        index: usize,
+        phase: &'static str,
+        description: &'static str,
+    },
+    Failed {
+        index: usize,
+        phase: &'static str,
+        error: String,
+    },
+    Skipped {
+        index: usize,
+        phase: &'static str,
+    },
+}
+
+pub trait PhaseObserver {
+    fn on_event(&mut self, _event: PhaseEvent) {}
 }
 
 pub trait Phase {
@@ -301,7 +338,7 @@ impl FunctionPhase {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anyhow::{anyhow, Error, Result};
+    use anyhow::{anyhow, Result};
     use std::path::PathBuf;
 
     struct RecordingObserver {
@@ -319,26 +356,33 @@ mod tests {
     }
 
     impl PhaseObserver for RecordingObserver {
-        fn total_phases(&mut self, total: usize) {
-            self.total = Some(total);
-            self.events.push(format!("total:{}", total));
-        }
-
-        fn on_phase_started(&mut self, index: usize, _: usize, label: &'static str) {
-            self.events.push(format!("start:{}:{}", index, label));
-        }
-
-        fn on_phase_success(&mut self, index: usize, done_msg: &'static str) {
-            self.events.push(format!("success:{}:{}", index, done_msg));
-        }
-
-        fn on_phase_failure(&mut self, index: usize, label: &'static str, err: &Error) {
-            self.events
-                .push(format!("failure:{}:{}:{}", index, label, err));
-        }
-
-        fn on_phase_skipped(&mut self, index: usize, label: &'static str) {
-            self.events.push(format!("skipped:{}:{}", index, label));
+        fn on_event(&mut self, event: PhaseEvent) {
+            match event {
+                PhaseEvent::Total { total } => {
+                    self.total = Some(total);
+                    self.events.push(format!("total:{}", total));
+                }
+                PhaseEvent::Started { index, phase, .. } => {
+                    self.events.push(format!("start:{}:{}", index, phase));
+                }
+                PhaseEvent::Completed {
+                    index, description, ..
+                } => {
+                    self.events
+                        .push(format!("success:{}:{}", index, description));
+                }
+                PhaseEvent::Failed {
+                    index,
+                    phase,
+                    error,
+                } => {
+                    self.events
+                        .push(format!("failure:{}:{}:{}", index, phase, error));
+                }
+                PhaseEvent::Skipped { index, phase } => {
+                    self.events.push(format!("skipped:{}:{}", index, phase));
+                }
+            }
         }
     }
 
