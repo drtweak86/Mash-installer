@@ -2,7 +2,6 @@ use anyhow::{anyhow, Context, Result};
 use nix::sys::statvfs;
 use std::fs::OpenOptions;
 use std::io::Write;
-use std::net::{TcpStream, ToSocketAddrs};
 use std::path::Path;
 use std::process::Command;
 use std::time::Duration;
@@ -10,6 +9,7 @@ use std::time::Duration;
 use crate::{
     config,
     context::{ConfigOverrides, ConfigService},
+    system::{RealSystem, SystemOps},
 };
 
 /// Run diagnostics and print a summary of what is installed / missing.
@@ -19,16 +19,21 @@ pub fn run_doctor() -> Result<()> {
     println!("==================");
     println!();
 
-    run_preflight_checks(None)?;
+    let system = RealSystem;
+    run_preflight_checks(&system, None)?;
 
     // ── System info ──
     section("System");
-    show_file("/etc/os-release", &["PRETTY_NAME", "VERSION_ID"]);
-    show_cmd("Architecture", "uname", &["-m"]);
-    show_cmd("Kernel", "uname", &["-r"]);
+    show_file(
+        &system,
+        Path::new("/etc/os-release"),
+        &["PRETTY_NAME", "VERSION_ID"],
+    );
+    show_cmd(&system, "Architecture", "uname", &["-m"]);
+    show_cmd(&system, "Kernel", "uname", &["-r"]);
 
     // Pi model
-    if let Ok(model) = std::fs::read_to_string("/proc/device-tree/model") {
+    if let Ok(model) = system.read_to_string(Path::new("/proc/device-tree/model")) {
         let model = model.trim_end_matches('\0').trim();
         println!("  Pi model:      {model}");
     }
@@ -88,7 +93,7 @@ pub fn run_doctor() -> Result<()> {
     ];
 
     for (name, cmd_str) in &tools {
-        check_tool(name, cmd_str);
+        check_tool(&system, name, cmd_str);
     }
     println!();
 
@@ -170,7 +175,7 @@ const CONNECTIVITY_TARGETS: &[(&str, u16)] = &[("github.com", 443), ("crates.io"
 const CONNECTIVITY_TIMEOUT_SECS: u64 = 5;
 const WRITE_TEST_FILE: &str = ".mash-doctor-write-test";
 
-pub fn run_preflight_checks(staging_override: Option<&Path>) -> Result<()> {
+pub fn run_preflight_checks(system: &dyn SystemOps, staging_override: Option<&Path>) -> Result<()> {
     section("Pre-flight checks");
     let mut failures = Vec::new();
 
@@ -196,7 +201,12 @@ pub fn run_preflight_checks(staging_override: Option<&Path>) -> Result<()> {
     }
 
     for &(host, port) in CONNECTIVITY_TARGETS {
-        match check_connectivity(host, port, Duration::from_secs(CONNECTIVITY_TIMEOUT_SECS)) {
+        match check_connectivity(
+            system,
+            host,
+            port,
+            Duration::from_secs(CONNECTIVITY_TIMEOUT_SECS),
+        ) {
             Ok(_) => report(format!("  {host}:{port} reachable"), true),
             Err(err) => {
                 report(format!("  {host}:{port} unreachable ({err})"), false);
@@ -271,14 +281,14 @@ fn check_root_space() -> Result<u64> {
     }
 }
 
-fn check_connectivity(host: &str, port: u16, timeout: Duration) -> Result<()> {
-    let addrs = (host, port).to_socket_addrs()?;
-    for addr in addrs {
-        if TcpStream::connect_timeout(&addr, timeout).is_ok() {
-            return Ok(());
-        }
-    }
-    Err(anyhow!("failed to reach {host}:{port}"))
+fn check_connectivity(
+    system: &dyn SystemOps,
+    host: &str,
+    port: u16,
+    timeout: Duration,
+) -> Result<()> {
+    system.connect(host, port, timeout)?;
+    Ok(())
 }
 
 fn check_directory_writeable(path: &Path) -> Result<()> {
@@ -315,8 +325,10 @@ fn section(name: &str) {
 }
 
 #[allow(dead_code)]
-fn show_cmd(label: &str, cmd: &str, args: &[&str]) {
-    match Command::new(cmd).args(args).output() {
+fn show_cmd(system: &dyn SystemOps, label: &str, cmd: &str, args: &[&str]) {
+    let mut command = Command::new(cmd);
+    command.args(args);
+    match system.command_output(&mut command) {
         Ok(o) => {
             let out = String::from_utf8_lossy(&o.stdout);
             println!("  {label:<16} {}", out.trim());
@@ -326,8 +338,8 @@ fn show_cmd(label: &str, cmd: &str, args: &[&str]) {
 }
 
 #[allow(dead_code)]
-fn show_file(path: &str, keys: &[&str]) {
-    if let Ok(content) = std::fs::read_to_string(path) {
+fn show_file(system: &dyn SystemOps, path: &Path, keys: &[&str]) {
+    if let Ok(content) = system.read_to_string(path) {
         for key in keys {
             for line in content.lines() {
                 if let Some(rest) = line.strip_prefix(&format!("{key}=")) {
@@ -339,11 +351,12 @@ fn show_file(path: &str, keys: &[&str]) {
 }
 
 #[allow(dead_code)]
-fn check_tool(name: &str, cmd_str: &str) {
+fn check_tool(system: &dyn SystemOps, name: &str, cmd_str: &str) {
     let parts: Vec<&str> = cmd_str.split_whitespace().collect();
-    let result = Command::new(parts[0]).args(&parts[1..]).output();
+    let mut command = Command::new(parts[0]);
+    command.args(&parts[1..]);
 
-    match result {
+    match system.command_output(&mut command) {
         Ok(o) if o.status.success() => {
             let ver = String::from_utf8_lossy(&o.stdout);
             let first_line = ver.lines().next().unwrap_or("").trim();
@@ -366,6 +379,7 @@ fn report(message: impl AsRef<str>, success: bool) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::system::RealSystem;
     use std::net::TcpListener;
     use std::thread;
     use std::time::Duration;
@@ -394,7 +408,8 @@ mod tests {
         let handle = thread::spawn(move || {
             let _ = listener.accept();
         });
-        let result = check_connectivity("127.0.0.1", addr.port(), Duration::from_secs(1));
+        let system = RealSystem;
+        let result = check_connectivity(&system, "127.0.0.1", addr.port(), Duration::from_secs(1));
         let _ = handle.join();
         result
     }

@@ -18,6 +18,7 @@ mod platform;
 mod rclone;
 mod rust;
 mod staging;
+mod system;
 mod systemd;
 mod zsh;
 
@@ -34,6 +35,7 @@ pub use error::{
     ErrorSeverity, InstallerError, InstallerRunError, InstallerStateSnapshot, RunSummary,
 };
 pub use platform::{detect as detect_platform, PlatformInfo};
+pub use system::{RealSystem, SystemOps};
 
 /// Options provided by the CLI that drive `run_with_driver`.
 #[derive(Clone)]
