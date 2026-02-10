@@ -786,4 +786,59 @@ mod tests {
             .any(|evt| evt.starts_with("skipped:2:phase-skip")));
         Ok(())
     }
+
+    fn make_user_options(profile: ProfileLevel, enable_argon: bool) -> UserOptionsContext {
+        UserOptionsContext {
+            profile,
+            staging_dir: PathBuf::from("/tmp/mash-test-staging"),
+            dry_run: true,
+            interactive: false,
+            enable_argon,
+            enable_p10k: false,
+            docker_data_root: false,
+        }
+    }
+
+    #[test]
+    fn build_phase_list_minimal_profile_only_core_phases() {
+        let opts = make_user_options(ProfileLevel::Minimal, false);
+        let names: Vec<_> = build_phase_list(&opts).iter().map(|p| p.name()).collect();
+        assert_eq!(
+            names,
+            vec![
+                "System packages",
+                "Rust toolchain + cargo tools",
+                "Git, GitHub CLI, SSH"
+            ]
+        );
+    }
+
+    #[test]
+    fn build_phase_list_dev_profile_includes_dev_phases() {
+        let opts = make_user_options(ProfileLevel::Dev, false);
+        let names: Vec<_> = build_phase_list(&opts).iter().map(|p| p.name()).collect();
+        let expected_phases = [
+            "Buildroot dependencies",
+            "Docker Engine",
+            "Shell & UX (zsh, starship)",
+            "Fonts",
+            "rclone",
+        ];
+
+        for phase in expected_phases {
+            assert!(
+                names.contains(&phase),
+                "expected phase list to include {} but got {:?}",
+                phase,
+                names
+            );
+        }
+    }
+
+    #[test]
+    fn build_phase_list_with_argon_option_adds_argon_phase() {
+        let opts = make_user_options(ProfileLevel::Minimal, true);
+        let names: Vec<_> = build_phase_list(&opts).iter().map(|p| p.name()).collect();
+        assert!(names.contains(&"Argon One fan script"));
+    }
 }
