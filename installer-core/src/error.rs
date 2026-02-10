@@ -67,8 +67,8 @@ impl fmt::Display for InstallerStateSnapshot {
 
 #[derive(Clone, Debug)]
 pub struct InstallerError {
-    pub phase: &'static str,
-    pub description: &'static str,
+    pub phase: String,
+    pub description: String,
     pub severity: ErrorSeverity,
     pub message: String,
     pub developer_detail: String,
@@ -78,13 +78,15 @@ pub struct InstallerError {
 
 impl InstallerError {
     pub fn new(
-        phase: &'static str,
-        description: &'static str,
+        phase: impl Into<String>,
+        description: impl Into<String>,
         severity: ErrorSeverity,
         source: Error,
         state: InstallerStateSnapshot,
         advice: Option<String>,
     ) -> Self {
+        let phase = phase.into();
+        let description = description.into();
         let message = format!("{phase} failed: {}", source.root_cause());
         let developer_detail = format!("{source:#}");
         Self {
@@ -121,7 +123,7 @@ impl std::error::Error for InstallerError {
 
 #[derive(Clone, Debug)]
 pub struct RunSummary {
-    pub completed_phases: Vec<&'static str>,
+    pub completed_phases: Vec<String>,
     pub staging_dir: PathBuf,
     pub errors: Vec<InstallerError>,
 }
@@ -235,7 +237,7 @@ mod tests {
             None,
         );
         let summary = RunSummary {
-            completed_phases: vec!["phase-one"],
+            completed_phases: vec!["phase-one".to_string()],
             staging_dir: PathBuf::from("/tmp/staging"),
             errors: vec![error],
         };

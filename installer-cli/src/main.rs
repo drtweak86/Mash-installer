@@ -171,7 +171,7 @@ mod error_report_tests {
             Some("Check connectivity".to_string()),
         );
         RunSummary {
-            completed_phases: vec!["phase-one"],
+            completed_phases: vec!["phase-one".to_string()],
             staging_dir: PathBuf::from("/tmp/staging"),
             errors: vec![error],
         }

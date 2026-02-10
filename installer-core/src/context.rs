@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use crate::backend::PkgBackend;
 use crate::config;
 use crate::driver::DistroDriver;
+use crate::localization::Localization;
 use crate::platform::PlatformInfo;
 use crate::staging;
 use anyhow::Result;
@@ -122,4 +123,5 @@ pub struct PhaseContext<'a> {
     pub options: &'a UserOptionsContext,
     pub platform: &'a PlatformContext,
     pub ui: &'a UIContext,
+    pub localization: &'a Localization,
 }

@@ -12,6 +12,7 @@ mod driver;
 mod error;
 mod fonts;
 mod github;
+pub mod localization;
 mod package_manager;
 mod pkg;
 mod platform;
@@ -22,6 +23,7 @@ mod system;
 mod systemd;
 mod zsh;
 
+use crate::localization::Localization;
 use anyhow::Result;
 use std::{fmt, path::PathBuf};
 use tracing::{error, info};
@@ -55,6 +57,7 @@ pub struct InstallContext {
     pub options: UserOptionsContext,
     pub platform: PlatformContext,
     pub ui: UIContext,
+    pub localization: Localization,
 }
 
 impl InstallContext {
@@ -63,6 +66,7 @@ impl InstallContext {
             options: &self.options,
             platform: &self.platform,
             ui: &self.ui,
+            localization: &self.localization,
         }
     }
 }
@@ -94,6 +98,8 @@ pub fn run_with_driver(
         info!("Raspberry Pi model: {}", model);
     }
 
+    let localization = Localization::load()?;
+
     let overrides = ConfigOverrides {
         staging_dir: opts.staging_dir.clone(),
     };
@@ -123,9 +129,10 @@ pub fn run_with_driver(
         options,
         platform: platform_ctx,
         ui: UIContext::default(),
+        localization,
     };
 
-    let phases = build_phase_list(&ctx.options);
+    let phases = build_phase_list(&ctx.options, &ctx.localization);
     let policy = if opts.continue_on_error {
         PhaseErrorPolicy::ContinueOnError
     } else {
@@ -155,67 +162,96 @@ pub fn run_with_driver(
     }
 }
 
-fn build_phase_list(options: &UserOptionsContext) -> Vec<Box<dyn Phase>> {
+fn build_phase_list(options: &UserOptionsContext, strings: &Localization) -> Vec<Box<dyn Phase>> {
     let mut phases: Vec<Box<dyn Phase>> = vec![
-        Box::new(FunctionPhase::new(
+        localized_phase(
+            strings,
+            "system_packages",
             "System packages",
             "System packages installed",
             pkg::install_phase,
-        )),
-        Box::new(FunctionPhase::new(
+        ),
+        localized_phase(
+            strings,
+            "rust_toolchain",
             "Rust toolchain + cargo tools",
             "Rust toolchain ready",
             rust::install_phase,
-        )),
-        Box::new(FunctionPhase::new(
+        ),
+        localized_phase(
+            strings,
+            "git_cli",
             "Git, GitHub CLI, SSH",
             "Git / GitHub CLI ready",
             github::install_phase,
-        )),
+        ),
     ];
 
     if options.profile >= ProfileLevel::Dev {
-        phases.push(Box::new(FunctionPhase::new(
+        phases.push(localized_phase(
+            strings,
+            "buildroot_dependencies",
             "Buildroot dependencies",
             "Buildroot dependencies ready",
             buildroot::install_phase,
-        )));
-        phases.push(Box::new(FunctionPhase::new(
+        ));
+        phases.push(localized_phase(
+            strings,
+            "docker_engine",
             "Docker Engine",
             "Docker Engine ready",
             docker::install_phase,
-        )));
-        phases.push(Box::new(FunctionPhase::new(
+        ));
+        phases.push(localized_phase(
+            strings,
+            "shell_ux",
             "Shell & UX (zsh, starship)",
             "Shell & UX ready",
             zsh::install_phase,
-        )));
-        phases.push(Box::new(FunctionPhase::new(
+        ));
+        phases.push(localized_phase(
+            strings,
+            "fonts",
             "Fonts",
             "Fonts installed",
             fonts::install_phase,
-        )));
-        phases.push(Box::new(FunctionPhase::new(
+        ));
+        phases.push(localized_phase(
+            strings,
+            "rclone",
             "rclone",
             "rclone ready",
             rclone::install_phase,
-        )));
+        ));
     }
 
     if options.enable_argon {
-        phases.push(Box::new(FunctionPhase::new(
+        phases.push(localized_phase(
+            strings,
+            "argon_one",
             "Argon One fan script",
             "Argon One installed",
             argon::install_phase,
-        )));
+        ));
     }
 
     phases
 }
 
+fn localized_phase(
+    strings: &Localization,
+    key: &str,
+    label: &'static str,
+    description: &'static str,
+    run: fn(&mut PhaseContext) -> Result<()>,
+) -> Box<dyn Phase> {
+    let entry = strings.phase_or_default(key, label, description);
+    Box::new(FunctionPhase::new(entry.label, entry.description, run))
+}
+
 #[derive(Debug)]
 pub struct PhaseRunResult {
-    pub completed_phases: Vec<&'static str>,
+    pub completed_phases: Vec<String>,
     pub events: Vec<PhaseEvent>,
     pub errors: Vec<InstallerError>,
 }
@@ -291,7 +327,7 @@ impl PhaseRunner {
                     &mut events,
                     PhaseEvent::Skipped {
                         index: i + 1,
-                        phase: phase.name(),
+                        phase: phase.name().to_string(),
                     },
                 );
                 continue;
@@ -303,7 +339,7 @@ impl PhaseRunner {
                 PhaseEvent::Started {
                     index: i + 1,
                     total,
-                    phase: phase.name(),
+                    phase: phase.name().to_string(),
                 },
             );
             let mut phase_ctx = ctx.phase_context();
@@ -314,11 +350,11 @@ impl PhaseRunner {
                         &mut events,
                         PhaseEvent::Completed {
                             index: i + 1,
-                            phase: phase.name(),
-                            description: phase.description(),
+                            phase: phase.name().to_string(),
+                            description: phase.description().to_string(),
                         },
                     );
-                    completed.push(phase.name());
+                    completed.push(phase.name().to_string());
                 }
                 Err(e) => {
                     let severity = phase.error_severity();
@@ -339,7 +375,7 @@ impl PhaseRunner {
                         &mut events,
                         PhaseEvent::Failed {
                             index: i + 1,
-                            phase: phase.name(),
+                            phase: phase.name().to_string(),
                             error: error_message.clone(),
                         },
                     );
@@ -393,21 +429,21 @@ pub enum PhaseEvent {
     Started {
         index: usize,
         total: usize,
-        phase: &'static str,
+        phase: String,
     },
     Completed {
         index: usize,
-        phase: &'static str,
-        description: &'static str,
+        phase: String,
+        description: String,
     },
     Failed {
         index: usize,
-        phase: &'static str,
+        phase: String,
         error: String,
     },
     Skipped {
         index: usize,
-        phase: &'static str,
+        phase: String,
     },
 }
 
@@ -416,8 +452,8 @@ pub trait PhaseObserver {
 }
 
 pub trait Phase {
-    fn name(&self) -> &'static str;
-    fn description(&self) -> &'static str;
+    fn name(&self) -> &str;
+    fn description(&self) -> &str;
     fn should_run(&self, _ctx: &InstallContext) -> bool {
         true
     }
@@ -428,18 +464,18 @@ pub trait Phase {
 }
 
 pub struct FunctionPhase {
-    name: &'static str,
-    description: &'static str,
+    name: String,
+    description: String,
     run: fn(&mut PhaseContext) -> Result<()>,
 }
 
 impl Phase for FunctionPhase {
-    fn name(&self) -> &'static str {
-        self.name
+    fn name(&self) -> &str {
+        &self.name
     }
 
-    fn description(&self) -> &'static str {
-        self.description
+    fn description(&self) -> &str {
+        &self.description
     }
 
     fn execute(&self, ctx: &mut PhaseContext) -> Result<()> {
@@ -449,13 +485,13 @@ impl Phase for FunctionPhase {
 
 impl FunctionPhase {
     pub fn new(
-        name: &'static str,
-        description: &'static str,
+        name: impl Into<String>,
+        description: impl Into<String>,
         run: fn(&mut PhaseContext) -> Result<()>,
     ) -> Self {
         Self {
-            name,
-            description,
+            name: name.into(),
+            description: description.into(),
             run,
         }
     }
@@ -609,11 +645,13 @@ mod tests {
             enable_p10k: false,
             docker_data_root: false,
         };
+        let localization = Localization::load_default()?;
 
         Ok(InstallContext {
             options,
             platform: platform_ctx,
             ui: UIContext::default(),
+            localization,
         })
     }
 
@@ -655,7 +693,10 @@ mod tests {
         let mut observer = RecordingObserver::new();
         let result = runner.run(&ctx, &mut observer)?;
 
-        assert_eq!(result.completed_phases, vec!["phase-one", "phase-two"]);
+        assert_eq!(
+            result.completed_phases,
+            vec!["phase-one".to_string(), "phase-two".to_string()]
+        );
         assert_eq!(observer.total, Some(3));
         assert!(observer
             .events
@@ -746,7 +787,10 @@ mod tests {
         let runner = PhaseRunner::with_policy(phases, PhaseErrorPolicy::ContinueOnError);
 
         let result = runner.run(&ctx, &mut observer)?;
-        assert_eq!(result.completed_phases, vec!["phase-one", "phase-three"]);
+        assert_eq!(
+            result.completed_phases,
+            vec!["phase-one".to_string(), "phase-three".to_string()]
+        );
         assert_eq!(result.errors.len(), 1);
         assert_eq!(result.errors[0].severity, ErrorSeverity::Recoverable);
         assert!(observer
@@ -786,7 +830,10 @@ mod tests {
         let mut observer = RecordingObserver::new();
 
         let result = runner.run(&ctx, &mut observer)?;
-        assert_eq!(result.completed_phases, vec!["phase-one", "phase-two"]);
+        assert_eq!(
+            result.completed_phases,
+            vec!["phase-one".to_string(), "phase-two".to_string()]
+        );
         assert!(observer
             .events
             .iter()
@@ -806,10 +853,16 @@ mod tests {
         }
     }
 
+    fn load_localization() -> Localization {
+        Localization::load_default().expect("unable to load localization strings")
+    }
+
     #[test]
     fn build_phase_list_minimal_profile_only_core_phases() {
         let opts = make_user_options(ProfileLevel::Minimal, false);
-        let names: Vec<_> = build_phase_list(&opts).iter().map(|p| p.name()).collect();
+        let strings = load_localization();
+        let phases = build_phase_list(&opts, &strings);
+        let names: Vec<_> = phases.iter().map(|p| p.name()).collect();
         assert_eq!(
             names,
             vec![
@@ -823,7 +876,9 @@ mod tests {
     #[test]
     fn build_phase_list_dev_profile_includes_dev_phases() {
         let opts = make_user_options(ProfileLevel::Dev, false);
-        let names: Vec<_> = build_phase_list(&opts).iter().map(|p| p.name()).collect();
+        let strings = load_localization();
+        let phases = build_phase_list(&opts, &strings);
+        let names: Vec<_> = phases.iter().map(|p| p.name()).collect();
         let expected_phases = [
             "Buildroot dependencies",
             "Docker Engine",
@@ -845,7 +900,9 @@ mod tests {
     #[test]
     fn build_phase_list_with_argon_option_adds_argon_phase() {
         let opts = make_user_options(ProfileLevel::Minimal, true);
-        let names: Vec<_> = build_phase_list(&opts).iter().map(|p| p.name()).collect();
+        let strings = load_localization();
+        let phases = build_phase_list(&opts, &strings);
+        let names: Vec<_> = phases.iter().map(|p| p.name()).collect();
         assert!(names.contains(&"Argon One fan script"));
     }
 }
