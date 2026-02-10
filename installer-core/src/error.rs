@@ -1,3 +1,4 @@
+use crate::cmd;
 use crate::context::UserOptionsContext;
 use crate::InstallOptions;
 use crate::PhaseEvent;
@@ -76,6 +77,7 @@ pub struct InstallerError {
     pub developer_detail: String,
     pub advice: Option<String>,
     pub state: InstallerStateSnapshot,
+    pub command_output: Option<cmd::CommandExecutionDetails>,
 }
 
 impl InstallerError {
@@ -91,6 +93,9 @@ impl InstallerError {
         let description = description.into();
         let message = format!("{phase} failed: {}", source.root_cause());
         let developer_detail = format!("{source:#}");
+        let command_output = source
+            .downcast_ref::<cmd::CommandExecutionError>()
+            .map(|err| err.details().clone());
         Self {
             phase,
             description,
@@ -99,6 +104,7 @@ impl InstallerError {
             developer_detail,
             advice,
             state,
+            command_output,
         }
     }
 
@@ -108,6 +114,12 @@ impl InstallerError {
 
     pub fn developer_message(&self) -> &str {
         &self.developer_detail
+    }
+}
+
+impl InstallerError {
+    pub fn command_output(&self) -> Option<&cmd::CommandExecutionDetails> {
+        self.command_output.as_ref()
     }
 }
 

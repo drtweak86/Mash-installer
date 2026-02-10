@@ -1,5 +1,9 @@
 use anyhow::anyhow;
-use installer_core::{ErrorSeverity, InstallerError, InstallerStateSnapshot, ProfileLevel, RunSummary, UserOptionsContext};
+use installer_core::cmd::{CommandExecutionDetails, CommandExecutionError};
+use installer_core::{
+    ErrorSeverity, InstallerError, InstallerStateSnapshot, ProfileLevel, RunSummary,
+    UserOptionsContext,
+};
 use std::path::PathBuf;
 
 fn build_user_options() -> UserOptionsContext {
@@ -52,4 +56,30 @@ fn run_summary_reports_errors() {
 
     assert!(summary.has_errors());
     assert_eq!(summary.error_count(), 1);
+}
+
+#[test]
+fn installer_error_tracks_command_output() {
+    let details = CommandExecutionDetails {
+        command: "echo fail".into(),
+        status: Some(1),
+        stdout: "out".into(),
+        stderr: "err".into(),
+    };
+    let cmd_error = CommandExecutionError::new(details.clone());
+    let error = InstallerError::new(
+        "phase-cmd",
+        "phase command failed",
+        ErrorSeverity::Fatal,
+        cmd_error.into(),
+        InstallerStateSnapshot::default(),
+        None,
+    );
+
+    let captured = error
+        .command_output()
+        .expect("command output should be recorded");
+    assert_eq!(captured.command, "echo fail");
+    assert_eq!(captured.stdout, "out");
+    assert_eq!(captured.stderr, "err");
 }

@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use clap::Parser;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
+use installer_core::cmd::CommandExecutionDetails;
 use installer_core::{
     detect_platform, DistroDriver, ErrorSeverity, InstallOptions, InstallerError,
     InstallerStateSnapshot, PhaseEvent, PhaseObserver, PlatformInfo, ProfileLevel, RunSummary,
@@ -149,9 +150,36 @@ fn write_error_report(summary: &RunSummary, out: &mut dyn Write) -> std::io::Res
         }
         writeln!(out, "    Context: {}", err.state)?;
         writeln!(out, "    Details: {}", err.developer_message())?;
+        if let Some(details) = err.command_output() {
+            write_command_output(out, details)?;
+        }
         writeln!(out)?;
     }
 
+    Ok(())
+}
+
+fn write_command_output(
+    out: &mut dyn Write,
+    details: &CommandExecutionDetails,
+) -> std::io::Result<()> {
+    writeln!(out, "    Command: {}", details.command)?;
+    match details.status {
+        Some(code) => writeln!(out, "    Exit status: {code}")?,
+        None => writeln!(out, "    Exit status: unknown")?,
+    }
+    write_multiline(out, "stdout", &details.stdout)?;
+    write_multiline(out, "stderr", &details.stderr)
+}
+
+fn write_multiline(out: &mut dyn Write, label: &str, text: &str) -> std::io::Result<()> {
+    if text.trim().is_empty() {
+        return Ok(());
+    }
+    writeln!(out, "    {label}:")?;
+    for line in text.trim_end_matches('\n').lines() {
+        writeln!(out, "      {line}")?;
+    }
     Ok(())
 }
 
@@ -162,7 +190,7 @@ mod error_report_tests {
     use std::path::PathBuf;
 
     fn make_summary_with_error() -> RunSummary {
-        let error = InstallerError::new(
+        let mut error = InstallerError::new(
             "phase-one",
             "phase one failed",
             ErrorSeverity::Recoverable,
@@ -170,6 +198,12 @@ mod error_report_tests {
             InstallerStateSnapshot::default(),
             Some("Check connectivity".to_string()),
         );
+        error.command_output = Some(CommandExecutionDetails {
+            command: "echo fail".into(),
+            status: Some(1),
+            stdout: "out".into(),
+            stderr: "err".into(),
+        });
         RunSummary {
             completed_phases: vec!["phase-one".to_string()],
             staging_dir: PathBuf::from("/tmp/staging"),
@@ -186,6 +220,7 @@ mod error_report_tests {
         assert!(output.contains("Phase: phase-one"));
         assert!(output.contains("Advice: Check connectivity"));
         assert!(output.contains("Context: profile=Minimal"));
+        assert!(output.contains("Command: echo fail"));
     }
 
     #[test]
@@ -286,7 +321,7 @@ impl PhaseObserver for CliPhaseObserver {
                 self.start_spinner(&display);
             }
             PhaseEvent::Completed { description, .. } => {
-                self.finish_spinner("✓", description);
+                self.finish_spinner("✓", &description);
                 self.overall.inc(1);
             }
             PhaseEvent::Failed { error, .. } => {
@@ -295,7 +330,7 @@ impl PhaseObserver for CliPhaseObserver {
                 self.overall.inc(1);
             }
             PhaseEvent::Skipped { phase, .. } => {
-                self.finish_spinner("–", phase);
+                self.finish_spinner("–", &phase);
                 self.overall.inc(1);
             }
         }

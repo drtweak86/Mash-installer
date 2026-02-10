@@ -3,6 +3,7 @@ use std::error::Error;
 use std::ffi::OsStr;
 use std::fmt;
 use std::process::{Command as StdCommand, Output, Stdio};
+use tracing::{debug, error};
 
 /// Runs a command and provides detailed errors when it fails.
 pub fn run(cmd: &mut StdCommand) -> Result<Output> {
@@ -10,10 +11,27 @@ pub fn run(cmd: &mut StdCommand) -> Result<Output> {
     let output = cmd
         .output()
         .with_context(|| format!("running command: {desc}"))?;
+    let details = CommandExecutionDetails::from_output(desc.clone(), &output);
+
+    debug!(
+        command = %details.command,
+        status = ?details.status,
+        stdout = %details.stdout.trim_end(),
+        stderr = %details.stderr.trim_end(),
+        "command completed"
+    );
+
     if output.status.success() {
         Ok(output)
     } else {
-        Err(CommandExecutionError::new(desc, output).into())
+        error!(
+            command = %details.command,
+            status = ?details.status,
+            stdout = %details.stdout.trim_end(),
+            stderr = %details.stderr.trim_end(),
+            "command failed"
+        );
+        Err(CommandExecutionError::new(details).into())
     }
 }
 
@@ -78,22 +96,58 @@ impl Command {
     }
 }
 
-#[derive(Debug)]
-pub struct CommandExecutionError {
+/// Captured command execution details.
+#[derive(Clone, Debug)]
+pub struct CommandExecutionDetails {
     pub command: String,
     pub status: Option<i32>,
     pub stdout: String,
     pub stderr: String,
 }
 
-impl CommandExecutionError {
-    fn new(command: String, output: Output) -> Self {
+impl CommandExecutionDetails {
+    fn from_output(command: String, output: &Output) -> Self {
         Self {
             command,
             status: output.status.code(),
             stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
             stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
         }
+    }
+
+    pub fn success(&self) -> bool {
+        self.status == Some(0)
+    }
+}
+
+#[derive(Debug)]
+pub struct CommandExecutionError {
+    pub command: String,
+    pub status: Option<i32>,
+    pub stdout: String,
+    pub stderr: String,
+    details: CommandExecutionDetails,
+}
+
+impl CommandExecutionError {
+    pub fn new(details: CommandExecutionDetails) -> Self {
+        let CommandExecutionDetails {
+            command,
+            status,
+            stdout,
+            stderr,
+        } = details.clone();
+        Self {
+            command,
+            status,
+            stdout,
+            stderr,
+            details,
+        }
+    }
+
+    pub fn details(&self) -> &CommandExecutionDetails {
+        &self.details
     }
 }
 
