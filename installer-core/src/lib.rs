@@ -12,16 +12,13 @@ mod driver;
 mod error;
 mod fonts;
 mod github;
+pub mod interaction;
 pub mod localization;
 mod package_manager;
 mod pkg;
 mod platform;
 mod rclone;
-<<<<<<< HEAD
-pub mod rollback;
-=======
-pub mod rollback;
->>>>>>> 3a58860 (wo-014: add rollback manager)
+mod rollback;
 mod rust;
 mod staging;
 mod system;
@@ -29,7 +26,6 @@ mod systemd;
 mod zsh;
 
 use crate::localization::Localization;
-use crate::rollback::RollbackManager;
 use anyhow::Result;
 use std::{fmt, path::PathBuf};
 use tracing::{error, info};
@@ -46,6 +42,7 @@ pub use error::{
 };
 pub use platform::{detect as detect_platform, PlatformInfo};
 pub use system::{RealSystem, SystemOps};
+pub use rollback::RollbackManager;
 
 /// Options provided by the CLI that drive `run_with_driver`.
 #[derive(Clone, Debug)]

@@ -1,11 +1,11 @@
 use anyhow::{anyhow, Result};
 use installer_core::localization::Localization;
+use installer_core::RollbackManager;
 use installer_core::{
     ConfigService, DistroDriver, ErrorSeverity, InstallContext, Phase, PhaseContext,
     PhaseErrorPolicy, PhaseEvent, PhaseObserver, PhaseRunner, PkgBackend, PlatformContext,
     PlatformInfo, ProfileLevel, UIContext, UserOptionsContext,
 };
-use installer_core::rollback::RollbackManager;
 use std::path::PathBuf;
 
 struct DummyDriver;

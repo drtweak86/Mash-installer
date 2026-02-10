@@ -3,6 +3,8 @@ use clap::Parser;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use installer_core::cmd::CommandExecutionDetails;
 use installer_core::doctor::DoctorOutput;
+use installer_core::interaction::InteractionConfig;
+use installer_core::interaction::InteractionService;
 use installer_core::{
     detect_platform, DistroDriver, ErrorSeverity, InstallOptions, InstallerError,
     InstallerStateSnapshot, PhaseEvent, PhaseObserver, PlatformInfo, ProfileLevel, RunSummary,
@@ -49,22 +51,23 @@ fn main() -> Result<()> {
         installer_debian::driver(),
         installer_fedora::driver(),
     ];
+    let interaction = InteractionService::new(!cli.non_interactive, InteractionConfig::default());
     let driver = if cli.non_interactive {
         auto_detect_driver(&drivers, &platform_info).unwrap_or_else(|| drivers[0])
     } else {
-        run_driver_selection(&drivers, &platform_info)
+        run_driver_selection(&drivers, &platform_info, &interaction)?
     };
 
     let modules = if cli.non_interactive {
         ModuleSelection::default()
     } else {
-        run_module_menu(driver.name())
+        run_module_menu(driver.name(), &interaction)?
     };
 
     let profile = if cli.non_interactive {
         ProfileLevel::Dev
     } else {
-        run_profile_menu()
+        run_profile_menu(&interaction)?
     };
 
     let options = InstallOptions {
@@ -355,24 +358,41 @@ fn auto_detect_driver(
 fn run_driver_selection(
     drivers: &[&'static dyn DistroDriver],
     platform: &PlatformInfo,
-) -> &'static dyn DistroDriver {
+    interaction: &InteractionService,
+) -> Result<&'static dyn DistroDriver> {
     println!("Step 1/3: Distro selection");
     println!("1) Auto detect (default)");
     println!("2) Select distribution manually");
-    let choice = prompt_choice("Choose distro mode", 1, 2);
+
+    let choice = interaction.select_option(
+        "driver.selection.mode",
+        "Choose distro mode",
+        &["Auto detect (default)", "Select distribution manually"],
+        1,
+        |prompt, options| {
+            for (idx, option) in options.iter().enumerate() {
+                println!("{}) {}", idx + 1, option);
+            }
+            let selection = prompt_choice(prompt, 1, options.len());
+            Ok(selection)
+        },
+    )?;
 
     if choice == 1 {
         if let Some(driver) = auto_detect_driver(drivers, platform) {
             println!("Auto-detected driver: {}", driver.name());
-            return driver;
+            return Ok(driver);
         }
         warn!("Auto-detection failed; falling back to manual selection.");
     }
 
-    select_driver_from_list(drivers)
+    select_driver_from_list(drivers, interaction)
 }
 
-fn select_driver_from_list(drivers: &[&'static dyn DistroDriver]) -> &'static dyn DistroDriver {
+fn select_driver_from_list(
+    drivers: &[&'static dyn DistroDriver],
+    interaction: &InteractionService,
+) -> Result<&'static dyn DistroDriver> {
     println!("Available distro drivers:");
     for (idx, driver) in drivers.iter().enumerate() {
         println!(
@@ -382,8 +402,25 @@ fn select_driver_from_list(drivers: &[&'static dyn DistroDriver]) -> &'static dy
             driver.description()
         );
     }
-    let index = prompt_choice("Pick a driver", 1, drivers.len());
-    drivers.get(index - 1).copied().unwrap_or(drivers[0])
+    let descriptions: Vec<String> = drivers
+        .iter()
+        .map(|driver| format!("{} – {}", driver.name(), driver.description()))
+        .collect();
+    let options: Vec<&str> = descriptions.iter().map(|desc| desc.as_str()).collect();
+    let index = interaction.select_option(
+        "driver.selection.manual",
+        "Pick a driver",
+        &options,
+        1,
+        |prompt, options| {
+            for (idx, option) in options.iter().enumerate() {
+                println!(" {}: {}", idx + 1, option);
+            }
+            let selection = prompt_choice(prompt, 1, options.len());
+            Ok(selection)
+        },
+    )?;
+    Ok(drivers.get(index - 1).copied().unwrap_or(drivers[0]))
 }
 
 #[derive(Debug, Default)]
@@ -457,14 +494,29 @@ fn set_docker_data_root(selection: &mut ModuleSelection, value: bool) {
     selection.docker_data_root = value;
 }
 
-fn run_module_menu(driver_name: &str) -> ModuleSelection {
+fn run_module_menu(driver_name: &str, interaction: &InteractionService) -> Result<ModuleSelection> {
     println!("\nStep 2/3: Modules for {}", driver_name);
-    println!("1) Full install (default – all modules enabled)");
-    println!("2) Select modules");
-    let choice = prompt_choice("Choose install mode", 1, 2);
+    println!("Available module selection modes:");
+    let modes = [
+        "Full install (default – all modules enabled)",
+        "Select modules",
+    ];
+    let choice = interaction.select_option(
+        "modules.selection.mode",
+        "Choose install mode",
+        &modes,
+        1,
+        |prompt, options| {
+            for (idx, option) in options.iter().enumerate() {
+                println!("{}) {}", idx + 1, option);
+            }
+            let selection = prompt_choice(prompt, 1, options.len());
+            Ok(selection)
+        },
+    )?;
 
     if choice == 1 {
-        ModuleSelection::full()
+        Ok(ModuleSelection::full())
     } else {
         println!("Available module toggles (use aliases to remember choices):");
         for opt in MODULE_OPTIONS {
@@ -473,27 +525,46 @@ fn run_module_menu(driver_name: &str) -> ModuleSelection {
         let mut selection = ModuleSelection::default();
         for opt in MODULE_OPTIONS {
             let prompt = format!("Enable {} (alias {})?", opt.label, opt.alias);
-            let enabled = prompt_yes_no(&prompt, opt.default);
+            let enabled = interaction.confirm(
+                &format!("module.{}.enable", opt.alias),
+                &prompt,
+                opt.default,
+                || Ok(prompt_yes_no(&prompt, opt.default)),
+            )?;
             selection.apply_alias(opt.alias, enabled);
         }
-        selection
+        Ok(selection)
     }
 }
 
-fn run_profile_menu() -> ProfileLevel {
+fn run_profile_menu(interaction: &InteractionService) -> Result<ProfileLevel> {
     println!("\nStep 3/3: Choose profile");
-    println!("1) basics – minimal tooling");
-    println!("2) basics-dev – add developer packages");
-    println!("3) basics+QoL – dev + shell polish");
-    println!("4) full modular – everything (default)");
-    let choice = prompt_choice("Pick a profile", 4, 4);
+    let options = [
+        "basics – minimal tooling",
+        "basics-dev – add developer packages",
+        "basics+QoL – dev + shell polish",
+        "full modular – everything (default)",
+    ];
+    let choice = interaction.select_option(
+        "profile.selection",
+        "Pick a profile",
+        &options,
+        4,
+        |prompt, options| {
+            for (idx, option) in options.iter().enumerate() {
+                println!("{}) {}", idx + 1, option);
+            }
+            let selection = prompt_choice(prompt, 4, options.len());
+            Ok(selection)
+        },
+    )?;
 
-    match choice {
+    Ok(match choice {
         1 => ProfileLevel::Minimal,
         2 => ProfileLevel::Dev,
         3 => ProfileLevel::Dev,
         _ => ProfileLevel::Full,
-    }
+    })
 }
 
 fn prompt_choice(prompt: &str, default: usize, max_choice: usize) -> usize {
