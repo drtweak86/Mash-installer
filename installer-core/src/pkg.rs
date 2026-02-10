@@ -4,6 +4,13 @@ use anyhow::Result;
 // ── Phase 1: core packages ─────────────────────────────────────
 
 pub fn install_phase(ctx: &mut PhaseContext) -> Result<()> {
+    if ctx.options.dry_run {
+        ctx.record_dry_run(
+            "system_packages",
+            "Would refresh package database",
+            Some(format!("Driver: {}", ctx.platform.driver.name())),
+        );
+    }
     package_manager::update(ctx.platform.driver, ctx.options.dry_run)?;
 
     // Always-needed core packages (Debian canonical names)
@@ -71,6 +78,13 @@ pub fn install_phase(ctx: &mut PhaseContext) -> Result<()> {
     if missing_required.is_empty() {
         tracing::info!("System packages already installed");
     } else {
+        if ctx.options.dry_run {
+            ctx.record_dry_run(
+                "system_packages",
+                "Would install required packages",
+                Some(format!("Missing: {}", missing_required.join(", "))),
+            );
+        }
         package_manager::ensure_packages(
             ctx.platform.driver,
             &missing_required,
@@ -79,11 +93,25 @@ pub fn install_phase(ctx: &mut PhaseContext) -> Result<()> {
     }
 
     // Always attempt lldb
+    if ctx.options.dry_run {
+        ctx.record_dry_run(
+            "system_packages",
+            "Would attempt optional package",
+            Some("lldb".into()),
+        );
+    }
     package_manager::try_optional(ctx.platform.driver, "lldb", ctx.options.dry_run);
 
     // Dev+ optional packages
     if ctx.options.profile >= crate::ProfileLevel::Dev {
         for pkg in &["btop", "bat", "eza", "yq"] {
+            if ctx.options.dry_run {
+                ctx.record_dry_run(
+                    "system_packages",
+                    "Would attempt optional package",
+                    Some(pkg.to_string()),
+                );
+            }
             package_manager::try_optional(ctx.platform.driver, pkg, ctx.options.dry_run);
         }
     }

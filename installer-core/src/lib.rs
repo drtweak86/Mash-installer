@@ -9,6 +9,7 @@ mod distro;
 mod docker;
 mod doctor;
 mod driver;
+pub mod dry_run;
 mod error;
 mod fonts;
 mod github;
@@ -26,7 +27,7 @@ mod system;
 mod systemd;
 mod zsh;
 
-use crate::localization::Localization;
+use crate::{dry_run::DryRunLog, localization::Localization};
 use anyhow::Result;
 use std::{fmt, path::PathBuf};
 use tracing::{error, info};
@@ -80,6 +81,7 @@ pub struct InstallContext {
     pub ui: UIContext,
     pub localization: Localization,
     pub rollback: RollbackManager,
+    pub dry_run_log: DryRunLog,
 }
 
 impl InstallContext {
@@ -90,6 +92,7 @@ impl InstallContext {
             ui: &self.ui,
             localization: &self.localization,
             rollback: &self.rollback,
+            dry_run_log: &self.dry_run_log,
         }
     }
 }
@@ -159,6 +162,7 @@ pub fn run_with_driver(
         ui: UIContext::default(),
         localization,
         rollback: RollbackManager::new(),
+        dry_run_log: DryRunLog::new(),
     };
 
     let phases = build_phase_list(&ctx.options, &ctx.localization);
@@ -170,7 +174,11 @@ pub fn run_with_driver(
     let runner = PhaseRunner::with_policy(phases, policy);
     let install_span = logging::install_span(&ctx);
     let _install_guard = install_span.enter();
-    match runner.run(&ctx, observer) {
+    let run_result = runner.run(&ctx, observer);
+    if ctx.options.dry_run {
+        crate::dry_run::print_summary(&ctx.dry_run_log);
+    }
+    match run_result {
         Ok(result) => Ok(InstallationReport {
             summary: RunSummary {
                 completed_phases: result.completed_phases,
@@ -384,6 +392,13 @@ impl PhaseRunner {
             let phase_span = logging::phase_span(ctx, phase.as_ref());
             let _phase_guard = phase_span.enter();
             let mut phase_ctx = ctx.phase_context();
+            if phase_ctx.options.dry_run {
+                phase_ctx.record_dry_run(
+                    phase.name(),
+                    "Phase simulated",
+                    Some(phase.description().to_string()),
+                );
+            }
             match phase.execute(&mut phase_ctx) {
                 Ok(()) => {
                     emit_event(
@@ -700,6 +715,7 @@ mod tests {
             ui: UIContext::default(),
             localization,
             rollback: RollbackManager::new(),
+            dry_run_log: DryRunLog::new(),
         })
     }
 

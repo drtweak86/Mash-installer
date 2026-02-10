@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use crate::backend::PkgBackend;
 use crate::config;
 use crate::driver::DistroDriver;
+use crate::dry_run::DryRunLog;
 use crate::localization::Localization;
 use crate::platform::PlatformInfo;
 use crate::rollback::RollbackManager;
@@ -126,6 +127,7 @@ pub struct PhaseContext<'a> {
     pub ui: &'a UIContext,
     pub localization: &'a Localization,
     pub rollback: &'a RollbackManager,
+    pub dry_run_log: &'a DryRunLog,
 }
 
 impl<'a> PhaseContext<'a> {
@@ -136,5 +138,16 @@ impl<'a> PhaseContext<'a> {
         action: impl Fn() -> Result<()> + 'static,
     ) {
         self.rollback.register_action(label, action);
+    }
+
+    pub fn record_dry_run(
+        &self,
+        phase: impl Into<String>,
+        action: impl Into<String>,
+        detail: Option<String>,
+    ) {
+        if self.options.dry_run {
+            self.dry_run_log.record(phase, action, detail);
+        }
     }
 }

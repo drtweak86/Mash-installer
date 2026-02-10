@@ -14,6 +14,14 @@ use crate::{
 pub fn install_phase(ctx: &mut PhaseContext) -> Result<()> {
     let backend = ctx.platform.pkg_backend;
 
+    if ctx.options.dry_run {
+        ctx.record_dry_run(
+            "docker",
+            "Would install Docker packages",
+            Some(format!("Backend: {:?}", backend)),
+        );
+    }
+
     let already = match backend {
         PkgBackend::Apt => package_manager::is_installed(ctx.platform.driver, "docker-ce"),
         PkgBackend::Pacman => package_manager::is_installed(ctx.platform.driver, "docker"),
@@ -89,6 +97,11 @@ fn add_user_to_docker_group(ctx: &mut PhaseContext) -> Result<()> {
 
     tracing::info!("Adding user '{user}' to docker group");
     if ctx.options.dry_run {
+        ctx.record_dry_run(
+            "docker",
+            "Would add user to docker group",
+            Some(format!("User: {user}")),
+        );
         return Ok(());
     }
 
@@ -103,6 +116,11 @@ fn add_user_to_docker_group(ctx: &mut PhaseContext) -> Result<()> {
 fn enable_docker_service(ctx: &mut PhaseContext) -> Result<()> {
     if ctx.options.dry_run {
         let service = ctx.platform.driver.service_unit(ServiceName::Docker);
+        ctx.record_dry_run(
+            "docker",
+            "Would enable docker service",
+            Some(format!("Service: {service}")),
+        );
         tracing::info!("[dry-run] would enable {service}");
         return Ok(());
     }
@@ -133,12 +151,18 @@ fn configure_data_root(ctx: &mut PhaseContext, data_root: &std::path::Path) -> R
         None
     };
 
-    let config = load_daemon_config(daemon_json_path.as_path())?.unwrap_or_else(|| serde_json::json!({}));
+    let config =
+        load_daemon_config(daemon_json_path.as_path())?.unwrap_or_else(|| serde_json::json!({}));
     if let Some(config) = update_data_root_config(config, data_root) {
         if ctx.options.dry_run {
             tracing::info!(
                 "[dry-run] would configure Docker data-root to {}",
                 data_root.display()
+            );
+            ctx.record_dry_run(
+                "docker",
+                "Would configure Docker data-root",
+                Some(format!("Path: {}", data_root.display())),
             );
             return Ok(());
         }
@@ -271,10 +295,7 @@ mod tests {
         let config = json!({});
         let updated = update_data_root_config(config, Path::new("/data"));
         assert_eq!(
-            updated
-                .unwrap()
-                .get("data-root")
-                .and_then(Value::as_str),
+            updated.unwrap().get("data-root").and_then(Value::as_str),
             Some("/data")
         );
     }

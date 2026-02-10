@@ -53,6 +53,11 @@ fn install_rustup(ctx: &mut PhaseContext) -> Result<()> {
 
     tracing::info!("Installing rustup + stable toolchain");
     if ctx.options.dry_run {
+        ctx.record_dry_run(
+            "rust_toolchain",
+            "Would install rustup toolchain",
+            Some("curl rustup.rs | sh -s -- -y".into()),
+        );
         tracing::info!("[dry-run] curl rustup.rs | sh -s -- -y");
         return Ok(());
     }
@@ -68,6 +73,11 @@ fn install_components(ctx: &mut PhaseContext) -> Result<()> {
     for comp in &components {
         tracing::info!("Ensuring component: {comp}");
         if ctx.options.dry_run {
+            ctx.record_dry_run(
+                "rust_toolchain",
+                "Would ensure rustup component",
+                Some(comp.to_string()),
+            );
             continue;
         }
         let mut comp_cmd = Command::new(rustup_bin());
@@ -97,6 +107,11 @@ fn install_cargo_tools(ctx: &mut PhaseContext) -> Result<()> {
         }
         tracing::info!("Installing {crate_name} via cargo install");
         if ctx.options.dry_run {
+            ctx.record_dry_run(
+                "rust_toolchain",
+                "Would install cargo tool",
+                Some(crate_name.to_string()),
+            );
             continue;
         }
         let mut install_cmd = Command::new(cargo_bin());
@@ -119,6 +134,8 @@ fn install_cargo_tools(ctx: &mut PhaseContext) -> Result<()> {
                 if let Err(err) = cmd::run(&mut flame_cmd) {
                     tracing::warn!("Failed to install flamegraph; continuing ({err})");
                 }
+            } else {
+                ctx.record_dry_run("rust_toolchain", "Would install flamegraph", None);
             }
         }
     }

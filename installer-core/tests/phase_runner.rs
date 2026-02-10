@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use installer_core::dry_run::DryRunLog;
 use installer_core::localization::Localization;
 use installer_core::RollbackManager;
 use installer_core::{
@@ -136,6 +137,7 @@ fn build_install_context() -> Result<InstallContext> {
         ui: UIContext::default(),
         localization,
         rollback: RollbackManager::new(),
+        dry_run_log: DryRunLog::new(),
     })
 }
 
