@@ -61,17 +61,22 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
 
-      - name: Install cross (aarch64)
+      # cargo-zigbuild cross-compiles without Docker, so there is no GLIBC
+      # mismatch between the ubuntu-latest host (GLIBC 2.39) and a container.
+      - name: Install cargo-zigbuild (aarch64)
         if: matrix.cross
-        run: cargo install cross --git https://github.com/cross-rs/cross
+        run: |
+          pip install ziglang
+          cargo install cargo-zigbuild
+          rustup target add aarch64-unknown-linux-gnu
 
       - name: Build (native)
         if: "!matrix.cross"
         run: cargo build --release --target ${{ matrix.target }}
 
-      - name: Build (cross)
+      - name: Build (zigbuild cross-compile)
         if: matrix.cross
-        run: cross build --release --target ${{ matrix.target }}
+        run: cargo zigbuild --release --target ${{ matrix.target }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
