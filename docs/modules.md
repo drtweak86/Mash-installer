@@ -1,4 +1,6 @@
 # Canonical Module Inventory
+> **Neon Chronicle (Whimsical polish)**: modules invites the bored bard to braid cyberpunk sigils with Tolkien smoke, so the instructions sing with neon and dice. 🌌🎲
+
 
 This document is a straight extraction of what `mash-setup install` currently does. Every installed package, script, and feature below is enumerated with its purpose, the distros that the distro drivers push it to, and whether it is implicit (profile/phase driven) or surfaced via a modal toggle. No behavior is changed yet; the goal is documentation-only inventory.
 

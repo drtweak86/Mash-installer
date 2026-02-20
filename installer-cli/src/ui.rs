@@ -145,7 +145,10 @@ fn get_funny_messages(msg: &str) -> Option<Vec<String>> {
 
     if lower.contains("rust") && lower.contains("toolchain") {
         Some(vec![
-            format!("{} · compiling the compiler that compiles compilers 🦀", base),
+            format!(
+                "{} · compiling the compiler that compiles compilers 🦀",
+                base
+            ),
             format!("{} · teaching crabs to code 🦀", base),
             format!("{} · still faster than npm install ⚡", base),
             format!("{} · rustup is doing rust things 🔧", base),
@@ -158,7 +161,10 @@ fn get_funny_messages(msg: &str) -> Option<Vec<String>> {
             format!("{} · docker-ception in progress 🐋", base),
             format!("{} · installing whale technology 🐳", base),
             format!("{} · because it works on my container 🎯", base),
-            format!("{} · downloading the entire internet (jk, just docker) 🌐", base),
+            format!(
+                "{} · downloading the entire internet (jk, just docker) 🌐",
+                base
+            ),
         ])
     } else if lower.contains("buildroot") {
         Some(vec![

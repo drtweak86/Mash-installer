@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::backend::PkgBackend;
-use crate::config;
+use crate::config::{self, ConfigError};
 use crate::driver::DistroDriver;
 use crate::dry_run::DryRunLog;
 use crate::localization::Localization;
@@ -37,16 +37,24 @@ impl ConfigOverrides {
 pub struct ConfigService {
     config: config::MashConfig,
     overrides: ConfigOverrides,
+    config_path: PathBuf,
 }
 
 impl ConfigService {
-    pub fn load() -> Result<Self> {
+    pub fn load() -> std::result::Result<Self, ConfigError> {
         Self::load_with_overrides(ConfigOverrides::default())
     }
 
-    pub fn load_with_overrides(overrides: ConfigOverrides) -> Result<Self> {
+    pub fn load_with_overrides(
+        overrides: ConfigOverrides,
+    ) -> std::result::Result<Self, ConfigError> {
+        let path = config::config_path();
         let config = config::load_or_default()?;
-        Ok(Self { config, overrides })
+        Ok(Self {
+            config,
+            overrides,
+            config_path: path,
+        })
     }
 
     pub fn config(&self) -> &config::MashConfig {
@@ -64,6 +72,10 @@ impl ConfigService {
     pub fn resolve_staging_dir(&self) -> Result<PathBuf> {
         staging::resolve(self.staging_override(), self.config())
     }
+
+    pub fn config_path(&self) -> &Path {
+        &self.config_path
+    }
 }
 
 /// Platform-specific data shared across phases.
@@ -78,6 +90,23 @@ pub struct PlatformContext {
 impl PlatformContext {
     pub fn config(&self) -> &config::MashConfig {
         self.config_service.config()
+    }
+
+    /// Return the detected board model string if available.
+    pub fn pi_model(&self) -> Option<&str> {
+        self.platform.pi_model.as_deref()
+    }
+
+    /// Is the detected device some variant of Raspberry Pi 4? We consider "Pi 4"/"Raspberry Pi 4" matches as 4B units.
+    pub fn is_pi_4b(&self) -> bool {
+        self.pi_model()
+            .map(|model| model.contains("Raspberry Pi 4") || model.contains("Pi 4"))
+            .unwrap_or(false)
+    }
+
+    /// Expose the raw platform metadata for phases that need additional probes.
+    pub fn platform_info(&self) -> &PlatformInfo {
+        &self.platform
     }
 }
 
@@ -110,6 +139,7 @@ mod tests {
         let service = ConfigService {
             config: config.clone(),
             overrides,
+            config_path: config::config_path(),
         };
         assert_eq!(service.config(), &config);
         assert!(service.staging_override().is_some());
@@ -128,16 +158,45 @@ pub struct PhaseContext<'a> {
     pub localization: &'a Localization,
     pub rollback: &'a RollbackManager,
     pub dry_run_log: &'a DryRunLog,
+    actions_taken: Vec<String>,
+    rollback_actions: Vec<String>,
 }
 
 impl<'a> PhaseContext<'a> {
+    pub fn new(
+        options: &'a UserOptionsContext,
+        platform: &'a PlatformContext,
+        ui: &'a UIContext,
+        localization: &'a Localization,
+        rollback: &'a RollbackManager,
+        dry_run_log: &'a DryRunLog,
+    ) -> Self {
+        PhaseContext {
+            options,
+            platform,
+            ui,
+            localization,
+            rollback,
+            dry_run_log,
+            actions_taken: Vec::new(),
+            rollback_actions: Vec::new(),
+        }
+    }
+
     /// Register a rollback action associated with the provided label.
     pub fn register_rollback_action(
-        &self,
+        &mut self,
         label: impl Into<String>,
         action: impl Fn() -> Result<()> + 'static,
     ) {
+        let label = label.into();
+        self.rollback_actions.push(label.clone());
         self.rollback.register_action(label, action);
+    }
+
+    /// Record an action that should be represented in `PhaseOutput`.
+    pub fn record_action(&mut self, action: impl Into<String>) {
+        self.actions_taken.push(action.into());
     }
 
     pub fn record_dry_run(
@@ -150,4 +209,37 @@ impl<'a> PhaseContext<'a> {
             self.dry_run_log.record(phase, action, detail);
         }
     }
+
+    pub fn run_or_record<F>(
+        &mut self,
+        phase: impl Into<String>,
+        action: impl Into<String>,
+        detail: Option<String>,
+        work: F,
+    ) -> Result<()>
+    where
+        F: FnOnce(&mut PhaseContext<'a>) -> Result<()>,
+    {
+        if self.options.dry_run {
+            self.record_dry_run(phase, action, detail);
+            Ok(())
+        } else {
+            work(self)
+        }
+    }
+
+    pub fn take_metadata(&mut self) -> PhaseMetadata {
+        PhaseMetadata {
+            actions_taken: std::mem::take(&mut self.actions_taken),
+            rollback_actions: std::mem::take(&mut self.rollback_actions),
+            dry_run: self.options.dry_run,
+        }
+    }
+}
+
+/// Collected metadata that each phase can report to the runner.
+pub struct PhaseMetadata {
+    pub actions_taken: Vec<String>,
+    pub rollback_actions: Vec<String>,
+    pub dry_run: bool,
 }

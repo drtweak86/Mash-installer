@@ -37,6 +37,12 @@ impl DryRunLog {
     }
 }
 
+impl Default for DryRunLog {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub fn print_summary(log: &DryRunLog) {
     let entries = log.entries();
     println!();

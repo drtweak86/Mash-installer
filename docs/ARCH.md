@@ -1,4 +1,6 @@
 # mash-installer workspace architecture
+> **Neon Chronicle (Technical polish)**: ARCH keeps the gears and runes aligned, so the neon hum is restrained to precise, actionable beats. ⚙️
+
 
  - `installer-cli` is now the thin binary that bootstraps the interactive menu flow, autodetects the distro via `/etc/os-release`, and calls into `installer-core` with the selected driver and options.
  - `installer-core` is the reusable library that owns ABB backups, deterministic downloads, logging helpers, and module/profile orchestration; it exposes `run_with_driver` along with the `InstallOptions`/`ProfileLevel` types.

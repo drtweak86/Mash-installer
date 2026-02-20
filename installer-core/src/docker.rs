@@ -171,6 +171,10 @@ fn configure_data_root(ctx: &mut PhaseContext, data_root: &std::path::Path) -> R
 
         tracing::info!("Configuring Docker data-root to {}", data_root.display());
         crate::staging::ensure_space_for_path(data_root)?;
+        ctx.record_action(format!(
+            "Configured Docker data-root to {}",
+            data_root.display()
+        ));
 
         let rollback_contents = original_daemon.clone();
         let rollback_daemon = daemon_json_path.clone();
@@ -327,7 +331,7 @@ mod tests {
             Ok(Self {
                 options,
                 platform: platform_ctx,
-                ui: UIContext::default(),
+                ui: UIContext,
                 localization,
                 rollback: RollbackManager::new(),
                 dry_run_log: DryRunLog::new(),
@@ -335,14 +339,14 @@ mod tests {
         }
 
         fn phase_context(&mut self) -> PhaseContext<'_> {
-            PhaseContext {
-                options: &self.options,
-                platform: &self.platform,
-                ui: &self.ui,
-                localization: &self.localization,
-                rollback: &self.rollback,
-                dry_run_log: &self.dry_run_log,
-            }
+            PhaseContext::new(
+                &self.options,
+                &self.platform,
+                &self.ui,
+                &self.localization,
+                &self.rollback,
+                &self.dry_run_log,
+            )
         }
     }
 

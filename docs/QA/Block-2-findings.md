@@ -1,8 +1,10 @@
 ## Block 2 Findings (WO-006 to WO-010)
+> **Neon Chronicle (Technical polish)**: Block-2-findings keeps the gears and runes aligned, so the neon hum is restrained to precise, actionable beats. ⚙️
+
 
 ### WO-006 (Commit `edcd3e1`): Add Phase List Coverage
 
-**Summary:** This commit adds unit tests for the `build_phase_list` function, ensuring correct phase inclusion based on profile and options.
+**Summary:** This commit adds unit tests for `PhaseRegistry::build_phases`, ensuring metadata-driven phase inclusion honors profile and module toggles.
 
 **Findings:**
 1.  **Missing Error Handling Tests:** The tests for `InstallerError` and `RunSummary` (previously located in `installer-core/src/error.rs`) were removed in this commit. These tests cover the core error reporting objects and their removal represents a regression in test coverage for critical components. They need to be reinstated, ideally in a dedicated test file or the main `lib.rs` test module.

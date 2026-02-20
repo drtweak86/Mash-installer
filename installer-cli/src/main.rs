@@ -2,14 +2,8 @@ use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use installer_core::cmd::CommandExecutionDetails;
 use installer_core::{
-    ConfigService,
-    DistroDriver,
-    InstallOptions,
-    ProfileLevel,
-    RunSummary,
-    detect_platform,
-    init_logging,
-    interaction::InteractionService,
+    detect_platform, init_logging, interaction::InteractionService, ConfigService, DistroDriver,
+    InstallOptions, ProfileLevel, RunSummary,
 };
 use std::io::{self, Write};
 use std::path::PathBuf;
@@ -69,16 +63,14 @@ fn main() -> Result<()> {
     let platform_info = detect_platform().context("detecting host platform")?;
 
     // Build list of available drivers based on compile-time features
-    let mut drivers: Vec<&'static dyn DistroDriver> = Vec::new();
-
-    #[cfg(feature = "arch")]
-    drivers.push(installer_arch::driver());
-
-    #[cfg(feature = "debian")]
-    drivers.push(installer_debian::driver());
-
-    #[cfg(feature = "fedora")]
-    drivers.push(installer_fedora::driver());
+    let drivers: Vec<&'static dyn DistroDriver> = vec![
+        #[cfg(feature = "arch")]
+        installer_arch::driver(),
+        #[cfg(feature = "debian")]
+        installer_debian::driver(),
+        #[cfg(feature = "fedora")]
+        installer_fedora::driver(),
+    ];
 
     if drivers.is_empty() {
         anyhow::bail!(
@@ -135,12 +127,9 @@ fn parse_profile_level(s: &str) -> Result<ProfileLevel> {
         "minimal" | "min" => Ok(ProfileLevel::Minimal),
         "dev" => Ok(ProfileLevel::Dev),
         "full" => Ok(ProfileLevel::Full),
-        other => anyhow::bail!(
-            "unknown profile '{other}'; valid values: minimal, dev, full"
-        ),
+        other => anyhow::bail!("unknown profile '{other}'; valid values: minimal, dev, full"),
     }
 }
-
 
 fn print_completion_message(summary: &RunSummary, dry_run: bool) {
     println!();
@@ -228,10 +217,34 @@ fn write_multiline(out: &mut dyn Write, label: &str, text: &str) -> std::io::Res
     Ok(())
 }
 
+fn run_installer_with_ui(
+    driver: &'static dyn DistroDriver,
+    options: InstallOptions,
+    observer: &mut ui::CliPhaseObserver,
+) -> Result<()> {
+    ui::print_banner();
+    let dry_run = options.dry_run;
+    let run_result = installer_core::run_with_driver(driver, options, observer);
+    observer.finish();
+
+    match run_result {
+        Ok(report) => {
+            print_completion_message(&report.summary, dry_run);
+            Ok(())
+        }
+        Err(err) => {
+            let summary = err.report.summary.clone();
+            print_error_report(&summary);
+            Err(err.into())
+        }
+    }
+}
+
 #[cfg(test)]
 mod error_report_tests {
     use super::*;
     use anyhow::anyhow;
+    use installer_core::{ErrorSeverity, InstallerError, InstallerStateSnapshot};
     use std::path::PathBuf;
 
     fn make_summary_with_error() -> RunSummary {
@@ -277,26 +290,3 @@ mod error_report_tests {
         assert!(output.contains("No additional error details were recorded."));
     }
 }
-
-fn run_installer_with_ui(
-    driver: &'static dyn DistroDriver,
-    options: InstallOptions,
-    observer: &mut ui::CliPhaseObserver,
-) -> Result<()> {
-    ui::print_banner();
-    let dry_run = options.dry_run;
-    let run_result = installer_core::run_with_driver(driver, options, observer);
-    observer.finish();
-
-    match run_result {
-        Ok(report) => {
-            print_completion_message(&report.summary, dry_run);
-            Ok(())
-        }
-        Err(err) => {
-            print_error_report(&err.report.summary);
-            Err(err.into())
-        }
-    }
-}
-

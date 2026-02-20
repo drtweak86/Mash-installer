@@ -1,9 +1,7 @@
 use anyhow::{anyhow, Result};
 use clap::ValueEnum;
 use nix::sys::statvfs;
-use num_cpus;
 use serde::Serialize;
-use serde_json;
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::Path;
@@ -16,17 +14,12 @@ use crate::{
     system::{RealSystem, SystemOps},
 };
 
-#[derive(Clone, Copy, Debug, ValueEnum)]
+#[derive(Clone, Copy, Debug, ValueEnum, Default)]
 #[value(rename_all = "lower")]
 pub enum DoctorOutput {
+    #[default]
     Pretty,
     Json,
-}
-
-impl Default for DoctorOutput {
-    fn default() -> Self {
-        DoctorOutput::Pretty
-    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
@@ -521,7 +514,6 @@ fn read_mem_available() -> Result<u64> {
     for line in content.lines() {
         if let Some(rest) = line.strip_prefix("MemAvailable:") {
             let value = rest
-                .trim()
                 .split_whitespace()
                 .next()
                 .ok_or_else(|| anyhow!("MemAvailable entry in /proc/meminfo is malformed"))?;
@@ -701,8 +693,10 @@ mod tests {
         result
     }
 
+    type ConnectFn = Box<dyn Fn(&str, u16, Duration) -> Result<TcpStream> + Send + Sync>;
+
     struct StubSystem {
-        connect_fn: Box<dyn Fn(&str, u16, Duration) -> Result<TcpStream> + Send + Sync>,
+        connect_fn: ConnectFn,
     }
 
     impl StubSystem {

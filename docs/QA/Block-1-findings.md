@@ -1,4 +1,6 @@
 ## Block 1 Findings (WO-001 to WO-005)
+> **Neon Chronicle (Technical polish)**: Block-1-findings keeps the gears and runes aligned, so the neon hum is restrained to precise, actionable beats. ⚙️
+
 
 ### WO-005 (Commit `4efb271`): Enhance Error Handling and Reporting
 

@@ -1,8 +1,9 @@
 use crate::cmd;
 use crate::context::UserOptionsContext;
+use crate::ConfigError;
 use crate::InstallOptions;
-use crate::PhaseEvent;
 use crate::ProfileLevel;
+use crate::{PhaseEvent, PhaseOutput};
 use anyhow::Error;
 use std::fmt;
 use std::path::PathBuf;
@@ -171,6 +172,7 @@ pub struct DriverInfo {
 #[derive(Clone, Debug)]
 pub struct InstallationReport {
     pub summary: RunSummary,
+    pub outputs: Vec<PhaseOutput>,
     pub events: Vec<PhaseEvent>,
     pub options: InstallOptions,
     pub driver: DriverInfo,
@@ -178,7 +180,7 @@ pub struct InstallationReport {
 
 #[derive(Debug)]
 pub struct InstallerRunError {
-    pub report: InstallationReport,
+    pub report: Box<InstallationReport>,
     pub source: InstallerError,
 }
 
@@ -206,20 +208,60 @@ impl From<Error> for InstallerRunError {
         );
 
         InstallerRunError {
-            report: InstallationReport {
+            report: Box::new(InstallationReport {
                 summary: RunSummary {
                     completed_phases: Vec::new(),
                     staging_dir: PathBuf::from("<unknown>"),
                     errors: vec![installer_error.clone()],
                 },
+                outputs: Vec::new(),
                 events: Vec::new(),
                 options: InstallOptions::default(),
                 driver: DriverInfo {
                     name: "<unknown>".to_string(),
                     description: "unknown driver".to_string(),
                 },
-            },
+            }),
             source: installer_error,
         }
+    }
+}
+
+impl From<Error> for Box<InstallerRunError> {
+    fn from(source: Error) -> Self {
+        Box::new(InstallerRunError::from(source))
+    }
+}
+
+impl From<ConfigError> for Box<InstallerRunError> {
+    fn from(source: ConfigError) -> Self {
+        let installer_error = InstallerError::new(
+            "config",
+            "configuration load",
+            ErrorSeverity::Fatal,
+            Error::from(source),
+            InstallerStateSnapshot::default(),
+            Some("Inspect ~/.config/mash-installer/config.toml for corruption or permissions issues.".to_string()),
+        );
+
+        let report = InstallationReport {
+            summary: RunSummary {
+                completed_phases: Vec::new(),
+                staging_dir: PathBuf::from("<unknown>"),
+                errors: vec![installer_error.clone()],
+            },
+            outputs: Vec::new(),
+            events: Vec::new(),
+            options: InstallOptions::default(),
+            driver: DriverInfo {
+                name: "<unknown>".to_string(),
+                description: "unknown driver".to_string(),
+            },
+        };
+
+        Box::new(InstallerRunError {
+            report: Box::new(report),
+            source: installer_error,
+        })
     }
 }

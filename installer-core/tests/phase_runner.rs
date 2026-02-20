@@ -94,9 +94,8 @@ impl RecordingObserver {
 
 impl PhaseObserver for RecordingObserver {
     fn on_event(&mut self, event: PhaseEvent) {
-        match &event {
-            PhaseEvent::Total { total } => self.total = Some(*total),
-            _ => {}
+        if let PhaseEvent::Total { total } = &event {
+            self.total = Some(*total);
         }
         self.events.push(event);
     }
@@ -134,7 +133,7 @@ fn build_install_context() -> Result<InstallContext> {
     Ok(InstallContext {
         options,
         platform: platform_ctx,
-        ui: UIContext::default(),
+        ui: UIContext,
         localization,
         rollback: RollbackManager::new(),
         dry_run_log: DryRunLog::new(),

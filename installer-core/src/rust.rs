@@ -101,20 +101,14 @@ fn install_components(ctx: &mut PhaseContext) -> Result<()> {
 }
 
 fn ensure_cargo_binstall(ctx: &mut PhaseContext) -> Result<()> {
-    if which::which("cargo-binstall").is_ok()
-        || cargo_home().join("bin/cargo-binstall").exists()
-    {
+    if which::which("cargo-binstall").is_ok() || cargo_home().join("bin/cargo-binstall").exists() {
         tracing::info!("cargo-binstall already installed");
         return Ok(());
     }
 
     tracing::info!("Installing cargo-binstall (enables fast binary installs)");
     if ctx.options.dry_run {
-        ctx.record_dry_run(
-            "rust_toolchain",
-            "Would install cargo-binstall",
-            None,
-        );
+        ctx.record_dry_run("rust_toolchain", "Would install cargo-binstall", None);
         return Ok(());
     }
 
@@ -146,8 +140,8 @@ fn install_cargo_tools(ctx: &mut PhaseContext) -> Result<()> {
         ("sccache", "sccache"),
     ];
 
-    let use_binstall = which::which("cargo-binstall").is_ok()
-        || cargo_home().join("bin/cargo-binstall").exists();
+    let use_binstall =
+        which::which("cargo-binstall").is_ok() || cargo_home().join("bin/cargo-binstall").exists();
 
     if use_binstall {
         tracing::info!("Using cargo-binstall for fast parallel installation! 🚀");
@@ -215,7 +209,10 @@ fn install_cargo_tools(ctx: &mut PhaseContext) -> Result<()> {
         }
     } else {
         // Fallback to cargo install (slow - compiles from source)
-        tracing::warn!("Installing {} tools one-by-one (this will take 10-30 minutes...)", missing_tools.len());
+        tracing::warn!(
+            "Installing {} tools one-by-one (this will take 10-30 minutes...)",
+            missing_tools.len()
+        );
         for crate_name in &missing_tools {
             tracing::info!("Installing {crate_name} via cargo install...");
             let mut install_cmd = Command::new(cargo_bin());
