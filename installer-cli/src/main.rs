@@ -3,7 +3,7 @@ use clap::{Parser, Subcommand};
 use installer_core::cmd::CommandExecutionDetails;
 use installer_core::{
     detect_platform, init_logging, interaction::InteractionService, ConfigService, DistroDriver,
-    InstallOptions, ProfileLevel, RunSummary,
+    InstallOptions, InstallationReport, ProfileLevel,
 };
 use std::io::{self, Write};
 use std::path::PathBuf;
@@ -131,7 +131,7 @@ fn parse_profile_level(s: &str) -> Result<ProfileLevel> {
     }
 }
 
-fn print_completion_message(summary: &RunSummary, dry_run: bool) {
+fn print_completion_message(report: &InstallationReport, dry_run: bool) {
     println!();
     println!("╔══════════════════════════════════════════════╗");
     println!("║       Installation complete!                  ║");
@@ -141,31 +141,49 @@ fn print_completion_message(summary: &RunSummary, dry_run: bool) {
     if dry_run {
         println!("(dry-run mode – no changes were made)");
         println!();
+        print_dry_run_summary(report);
     }
 
     println!("Post-install notes:");
     println!("  - Log out and back in for docker group membership to take effect.");
     println!("  - Run `mash-setup doctor` to verify everything.");
     println!("  - Config lives at ~/.config/mash-installer/config.toml");
-    println!("  - Staging directory: {}", summary.staging_dir.display());
+    println!("  - Staging directory: {}", report.staging_dir.display());
     println!();
 }
 
-fn print_error_report(summary: &RunSummary) {
-    let mut stdout = io::stdout();
-    let _ = write_error_report(summary, &mut stdout);
+fn print_dry_run_summary(report: &InstallationReport) {
+    println!("──── Dry-run summary ────────────────────────────");
+    if report.dry_run_log.is_empty() {
+        println!("  No dry-run actions were recorded.");
+    } else {
+        for (idx, entry) in report.dry_run_log.iter().enumerate() {
+            println!("  {}. [{}] {}", idx + 1, entry.phase, entry.action);
+            if let Some(detail) = &entry.detail {
+                println!("     {detail}");
+            }
+        }
+    }
+    println!("  No resources were modified during dry run.");
+    println!("───────────────────────────────────────────────");
+    println!();
 }
 
-fn write_error_report(summary: &RunSummary, out: &mut dyn Write) -> std::io::Result<()> {
-    if summary.errors.is_empty() {
+fn print_error_report(report: &InstallationReport) {
+    let mut stdout = io::stdout();
+    let _ = write_error_report(report, &mut stdout);
+}
+
+fn write_error_report(report: &InstallationReport, out: &mut dyn Write) -> std::io::Result<()> {
+    if report.errors.is_empty() {
         writeln!(out, "No additional error details were recorded.")?;
         return Ok(());
     }
 
-    let completed = if summary.completed_phases.is_empty() {
+    let completed = if report.completed_phases.is_empty() {
         "none".to_string()
     } else {
-        summary.completed_phases.join(", ")
+        report.completed_phases.join(", ")
     };
 
     writeln!(out)?;
@@ -174,10 +192,10 @@ fn write_error_report(summary: &RunSummary, out: &mut dyn Write) -> std::io::Res
     writeln!(out, "╚══════════════════════════════════════════════╝")?;
     writeln!(out)?;
     writeln!(out, "Completed phases: {}", completed)?;
-    writeln!(out, "Staging directory: {}", summary.staging_dir.display())?;
+    writeln!(out, "Staging directory: {}", report.staging_dir.display())?;
     writeln!(out)?;
 
-    for err in &summary.errors {
+    for err in &report.errors {
         writeln!(out, "  • Phase: {} – {}", err.phase, err.user_message())?;
         if let Some(advice) = &err.advice {
             writeln!(out, "    Advice: {}", advice)?;
@@ -229,12 +247,11 @@ fn run_installer_with_ui(
 
     match run_result {
         Ok(report) => {
-            print_completion_message(&report.summary, dry_run);
+            print_completion_message(&report, dry_run);
             Ok(())
         }
         Err(err) => {
-            let summary = err.report.summary.clone();
-            print_error_report(&summary);
+            print_error_report(&err.report);
             Err(err.into())
         }
     }
@@ -244,10 +261,13 @@ fn run_installer_with_ui(
 mod error_report_tests {
     use super::*;
     use anyhow::anyhow;
-    use installer_core::{ErrorSeverity, InstallerError, InstallerStateSnapshot};
+    use installer_core::{
+        cmd::CommandExecutionDetails, DriverInfo, ErrorSeverity, InstallOptions, InstallerError,
+        InstallerStateSnapshot,
+    };
     use std::path::PathBuf;
 
-    fn make_summary_with_error() -> RunSummary {
+    fn make_report_with_error() -> InstallationReport {
         let mut error = InstallerError::new(
             "phase-one",
             "phase one failed",
@@ -262,18 +282,27 @@ mod error_report_tests {
             stdout: "out".into(),
             stderr: "err".into(),
         });
-        RunSummary {
+
+        InstallationReport {
             completed_phases: vec!["phase-one".to_string()],
             staging_dir: PathBuf::from("/tmp/staging"),
             errors: vec![error],
+            outputs: Vec::new(),
+            events: Vec::new(),
+            options: InstallOptions::default(),
+            driver: DriverInfo {
+                name: "test".into(),
+                description: "test driver".into(),
+            },
+            dry_run_log: Vec::new(),
         }
     }
 
     #[test]
     fn write_error_report_prints_phase_and_advice() {
-        let summary = make_summary_with_error();
+        let report = make_report_with_error();
         let mut buf = Vec::new();
-        write_error_report(&summary, &mut buf).expect("write failed");
+        write_error_report(&report, &mut buf).expect("write failed");
         let output = String::from_utf8(buf).expect("invalid utf8");
         assert!(output.contains("Phase: phase-one"));
         assert!(output.contains("Advice: Check connectivity"));
@@ -283,9 +312,21 @@ mod error_report_tests {
 
     #[test]
     fn write_error_report_outputs_no_errors_message() {
-        let summary = RunSummary::default();
+        let report = InstallationReport {
+            completed_phases: Vec::new(),
+            staging_dir: PathBuf::from("/tmp/staging"),
+            errors: Vec::new(),
+            outputs: Vec::new(),
+            events: Vec::new(),
+            options: InstallOptions::default(),
+            driver: DriverInfo {
+                name: "test".into(),
+                description: "test driver".into(),
+            },
+            dry_run_log: Vec::new(),
+        };
         let mut buf = Vec::new();
-        write_error_report(&summary, &mut buf).expect("write failed");
+        write_error_report(&report, &mut buf).expect("write failed");
         let output = String::from_utf8(buf).expect("invalid utf8");
         assert!(output.contains("No additional error details were recorded."));
     }

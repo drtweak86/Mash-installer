@@ -122,7 +122,7 @@ fn build_install_context() -> Result<InstallContext> {
     let options = UserOptionsContext {
         profile: ProfileLevel::Minimal,
         staging_dir: PathBuf::from("/tmp/mash-test"),
-        dry_run: true,
+        dry_run: false,
         interactive: false,
         enable_argon: false,
         enable_p10k: false,

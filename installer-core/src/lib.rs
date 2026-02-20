@@ -27,7 +27,9 @@ mod phase_runner;
 mod pkg;
 mod platform;
 mod rclone;
+mod registry;
 mod rollback;
+mod runner;
 mod rust;
 mod staging;
 mod sudo;
@@ -46,20 +48,20 @@ pub use doctor::DoctorOutput;
 pub use driver::{AptRepoConfig, DistroDriver, RepoKind, ServiceName};
 pub use error::{
     DriverInfo, ErrorSeverity, InstallationReport, InstallerError, InstallerRunError,
-    InstallerStateSnapshot, RunSummary,
+    InstallerStateSnapshot,
 };
 pub use logging::init as init_logging;
 pub use options::{InstallOptions, ProfileLevel};
 pub use orchestrator::run_with_driver;
 pub use package_spec::{PackageIntent, PackageSpec};
-pub use phase_registry::PhaseRegistry;
-pub use phase_runner::{
+pub use platform::{detect as detect_platform, PlatformInfo};
+pub use registry::PhaseRegistry;
+pub use rollback::RollbackManager;
+pub use runner::{
     Phase, PhaseErrorPolicy, PhaseEvent, PhaseObserver, PhaseOutput, PhaseRunError, PhaseRunResult,
     PhaseRunner,
 };
-pub use platform::{detect as detect_platform, PlatformInfo};
-pub use rollback::RollbackManager;
-pub use system::{RealSystem, SystemOps};
+pub use system::SystemOps;
 
 /// Central context threaded through every install phase.
 pub struct InstallContext {

@@ -97,6 +97,31 @@ impl PlatformContext {
         self.platform.pi_model.as_deref()
     }
 
+    /// Return true if the platform is any Raspberry Pi.
+    pub fn is_pi(&self) -> bool {
+        self.pi_model().is_some()
+    }
+
+    /// Return the Raspberry Pi generation if it can be inferred from the model text.
+    pub fn pi_generation(&self) -> Option<u8> {
+        self.pi_model().and_then(|model| {
+            if model.contains("Pi 4") || model.contains("Raspberry Pi 4") {
+                Some(4)
+            } else if model.contains("Pi 3") || model.contains("Raspberry Pi 3") {
+                Some(3)
+            } else if model.contains("Pi 2") || model.contains("Raspberry Pi 2") {
+                Some(2)
+            } else {
+                None
+            }
+        })
+    }
+
+    /// Return true if the platform exposes USB 3.0 at its main host controller.
+    pub fn supports_usb3(&self) -> bool {
+        self.is_pi_4b()
+    }
+
     /// Is the detected device some variant of Raspberry Pi 4? We consider "Pi 4"/"Raspberry Pi 4" matches as 4B units.
     pub fn is_pi_4b(&self) -> bool {
         self.pi_model()
@@ -113,6 +138,9 @@ impl PlatformContext {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::backend::PkgBackend;
+    use crate::driver::DistroDriver;
+    use crate::platform::PlatformInfo;
     use std::path::PathBuf;
 
     #[test]
@@ -144,6 +172,64 @@ mod tests {
         assert_eq!(service.config(), &config);
         assert!(service.staging_override().is_some());
     }
+
+    struct TestDriver;
+
+    impl DistroDriver for TestDriver {
+        fn name(&self) -> &'static str {
+            "test"
+        }
+
+        fn description(&self) -> &'static str {
+            "test driver"
+        }
+
+        fn matches(&self, _: &PlatformInfo) -> bool {
+            true
+        }
+
+        fn pkg_backend(&self) -> PkgBackend {
+            PkgBackend::Apt
+        }
+    }
+
+    static TEST_DRIVER: TestDriver = TestDriver;
+
+    fn build_platform_ctx(model: Option<&'static str>) -> PlatformContext {
+        let config_service = ConfigService::load().expect("config load");
+        let platform = PlatformInfo {
+            arch: "aarch64".into(),
+            distro: "mash-test".into(),
+            distro_version: "0".into(),
+            distro_codename: "test".into(),
+            distro_family: "debian".into(),
+            pi_model: model.map(|s| s.to_string()),
+        };
+        PlatformContext {
+            config_service,
+            platform,
+            driver_name: "test",
+            driver: &TEST_DRIVER,
+            pkg_backend: TEST_DRIVER.pkg_backend(),
+        }
+    }
+
+    #[test]
+    fn pi_generation_detects_boards() {
+        let pi4 = build_platform_ctx(Some("Raspberry Pi 4 Model B"));
+        assert_eq!(pi4.pi_generation(), Some(4));
+        let pi3 = build_platform_ctx(Some("Raspberry Pi 3 Model B Plus"));
+        assert_eq!(pi3.pi_generation(), Some(3));
+        let unknown = build_platform_ctx(Some("Raspberry Pi Zero"));
+        assert_eq!(unknown.pi_generation(), None);
+    }
+
+    #[test]
+    fn supports_usb3_only_on_pi4b() {
+        assert!(build_platform_ctx(Some("Raspberry Pi 4 Model B")).supports_usb3());
+        assert!(!build_platform_ctx(Some("Raspberry Pi 3 Model B")).supports_usb3());
+        assert!(!build_platform_ctx(None).supports_usb3());
+    }
 }
 
 /// UI-related data that may become necessary for rendering progress or logging.
@@ -160,6 +246,7 @@ pub struct PhaseContext<'a> {
     pub dry_run_log: &'a DryRunLog,
     actions_taken: Vec<String>,
     rollback_actions: Vec<String>,
+    warnings: Vec<String>,
 }
 
 impl<'a> PhaseContext<'a> {
@@ -180,6 +267,7 @@ impl<'a> PhaseContext<'a> {
             dry_run_log,
             actions_taken: Vec::new(),
             rollback_actions: Vec::new(),
+            warnings: Vec::new(),
         }
     }
 
@@ -197,6 +285,13 @@ impl<'a> PhaseContext<'a> {
     /// Record an action that should be represented in `PhaseOutput`.
     pub fn record_action(&mut self, action: impl Into<String>) {
         self.actions_taken.push(action.into());
+    }
+
+    /// Record a non-fatal warning that will appear in the phase output.
+    pub fn record_warning(&mut self, warning: impl Into<String>) {
+        let warning = warning.into();
+        tracing::warn!("{}", warning);
+        self.warnings.push(warning);
     }
 
     pub fn record_dry_run(
@@ -232,6 +327,7 @@ impl<'a> PhaseContext<'a> {
         PhaseMetadata {
             actions_taken: std::mem::take(&mut self.actions_taken),
             rollback_actions: std::mem::take(&mut self.rollback_actions),
+            warnings: std::mem::take(&mut self.warnings),
             dry_run: self.options.dry_run,
         }
     }
@@ -241,5 +337,6 @@ impl<'a> PhaseContext<'a> {
 pub struct PhaseMetadata {
     pub actions_taken: Vec<String>,
     pub rollback_actions: Vec<String>,
+    pub warnings: Vec<String>,
     pub dry_run: bool,
 }

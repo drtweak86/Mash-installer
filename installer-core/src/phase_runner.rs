@@ -23,6 +23,7 @@ pub struct PhaseOutput {
     pub description: String,
     pub actions_taken: Vec<String>,
     pub rollback_actions: Vec<String>,
+    pub warnings: Vec<String>,
     pub dry_run: bool,
     pub status: PhaseStatus,
 }
@@ -39,6 +40,7 @@ impl PhaseOutput {
             description: description.into(),
             actions_taken: metadata.actions_taken,
             rollback_actions: metadata.rollback_actions,
+            warnings: metadata.warnings,
             dry_run: metadata.dry_run,
             status,
         }
@@ -50,6 +52,7 @@ impl PhaseOutput {
             description: description.into(),
             actions_taken: Vec::new(),
             rollback_actions: Vec::new(),
+            warnings: Vec::new(),
             dry_run,
             status: PhaseStatus::Skipped,
         }
@@ -284,10 +287,19 @@ pub enum PhaseEvent {
         index: usize,
         phase: String,
     },
+    Warning {
+        message: String,
+    },
 }
 
 pub trait PhaseObserver {
     fn on_event(&mut self, _event: PhaseEvent) {}
+
+    /// Ask the user for confirmation. Returns `true` to proceed, `false` to abort.
+    /// Default implementation always proceeds.
+    fn confirm(&mut self, _prompt: &str) -> bool {
+        true
+    }
 }
 
 pub trait Phase {
@@ -393,6 +405,9 @@ mod tests {
                 PhaseEvent::Skipped { index, phase } => {
                     self.events.push(format!("skipped:{}:{}", index, phase));
                 }
+                PhaseEvent::Warning { message } => {
+                    self.events.push(format!("warning:{}", message));
+                }
             }
         }
     }
@@ -488,7 +503,7 @@ mod tests {
         let options = UserOptionsContext {
             profile: ProfileLevel::Minimal,
             staging_dir: PathBuf::from("/tmp/mash-test"),
-            dry_run: true,
+            dry_run: false,
             interactive: false,
             enable_argon: false,
             enable_p10k: false,

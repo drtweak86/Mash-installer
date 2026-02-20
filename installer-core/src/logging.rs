@@ -135,11 +135,17 @@ struct LockedWriter {
 
 impl Write for LockedWriter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.inner.lock().unwrap().write(buf)
+        self.inner
+            .lock()
+            .map_err(|e| io::Error::other(e.to_string()))?
+            .write(buf)
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        self.inner.lock().unwrap().flush()
+        self.inner
+            .lock()
+            .map_err(|e| io::Error::other(e.to_string()))?
+            .flush()
     }
 }
 

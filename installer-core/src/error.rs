@@ -1,5 +1,6 @@
 use crate::cmd;
 use crate::context::UserOptionsContext;
+use crate::dry_run::DryRunEntry;
 use crate::ConfigError;
 use crate::InstallOptions;
 use crate::ProfileLevel;
@@ -116,9 +117,7 @@ impl InstallerError {
     pub fn developer_message(&self) -> &str {
         &self.developer_detail
     }
-}
 
-impl InstallerError {
     pub fn command_output(&self) -> Option<&cmd::CommandExecutionDetails> {
         self.command_output.as_ref()
     }
@@ -137,33 +136,6 @@ impl std::error::Error for InstallerError {
 }
 
 #[derive(Clone, Debug)]
-pub struct RunSummary {
-    pub completed_phases: Vec<String>,
-    pub staging_dir: PathBuf,
-    pub errors: Vec<InstallerError>,
-}
-
-impl RunSummary {
-    pub fn has_errors(&self) -> bool {
-        !self.errors.is_empty()
-    }
-
-    pub fn error_count(&self) -> usize {
-        self.errors.len()
-    }
-}
-
-impl Default for RunSummary {
-    fn default() -> Self {
-        Self {
-            completed_phases: Vec::new(),
-            staging_dir: PathBuf::from("<unknown>"),
-            errors: Vec::new(),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
 pub struct DriverInfo {
     pub name: String,
     pub description: String,
@@ -171,11 +143,24 @@ pub struct DriverInfo {
 
 #[derive(Clone, Debug)]
 pub struct InstallationReport {
-    pub summary: RunSummary,
+    pub completed_phases: Vec<String>,
+    pub staging_dir: PathBuf,
+    pub errors: Vec<InstallerError>,
     pub outputs: Vec<PhaseOutput>,
     pub events: Vec<PhaseEvent>,
     pub options: InstallOptions,
     pub driver: DriverInfo,
+    pub dry_run_log: Vec<DryRunEntry>,
+}
+
+impl InstallationReport {
+    pub fn has_errors(&self) -> bool {
+        !self.errors.is_empty()
+    }
+
+    pub fn error_count(&self) -> usize {
+        self.errors.len()
+    }
 }
 
 #[derive(Debug)]
@@ -209,11 +194,9 @@ impl From<Error> for InstallerRunError {
 
         InstallerRunError {
             report: Box::new(InstallationReport {
-                summary: RunSummary {
-                    completed_phases: Vec::new(),
-                    staging_dir: PathBuf::from("<unknown>"),
-                    errors: vec![installer_error.clone()],
-                },
+                completed_phases: Vec::new(),
+                staging_dir: PathBuf::from("<unknown>"),
+                errors: vec![installer_error.clone()],
                 outputs: Vec::new(),
                 events: Vec::new(),
                 options: InstallOptions::default(),
@@ -221,6 +204,7 @@ impl From<Error> for InstallerRunError {
                     name: "<unknown>".to_string(),
                     description: "unknown driver".to_string(),
                 },
+                dry_run_log: Vec::new(),
             }),
             source: installer_error,
         }
@@ -245,11 +229,9 @@ impl From<ConfigError> for Box<InstallerRunError> {
         );
 
         let report = InstallationReport {
-            summary: RunSummary {
-                completed_phases: Vec::new(),
-                staging_dir: PathBuf::from("<unknown>"),
-                errors: vec![installer_error.clone()],
-            },
+            completed_phases: Vec::new(),
+            staging_dir: PathBuf::from("<unknown>"),
+            errors: vec![installer_error.clone()],
             outputs: Vec::new(),
             events: Vec::new(),
             options: InstallOptions::default(),
@@ -257,6 +239,7 @@ impl From<ConfigError> for Box<InstallerRunError> {
                 name: "<unknown>".to_string(),
                 description: "unknown driver".to_string(),
             },
+            dry_run_log: Vec::new(),
         };
 
         Box::new(InstallerRunError {

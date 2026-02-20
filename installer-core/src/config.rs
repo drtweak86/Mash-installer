@@ -255,7 +255,7 @@ pub fn load_or_default() -> std::result::Result<MashConfig, ConfigError> {
 
 /// Write the default config to disk (config init).
 #[allow(dead_code)]
-pub fn init_config() -> AnyResult<()> {
+pub fn init_config(out: &mut dyn io::Write) -> AnyResult<()> {
     let path = config_path();
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
@@ -264,28 +264,28 @@ pub fn init_config() -> AnyResult<()> {
     if path.exists() {
         let backup = path.with_extension("toml.bak");
         fs::copy(&path, &backup)?;
-        println!("Backed up existing config to {}", backup.display());
+        writeln!(out, "Backed up existing config to {}", backup.display())?;
     }
 
     let cfg = MashConfig::default();
     let text = toml::to_string_pretty(&cfg)?;
     fs::write(&path, &text)?;
-    println!("Wrote default config to {}", path.display());
+    writeln!(out, "Wrote default config to {}", path.display())?;
     Ok(())
 }
 
-/// Print the current config (config show).
+/// Show the current config (config show).
 #[allow(dead_code)]
-pub fn show_config() -> AnyResult<()> {
+pub fn show_config(out: &mut dyn io::Write) -> AnyResult<()> {
     let cfg = load_or_default()?;
     let text = toml::to_string_pretty(&cfg)?;
     let path = config_path();
     if path.exists() {
-        println!("# {}", path.display());
+        writeln!(out, "# {}", path.display())?;
     } else {
-        println!("# (no config file found; showing defaults)");
+        writeln!(out, "# (no config file found; showing defaults)")?;
     }
-    println!("{text}");
+    writeln!(out, "{text}")?;
     Ok(())
 }
 
@@ -295,21 +295,32 @@ mod tests {
     use std::env;
     use std::ffi::OsString;
     use std::path::{Path, PathBuf};
+    use std::sync::{Mutex, MutexGuard, OnceLock};
     use tempfile::tempdir;
 
-    struct ConfigPathGuard(Option<OsString>);
+    static CONFIG_PATH_ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+
+    struct ConfigPathGuard {
+        previous: Option<OsString>,
+        _lock: MutexGuard<'static, ()>,
+    }
 
     impl ConfigPathGuard {
         fn set(path: impl AsRef<Path>) -> Self {
+            let mutex = CONFIG_PATH_ENV_LOCK.get_or_init(|| Mutex::new(()));
+            let lock = mutex.lock().expect("config path mutex poisoned");
             let previous = env::var_os("MASH_CONFIG_PATH");
             env::set_var("MASH_CONFIG_PATH", path.as_ref());
-            ConfigPathGuard(previous)
+            ConfigPathGuard {
+                previous,
+                _lock: lock,
+            }
         }
     }
 
     impl Drop for ConfigPathGuard {
         fn drop(&mut self) {
-            if let Some(previous) = &self.0 {
+            if let Some(previous) = &self.previous {
                 env::set_var("MASH_CONFIG_PATH", previous);
             } else {
                 env::remove_var("MASH_CONFIG_PATH");
