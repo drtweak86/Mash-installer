@@ -41,8 +41,9 @@ pinning, and cleanup of legacy workflow duplication.
 - [x] Added `--all-features` to clippy and test steps in `ci.yml`
 - [x] Added `cargo audit` job for dependency vulnerability scanning
 - [x] Pinned Rust 1.93.1 via `rust-toolchain.toml` (deterministic local + CI builds)
-- [ ] Set branch protection on `main` (GitHub UI — requires manual action)
-- [ ] Verify: PR from `work` → `main` triggers full pipeline
+- [x] Set branch protection on `main` (via `gh api`)
+- [x] Verify: PR from `work` → `main` triggers full pipeline (PR #6 — 5/5 green)
+- [x] Fix ShellCheck: removed unused `BOLD` var (SC2034), added source directive (SC1091)
 
 ### Build Status
 - cargo fmt: clean

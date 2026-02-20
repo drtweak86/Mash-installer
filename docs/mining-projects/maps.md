@@ -22,7 +22,7 @@
 - [x] Add `cargo audit` step for dependency vulnerability scanning
 - [x] Pin Rust toolchain via `rust-toolchain.toml` (deterministic builds across local + CI)
 - [x] Set branch protection on `main` (require CI pass, no direct push)
-- [ ] Verify: PR from `work` → `main` triggers full pipeline ← after push
+- [x] Verify: PR from `work` → `main` triggers full pipeline (PR #6 — 5/5 green)
 
 **Why first:** Every change after this gets automatic fmt/clippy/test/audit gates.
 Without it, regressions sneak in unnoticed. 10 minutes of config saves hours of
