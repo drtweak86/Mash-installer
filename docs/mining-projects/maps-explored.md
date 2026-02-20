@@ -16,6 +16,18 @@ The courier lanes were refitted so `package-deb` and `package-rpm` now trail the
 - cargo clippy --all-targets --all-features -- -D warnings: clean
 - cargo test: clean
 
+## Session: 2026-02-20 – Release Trigger
+
+### Summary
+`work` just pushed `v0.1.2` into the sky; the release workflow now runs with the new `.deb`, `.rpm`, and checksumed `PKGBUILD` cohorts.
+
+### Deliverables
+- [x] Push `v0.1.2` tag to `origin` so `.github/workflows/release.yml` fires the build-release → package-deb/rpm → publish relay.
+- [ ] Monitor GitHub Actions for the release job results and confirm the artifacts land before closing the vault.
+
+### Build Status
+- release workflow triggered by `v0.1.2` (check GitHub Actions for the green signal).
+
 ---
 
 ## Session: 2026-02-20 – Phase 4: Hardening Complete
