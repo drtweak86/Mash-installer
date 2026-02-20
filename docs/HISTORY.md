@@ -38,3 +38,23 @@ Four new structs joined the exports: `MountOptimization`, `SwapConfig`, `KernelP
 
 **Margin note:**
 > “The dragon didn't breathe fire—it breathed `sysctl -w`. And the bard approved.”
+
+---
+
+## Chronicle V – Sealing the Forge Against the Neon Rain
+The forge worked, the dragon purred, and the dwarves had their dry runs—but anyone could walk in during a pour, the downloads trusted any certificate the rain offered, and a SIGINT left half-forged runes scattered across the anvil. Phase 4 sealed the gaps.
+
+First came the **lockfile**—`InstallerLock` wraps `nix::fcntl::Flock` in an exclusive, non-blocking grip on `$XDG_RUNTIME_DIR/mash-installer.lock`. Try to run two installers at once and the second one bounces off with a clear message. Drop the struct and the lock evaporates. Three tests prove it: acquire once, fail from a child process, release on drop.
+
+Then the **TLS hardening**—every `curl` invocation across `apt_repo.rs`, `rclone.rs`, `argon.rs`, and `zsh.rs` now carries `--proto '=https' --tlsv1.2`. A `curl_flags()` helper in `cmd.rs` centralizes the pattern, and `rustup` and `cargo-binstall` already had it from day one.
+
+The **signal handler** came next—`SignalGuard` registers `SIGINT` and `SIGTERM` via `signal-hook`, setting an `Arc<AtomicBool>` flag instead of killing the process. The `PhaseRunner` polls `is_interrupted()` between phases and triggers `rollback_all()` before a graceful exit.
+
+**Rollback expansion** gave teeth to phases that previously left no breadcrumbs: `zsh.rs` registers removal of the `.oh-my-zsh` directory, `rust.rs` logs a note pointing to `rustup self uninstall`, and `argon.rs` cleans up its config files under `/etc/argon/`. Docker's rollback was already the gold standard.
+
+Finally, **filesystem forensics**—`verify.rs` offers `verify_file_written()` (re-reads and compares head/tail bytes) and `sync_file()` (forces `fsync` for SD-card survival). Infrastructure ready for phases to call on critical writes.
+
+Thirteen new tests joined the roster, bringing the total to 99—every one green as mithril under lamplight.
+
+**Margin note:**
+> “The forge doesn't just work now—it locks its doors, checks its papers, catches the signal before the blade falls, and verifies the rune after the ink dries. The neon rain can pound all it wants.”

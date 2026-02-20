@@ -1,6 +1,33 @@
 # Mining Projects – Explored Maps
 > Archive of completed work, closed at the end of each session.
 
+## Session: 2026-02-20 – Phase 4: Hardening Complete
+
+### Summary
+Sealed the forge against the neon rain. Five hardening measures implemented:
+lockfile (concurrent run prevention), TLS hardening (all curl calls pinned to TLS 1.2+),
+signal handling (graceful SIGINT/SIGTERM shutdown with rollback), rollback expansion
+(zsh, rust, argon phases register actions), and filesystem forensics infrastructure.
+
+### Deliverables
+- [x] `lockfile.rs` — `InstallerLock` via `nix::fcntl::Flock`, exclusive non-blocking
+- [x] `cmd.rs` — `curl_flags()` helper centralizing TLS enforcement
+- [x] TLS hardened: `apt_repo.rs`, `rclone.rs`, `argon.rs`, `zsh.rs`
+- [x] `signal.rs` — `SignalGuard` via `signal-hook`, `Arc<AtomicBool>` flag
+- [x] `verify.rs` — `verify_file_written()` + `sync_file()` infrastructure
+- [x] Rollback: `zsh.rs` (omz dir), `rust.rs` (note), `argon.rs` (config files)
+- [x] `orchestrator.rs` — acquires lockfile + signal guard before phases
+- [x] `phase_runner.rs` — checks signal between phases, triggers rollback
+- [x] 13 new tests (99 total), all green
+- [x] `signal-hook = "0.3"` added to Cargo.toml
+
+### Build Status
+- cargo fmt: clean
+- cargo clippy --all-targets --all-features -- -D warnings: clean
+- cargo test: 99 tests passing
+
+---
+
 ## Session: 2026-02-20 – Phase 3: Pi 4B HDD Tuning Complete
 
 ### Summary

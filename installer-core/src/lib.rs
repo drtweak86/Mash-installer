@@ -17,6 +17,7 @@ mod github;
 mod hyprland;
 pub mod interaction;
 pub mod localization;
+mod lockfile;
 mod logging;
 mod options;
 mod orchestrator;
@@ -32,10 +33,13 @@ mod registry;
 mod rollback;
 mod runner;
 mod rust;
+mod signal;
 mod staging;
 mod sudo;
 mod system;
 mod systemd;
+#[allow(dead_code)]
+mod verify;
 mod zsh;
 
 use crate::{dry_run::DryRunLog, localization::Localization};

@@ -82,17 +82,19 @@ synced work branch, pushed to origin, opened PR #8 for merge to main.
 - [x] Phase self-skips on non-Pi4B with warning (no crash)
 - [x] 86 tests green (12 new pi4b_hdd tests)
 
-### 6. Phase 4: Hardening (Blocked)
+### 6. Phase 4: Hardening (Complete)
 > *Seal the forge against the neon rain.*
 
-- [ ] TLS certificate validation for all downloads
-- [ ] Rollback rituals: snapshot before phase, restore on failure
-- [ ] Lockfile: prevent concurrent installer runs
-- [ ] Signal handling: graceful shutdown on SIGINT/SIGTERM
-- [ ] Filesystem forensics: verify writes landed correctly
+- [x] TLS certificate validation for all downloads (--proto '=https' --tlsv1.2 on all curl calls)
+- [x] Rollback expansion: zsh, rust, argon phases register rollback actions
+- [x] Lockfile: prevent concurrent installer runs (InstallerLock via nix::fcntl::Flock)
+- [x] Signal handling: graceful shutdown on SIGINT/SIGTERM (SignalGuard via signal-hook)
+- [x] Filesystem forensics: verify_file_written() and sync_file() infrastructure ready
+- [x] Wired lockfile + signal guard into orchestrator/phase_runner
+- [x] 99 tests green (13 new: 3 lockfile, 1 curl_flags, 3 signal, 6 verify)
 
-**Why sixth:** Builds on a stable, tested, CI-gated foundation. These are safety
-nets -- they matter most when everything else is already working.
+**Why sixth:** Built on a stable, tested, CI-gated foundation. Safety nets that
+matter most when everything else is already working.
 
 ### 7. System Packaging -- AUR / .deb / .rpm (stretch goal)
 > *Let the system's own courier deliver the blade.*

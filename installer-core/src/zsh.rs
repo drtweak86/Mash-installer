@@ -46,10 +46,18 @@ fn install_omz(ctx: &mut PhaseContext) -> Result<()> {
         return Ok(());
     }
 
+    let omz_dir_clone = omz_dir.clone();
+    ctx.register_rollback_action("remove oh-my-zsh directory", move || {
+        if omz_dir_clone.exists() {
+            std::fs::remove_dir_all(&omz_dir_clone)?;
+        }
+        Ok(())
+    });
+
     if let Err(err) = cmd::Command::new("sh")
         .arg("-c")
         .arg(
-            r#"RUNZSH=no CHSH=no sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)""#,
+            r#"RUNZSH=no CHSH=no sh -c "$(curl -fsSL --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)""#,
         )
         .execute()
     {

@@ -220,7 +220,7 @@ fn test_arch_driver_package_translation() -> Result<()> {
     let runner = PhaseRunner::from_phases(phases);
     let mut observer = DryRunObserver::new();
 
-    let result = runner.run(&ctx, &mut observer)?;
+    let result = runner.run(&ctx, &mut observer, None)?;
 
     assert_eq!(result.completed_phases.len(), 3);
     assert!(result.errors.is_empty());
@@ -247,7 +247,7 @@ fn test_debian_driver_package_translation() -> Result<()> {
     let runner = PhaseRunner::from_phases(phases);
     let mut observer = DryRunObserver::new();
 
-    let result = runner.run(&ctx, &mut observer)?;
+    let result = runner.run(&ctx, &mut observer, None)?;
 
     assert_eq!(result.completed_phases.len(), 2);
     assert!(result.errors.is_empty());
@@ -274,7 +274,7 @@ fn test_fedora_driver_package_translation() -> Result<()> {
     let runner = PhaseRunner::from_phases(phases);
     let mut observer = DryRunObserver::new();
 
-    let result = runner.run(&ctx, &mut observer)?;
+    let result = runner.run(&ctx, &mut observer, None)?;
 
     assert_eq!(result.completed_phases.len(), 2);
     assert!(result.errors.is_empty());
@@ -301,7 +301,7 @@ fn test_arch_driver_service_names() -> Result<()> {
     let runner = PhaseRunner::from_phases(phases);
     let mut observer = DryRunObserver::new();
 
-    let result = runner.run(&ctx, &mut observer)?;
+    let result = runner.run(&ctx, &mut observer, None)?;
 
     assert_eq!(result.completed_phases.len(), 2);
     assert!(result.errors.is_empty());
@@ -323,7 +323,7 @@ fn test_dry_run_logging_for_all_drivers() -> Result<()> {
         let runner = PhaseRunner::from_phases(phases);
         let mut observer = DryRunObserver::new();
 
-        let result = runner.run(&ctx, &mut observer)?;
+        let result = runner.run(&ctx, &mut observer, None)?;
 
         assert_eq!(result.completed_phases.len(), 1);
         assert!(result.errors.is_empty());
