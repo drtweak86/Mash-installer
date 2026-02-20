@@ -57,7 +57,19 @@ before we depend on it.
 **Why third:** Depends on tagged releases existing. Removes the 10-minute cargo
 build tax for end users. Biggest UX improvement per line of code changed.
 
-### 4. Phase 3: Pi 4B HDD Tuning (2-3 sessions)
+### 4. Driver Test Harness (1-2 sessions)
+> *Test the walls before you mine deeper.*
+
+- [ ] Create test fixtures for each distro driver (Arch, Debian, Fedora)
+- [ ] Mock `SystemOps` + `PhaseContext` for unit-level driver testing
+- [ ] Exercise each driver's phase list against the Phase trait contract
+- [ ] Verify dry-run mode produces correct `DryRunEntry` logs per driver
+- [ ] Add to CI as a required check
+
+**Why fourth:** Before adding new features (Phase 3/4), prove the existing drivers
+don't regress. The hardening audit gave us clean interfaces — now test them.
+
+### 5. Phase 3: Pi 4B HDD Tuning (2-3 sessions)
 > *The primary hardware gets its dedicated optimization pass.*
 
 - [ ] Preflight checks: USB 3.0 detection, HDD health, partition layout
@@ -67,20 +79,8 @@ build tax for end users. Biggest UX improvement per line of code changed.
 - [ ] Kernel parameter tuning (vm.swappiness, dirty ratio)
 - [ ] All changes gated behind `PhaseContext::run_or_record()`
 
-**Why fourth:** Feature work on the primary target hardware. The hardening audit
-gave us clean interfaces — build on them while they're fresh.
-
-### 5. Driver Test Harness (1-2 sessions)
-> *Test the walls after you've mined deeper.*
-
-- [ ] Create test fixtures for each distro driver (Arch, Debian, Fedora)
-- [ ] Mock `SystemOps` + `PhaseContext` for unit-level driver testing
-- [ ] Exercise each driver's phase list against the Phase trait contract
-- [ ] Verify dry-run mode produces correct `DryRunEntry` logs per driver
-- [ ] Add to CI as a required check
-
-**Why fifth:** With Phase 3 adding new phases, the test harness locks in the
-expanded surface area. Test what you've built, then keep building.
+**Why fifth:** Feature work on the primary target hardware. Test harness (step 4)
+catches regressions as we add new phases.
 
 ### 6. Phase 4: Hardening (2-3 sessions)
 > *Seal the forge against the neon rain.*
