@@ -137,14 +137,15 @@ fn start_sudo_keepalive() -> SudoKeepalive {
     thread::spawn(move || {
         // First, try to refresh sudo once to see if it works
         let mut test_cmd = Command::new("sudo");
-        test_cmd.args(["-v"]);
-        if cmd::run(&mut test_cmd).is_err() {
+        test_cmd.args(["-v"]).stdin(std::process::Stdio::inherit());
+        if let Err(e) = cmd::run(&mut test_cmd) {
             // User doesn't have sudo or it's not configured, exit quietly
-            tracing::debug!("sudo -v failed, not starting keep-alive");
+            tracing::error!("sudo -v failed: {}. Make sure you have sudo access without password (NOPASSWD) or run the installer manually.", e);
+            tracing::debug!("Not starting sudo keep-alive due to sudo failure");
             return;
         }
 
-        tracing::debug!("Starting sudo keep-alive (refreshes every 60s)");
+        tracing::debug!("Starting sudo keep-alive (refreshes every 30s)");
 
         loop {
             // Check if we should stop
@@ -153,8 +154,8 @@ fn start_sudo_keepalive() -> SudoKeepalive {
                 break;
             }
 
-            // Sleep for 60 seconds
-            thread::sleep(Duration::from_secs(60));
+            // Sleep for 30 seconds (reduced from 60 for better responsiveness)
+            thread::sleep(Duration::from_secs(30));
 
             // Check again before refreshing (in case we were signaled during sleep)
             if flag_clone.load(Ordering::SeqCst) {
@@ -163,7 +164,7 @@ fn start_sudo_keepalive() -> SudoKeepalive {
 
             // Refresh sudo timestamp
             let mut cmd = Command::new("sudo");
-            cmd.args(["-v"]);
+            cmd.args(["-v"]).stdin(std::process::Stdio::inherit());
             if let Err(e) = cmd::run(&mut cmd) {
                 tracing::warn!("sudo keep-alive refresh failed: {}", e);
                 break;
@@ -180,6 +181,25 @@ pub fn run_with_driver(
     opts: InstallOptions,
     observer: &mut dyn PhaseObserver,
 ) -> Result<InstallationReport, InstallerRunError> {
+    // Ensure USER environment variable is set (required for many operations)
+    if std::env::var("USER").is_err() {
+        // Try to get from SUDO_USER or whoami
+        let user = std::env::var("SUDO_USER").ok().or_else(|| {
+            Command::new("whoami")
+                .output()
+                .ok()
+                .and_then(|o| String::from_utf8(o.stdout).ok())
+                .map(|s| s.trim().to_string())
+        });
+
+        if let Some(username) = user {
+            std::env::set_var("USER", &username);
+            info!("Set USER environment variable to: {}", username);
+        } else {
+            error!("WARNING: USER environment variable not set and could not be detected!");
+        }
+    }
+
     // Start sudo keep-alive to prevent timeout during long operations
     // Keep the handle in scope - when dropped at end of function, it stops the background thread
     let _sudo_keepalive = start_sudo_keepalive();
