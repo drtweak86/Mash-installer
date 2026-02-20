@@ -1,6 +1,68 @@
 # Mining Projects – Explored Maps
 > Archive of completed work, closed at the end of each session.
 
+## Session: 2026-02-20 – Step 2: First Tagged Release v0.1.0
+
+### Summary
+Created the first official tagged release v0.1.0 after completing Phase 2 hardening.
+The release pipeline successfully built and published binaries for both x86_64 and aarch64
+architectures with SHA256 checksums.
+
+### Deliverables
+- [x] Verified release.yml workflow triggers on v* tags
+- [x] Built locally with --release (successful)
+- [x] Confirmed version string reflects 0.1.0 (installer-cli v0.1.0)
+- [x] Tagged v0.1.0 on main after merging work branch
+- [x] Confirmed GitHub Release v0.1.0 with both binaries + SHA256 checksums
+- [x] Verified checksums via sha256sum -c
+- [x] Release workflow completed successfully (all jobs green)
+
+### Release Assets
+- mash-setup-x86_64-unknown-linux-gnu (3.7MB)
+- mash-setup-aarch64-unknown-linux-gnu (3.7MB)
+- mash-setup-x86_64-unknown-linux-gnu.sha256
+- mash-setup-aarch64-unknown-linux-gnu.sha256
+
+### Build Status
+- cargo fmt: clean
+- cargo clippy --all-targets --all-features -- -D warnings: clean
+- cargo test: all passing
+- GitHub Actions: 5/5 checks passing (fmt, clippy, test, build, audit)
+
+---
+
+## Session: 2026-02-20 – Step 3: Retire bootstrap.sh
+
+### Summary
+Slimmed down bootstrap.sh from 134 lines to ~20 lines, transforming it from a
+full installation script to a lightweight binary downloader. The new version:
+- Detects architecture and maps to target triple
+- Downloads pre-built binary from GitHub Releases
+- Verifies SHA256 checksum before execution
+- Executes the downloaded binary
+
+### Deliverables
+- [x] Slimmed bootstrap.sh to ~20 lines
+- [x] Removed Rust/git/cargo install logic (no longer needed)
+- [x] Removed font/Hyprland/makepkg logic (handled by mash-setup)
+- [x] Added uname -m → target triple mapping
+- [x] Tested on local machine (successfully downloads and runs from GitHub)
+- [ ] Document one-liner curl install as primary method
+- [ ] Test on clean Pi (no Rust installed)
+
+### New bootstrap.sh Flow
+```bash
+# Detect arch → download binary → verify SHA256 → exec
+```
+
+### Benefits
+- Eliminates 10-minute cargo build tax for end users
+- Reduces prerequisites (no Rust, git, or cargo needed)
+- Faster installation on Pi (download vs compile)
+- Smaller attack surface (no shell-out to rustup)
+
+---
+
 ## Session: 2026-02-20 – Phase 2 Completion Audit (Hardening)
 
 ### Summary
@@ -49,3 +111,20 @@ pinning, and cleanup of legacy workflow duplication.
 - cargo fmt: clean
 - cargo clippy --all-targets --all-features -- -D warnings: clean
 - cargo test: 68 tests passing
+
+---
+
+## Session: 2026-02-20 – Phase 2 Closure (Final)
+
+### Summary
+The neon ledger now proclaims Phase 2 complete: runner/registry split, InstallationReport contract, PhaseContext helpers, Pi detection lore, and CLI wiring all sealed with the fmt/clippy/test trilogy.
+
+### Deliverables
+- [x] Created `.bard-persona.md` with the Drunken Dwarf Bard manifesto.
+- [x] Split `installer-core/lib.rs` exports into `runner` & `registry` wrappers and kept the CLI aligned with `InstallationReport`.
+- [x] Updated README/HISTORY/ARCH/modules/improvement-plan/QA notes to deck them with the Phase 2 completion story.
+- [x] Logged the closure in `docs/mining-projects/maps.md` and noted the paused Phase 3.
+- [x] Ran `cargo fmt`, `cargo clippy --all-targets --all-features -- -D warnings`, and `cargo test` from `/work/Mash-installer` with green results.
+
+### Notes
+- Phase 3 (Pi 4B HDD) work awaits the ledger flip; do not start before that.
