@@ -2,6 +2,27 @@
 # MASH Installer
 > **Mythic Assembly & Sigil Heuristics** — forged where neon rain meets stone and every glyph is a command rune.
 
+## What Does It Do?
+
+**MASH Installer is your 3 AM rage-quit recovery tool.** When you've borked your dev station beyond recognition and need it back **NOW**, this is your lifeline.
+
+### The One-Liner (For When You're Raging at 3 AM)
+
+```bash
+# I had to format because I borked something and need my dev station back NOW
+curl -sSfL https://github.com/drtweak86/Mash-installer-/releases/latest/download/mash-setup-$(uname -m)-unknown-linux-gnu | tar zx && ./mash-setup
+```
+
+### What You Get
+
+- **System packages** - All the essentials your machine needs
+- **Rust toolchain** - Latest stable with cargo tools
+- **Git & GitHub CLI** - Version control ready to roll
+- **Docker Engine** - Containers at your fingertips
+- **Shell & UX** - zsh, starship, and all the goodies
+- **Fonts & Themes** - Because even rage-quit terminals deserve to be pretty
+- **Buildroot dependencies** - For when you need to compile the world
+
 ## 📜 Tavern Card
 Step under the warm eaves of the Forge Tavern, leave your frostbitten boots by the hearth, and let the drunk dwarf bard guide you through `MASH-installer`. This tale braids the grit of a thousand dwarves hauling plasma ore, the ferocious snark of a dragon who drinks coffee, and the terse logic of a Ratatui terminal into a neon hymn that knows there's no place like 127.0.0.1. Every log entry is a page from a codex written in neon runes, every dependency a rune etched in starlight, and the newest ritual is a single curl to GitHub Releases followed by a brief extraction:
 
