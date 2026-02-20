@@ -30,7 +30,7 @@ mod systemd;
 mod zsh;
 
 use crate::{dry_run::DryRunLog, localization::Localization};
-use anyhow::Result;
+use anyhow::{Context as _, Result};
 use std::{
     fmt, path::PathBuf,
     process::Command,
@@ -194,8 +194,86 @@ pub fn run_with_driver(
         driver.name(),
         driver.description()
     );
+
+    // Check for Raspberry Pi 4B (primary target)
+    let is_pi_4b = plat.pi_model.as_ref().map_or(false, |model| {
+        model.contains("Raspberry Pi 4") || model.contains("Pi 4")
+    });
+
     if let Some(ref model) = plat.pi_model {
         info!("Raspberry Pi model: {}", model);
+        if is_pi_4b {
+            info!("✓ Running on Raspberry Pi 4 - optimal performance!");
+        }
+    }
+
+    // Warn if not running on Pi 4B
+    if !is_pi_4b {
+        eprintln!();
+        eprintln!("╔══════════════════════════════════════════════════════════════════════╗");
+        eprintln!("║                          ⚠️  WARNING  ⚠️                              ║");
+        eprintln!("╠══════════════════════════════════════════════════════════════════════╣");
+        eprintln!("║  This installer is OPTIMIZED FOR RASPBERRY PI 4B 8GB ONLY           ║");
+        eprintln!("║                                                                      ║");
+        let detected = plat.pi_model.as_deref().unwrap_or("Non-Pi system");
+        eprintln!("║  Detected: {:<58} ║", detected);
+        eprintln!("║                                                                      ║");
+        eprintln!("║  ⚠️  PROCEEDING AT YOUR OWN RISK:                                    ║");
+        eprintln!("║  • No performance guarantees                                        ║");
+        eprintln!("║  • No bug reports accepted for non-Pi4B systems                     ║");
+        eprintln!("║  • No maintenance or troubleshooting support                        ║");
+        eprintln!("║  • Installation may fail or behave unexpectedly                     ║");
+        eprintln!("╚══════════════════════════════════════════════════════════════════════╝");
+        eprintln!();
+
+        if opts.interactive {
+            use std::io::{self, Write};
+            print!("Do you understand the risks and want to proceed anyway? [y/N]: ");
+            io::stdout().flush().context("Failed to flush stdout")?;
+
+            let mut response = String::new();
+            io::stdin().read_line(&mut response).context("Failed to read user input")?;
+            let response = response.trim().to_lowercase();
+
+            if response != "y" && response != "yes" {
+                eprintln!("\nInstallation cancelled by user.");
+                eprintln!("This installer is designed for Raspberry Pi 4B 8GB only.");
+                return Err(InstallerRunError {
+                    report: InstallationReport {
+                        summary: RunSummary {
+                            completed_phases: vec![],
+                            staging_dir: PathBuf::from("/tmp"),
+                            errors: vec![],
+                        },
+                        events: vec![],
+                        options: opts.clone(),
+                        driver: DriverInfo {
+                            name: driver.name().to_string(),
+                            description: driver.description().to_string(),
+                        },
+                    },
+                    source: InstallerError::new(
+                        "platform_check",
+                        "Platform compatibility check",
+                        ErrorSeverity::Fatal,
+                        anyhow::anyhow!("User declined to proceed on non-Pi4B system"),
+                        InstallerStateSnapshot::from_options(&UserOptionsContext {
+                            profile: opts.profile,
+                            staging_dir: PathBuf::from("/tmp"),
+                            dry_run: opts.dry_run,
+                            interactive: opts.interactive,
+                            enable_argon: opts.enable_argon,
+                            enable_p10k: opts.enable_p10k,
+                            docker_data_root: opts.docker_data_root,
+                        }),
+                        Some("This installer is designed for Raspberry Pi 4B only.".to_string()),
+                    ),
+                });
+            }
+            info!("User acknowledged risks and chose to proceed on non-Pi4B system");
+        } else {
+            eprintln!("⚠️  Running in non-interactive mode; proceeding despite non-Pi4B platform");
+        }
     }
 
     let localization = Localization::load()?;
