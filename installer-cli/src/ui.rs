@@ -22,7 +22,7 @@ impl CliPhaseObserver {
                 "{spinner:.cyan} [{bar:30}] {pos}/{len} phases  {percent}%  elapsed: {elapsed_precise}",
             )
             .unwrap()
-            .progress_chars("▰🚛▱") // Road driven 🚛 Road ahead
+            .progress_chars("▰🚀▱") // Launch pad 🚀 Space ahead!
             .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏ "),
         );
         overall.enable_steady_tick(Duration::from_millis(200));
