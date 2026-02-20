@@ -49,6 +49,7 @@ The deduplication phase deferred D-03 because the `PhaseContext` was still formi
 - `Always Be Backing up` — snapshot the world before major refactors.
 - `Keep Commits Small` — each logical change deserves a single hammer strike.
 - `Always Be Testing` — run `cargo fmt`, `cargo clippy --all-targets --all-features -- -D warnings`, and `cargo test` from `/work/Mash-installer`.
+- `Always Be Documenting` — every change, decision, and finding must be recorded in the appropriate doc.
 - The toolbelt: `rustfmt`, `clippy`, and `sccache` keep builds fast and code tidy. Keep the cache warm between runs.
 - The workflow: build/test in the `work` branch, only merge to `main` when every log in `.logs` tells a green story.
 
