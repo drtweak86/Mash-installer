@@ -8,7 +8,7 @@
 - [x] Block 3: Surfaced swallowed errors as warnings (docker, rust, zsh, github)
 - [x] Block 4: Tightened public API (removed RealSystem from exports)
 - [x] Block 5: Confirmed green build (fmt + clippy + test) and documented
-- [x] Shaft A: Strategic reconnaissance report filed
+- [x] Shaft A: Strategic reconnaissance report filed and fully explored ✓
 
 ---
 
