@@ -19,10 +19,10 @@ impl CliPhaseObserver {
         let overall = mp.add(ProgressBar::new(0));
         overall.set_style(
             ProgressStyle::with_template(
-                "{spinner:.cyan} [{bar:30.green/dim}] {pos}/{len} phases  {percent}%  elapsed: {elapsed_precise}",
+                "{spinner:.cyan} [{bar:30}] {pos}/{len} phases  {percent}%  elapsed: {elapsed_precise}",
             )
             .unwrap()
-            .progress_chars("━╸─")
+            .progress_chars("▰🚛▱") // Road driven 🚛 Road ahead
             .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏ "),
         );
         overall.enable_steady_tick(Duration::from_millis(200));
