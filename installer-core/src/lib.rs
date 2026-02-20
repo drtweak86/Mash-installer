@@ -14,6 +14,7 @@ pub mod dry_run;
 mod error;
 mod fonts;
 mod github;
+mod hyprland;
 pub mod interaction;
 pub mod localization;
 mod logging;
@@ -29,8 +30,17 @@ mod systemd;
 mod zsh;
 
 use crate::{dry_run::DryRunLog, localization::Localization};
-use anyhow::Result;
-use std::{fmt, path::PathBuf};
+use anyhow::{Context as _, Result};
+use std::{
+    fmt, path::PathBuf,
+    process::Command,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    thread,
+    time::Duration,
+};
 use tracing::{error, info};
 
 pub use backend::PkgBackend;
@@ -106,12 +116,94 @@ pub enum ProfileLevel {
     Full = 2,
 }
 
+/// Handle for sudo keep-alive background thread.
+/// When dropped, signals the background thread to stop.
+struct SudoKeepalive {
+    stop_flag: Arc<AtomicBool>,
+}
+
+impl Drop for SudoKeepalive {
+    fn drop(&mut self) {
+        self.stop_flag.store(true, Ordering::SeqCst);
+    }
+}
+
+/// Start a background thread to keep sudo alive during long operations.
+/// Returns a handle that stops the keep-alive when dropped.
+fn start_sudo_keepalive() -> SudoKeepalive {
+    let stop_flag = Arc::new(AtomicBool::new(false));
+    let flag_clone = stop_flag.clone();
+
+    thread::spawn(move || {
+        // First, try to refresh sudo once to see if it works
+        let mut test_cmd = Command::new("sudo");
+        test_cmd.args(["-v"]).stdin(std::process::Stdio::inherit());
+        if let Err(e) = cmd::run(&mut test_cmd) {
+            // User doesn't have sudo or it's not configured, exit quietly
+            tracing::error!("sudo -v failed: {}. Make sure you have sudo access without password (NOPASSWD) or run the installer manually.", e);
+            tracing::debug!("Not starting sudo keep-alive due to sudo failure");
+            return;
+        }
+
+        tracing::debug!("Starting sudo keep-alive (refreshes every 30s)");
+
+        loop {
+            // Check if we should stop
+            if flag_clone.load(Ordering::SeqCst) {
+                tracing::debug!("Stopping sudo keep-alive");
+                break;
+            }
+
+            // Sleep for 30 seconds (reduced from 60 for better responsiveness)
+            thread::sleep(Duration::from_secs(30));
+
+            // Check again before refreshing (in case we were signaled during sleep)
+            if flag_clone.load(Ordering::SeqCst) {
+                break;
+            }
+
+            // Refresh sudo timestamp
+            let mut cmd = Command::new("sudo");
+            cmd.args(["-v"]).stdin(std::process::Stdio::inherit());
+            if let Err(e) = cmd::run(&mut cmd) {
+                tracing::warn!("sudo keep-alive refresh failed: {}", e);
+                break;
+            }
+        }
+    });
+
+    SudoKeepalive { stop_flag }
+}
+
 /// Run the installer using the supplied distro driver and CLI options.
 pub fn run_with_driver(
     driver: &'static dyn DistroDriver,
     opts: InstallOptions,
     observer: &mut dyn PhaseObserver,
 ) -> Result<InstallationReport, InstallerRunError> {
+    // Ensure USER environment variable is set (required for many operations)
+    if std::env::var("USER").is_err() {
+        // Try to get from SUDO_USER or whoami
+        let user = std::env::var("SUDO_USER").ok().or_else(|| {
+            Command::new("whoami")
+                .output()
+                .ok()
+                .and_then(|o| String::from_utf8(o.stdout).ok())
+                .map(|s| s.trim().to_string())
+        });
+
+        if let Some(username) = user {
+            std::env::set_var("USER", &username);
+            info!("Set USER environment variable to: {}", username);
+        } else {
+            error!("WARNING: USER environment variable not set and could not be detected!");
+        }
+    }
+
+    // Start sudo keep-alive to prevent timeout during long operations
+    // Keep the handle in scope - when dropped at end of function, it stops the background thread
+    let _sudo_keepalive = start_sudo_keepalive();
+
     let plat = platform::detect()?;
     info!(
         "Platform: {} {} on {}",
@@ -122,8 +214,86 @@ pub fn run_with_driver(
         driver.name(),
         driver.description()
     );
+
+    // Check for Raspberry Pi 4B (primary target)
+    let is_pi_4b = plat.pi_model.as_ref().map_or(false, |model| {
+        model.contains("Raspberry Pi 4") || model.contains("Pi 4")
+    });
+
     if let Some(ref model) = plat.pi_model {
         info!("Raspberry Pi model: {}", model);
+        if is_pi_4b {
+            info!("✓ Running on Raspberry Pi 4 - optimal performance!");
+        }
+    }
+
+    // Warn if not running on Pi 4B
+    if !is_pi_4b {
+        eprintln!();
+        eprintln!("╔══════════════════════════════════════════════════════════════════════╗");
+        eprintln!("║                          ⚠️  WARNING  ⚠️                              ║");
+        eprintln!("╠══════════════════════════════════════════════════════════════════════╣");
+        eprintln!("║  This installer is OPTIMIZED FOR RASPBERRY PI 4B 8GB ONLY           ║");
+        eprintln!("║                                                                      ║");
+        let detected = plat.pi_model.as_deref().unwrap_or("Non-Pi system");
+        eprintln!("║  Detected: {:<58} ║", detected);
+        eprintln!("║                                                                      ║");
+        eprintln!("║  ⚠️  PROCEEDING AT YOUR OWN RISK:                                    ║");
+        eprintln!("║  • No performance guarantees                                        ║");
+        eprintln!("║  • No bug reports accepted for non-Pi4B systems                     ║");
+        eprintln!("║  • No maintenance or troubleshooting support                        ║");
+        eprintln!("║  • Installation may fail or behave unexpectedly                     ║");
+        eprintln!("╚══════════════════════════════════════════════════════════════════════╝");
+        eprintln!();
+
+        if opts.interactive {
+            use std::io::{self, Write};
+            print!("Do you understand the risks and want to proceed anyway? [y/N]: ");
+            io::stdout().flush().context("Failed to flush stdout")?;
+
+            let mut response = String::new();
+            io::stdin().read_line(&mut response).context("Failed to read user input")?;
+            let response = response.trim().to_lowercase();
+
+            if response != "y" && response != "yes" {
+                eprintln!("\nInstallation cancelled by user.");
+                eprintln!("This installer is designed for Raspberry Pi 4B 8GB only.");
+                return Err(InstallerRunError {
+                    report: InstallationReport {
+                        summary: RunSummary {
+                            completed_phases: vec![],
+                            staging_dir: PathBuf::from("/tmp"),
+                            errors: vec![],
+                        },
+                        events: vec![],
+                        options: opts.clone(),
+                        driver: DriverInfo {
+                            name: driver.name().to_string(),
+                            description: driver.description().to_string(),
+                        },
+                    },
+                    source: InstallerError::new(
+                        "platform_check",
+                        "Platform compatibility check",
+                        ErrorSeverity::Fatal,
+                        anyhow::anyhow!("User declined to proceed on non-Pi4B system"),
+                        InstallerStateSnapshot::from_options(&UserOptionsContext {
+                            profile: opts.profile,
+                            staging_dir: PathBuf::from("/tmp"),
+                            dry_run: opts.dry_run,
+                            interactive: opts.interactive,
+                            enable_argon: opts.enable_argon,
+                            enable_p10k: opts.enable_p10k,
+                            docker_data_root: opts.docker_data_root,
+                        }),
+                        Some("This installer is designed for Raspberry Pi 4B only.".to_string()),
+                    ),
+                });
+            }
+            info!("User acknowledged risks and chose to proceed on non-Pi4B system");
+        } else {
+            eprintln!("⚠️  Running in non-interactive mode; proceeding despite non-Pi4B platform");
+        }
     }
 
     let localization = Localization::load()?;
@@ -219,6 +389,13 @@ fn build_phase_list(options: &UserOptionsContext, strings: &Localization) -> Vec
             "System packages",
             "System packages installed",
             pkg::install_phase,
+        ),
+        localized_phase(
+            strings,
+            "hyprland_audio",
+            "Hyprland audio fix (Arch)",
+            "Hyprland audio configured",
+            hyprland::install_phase,
         ),
         localized_phase(
             strings,

@@ -2,4 +2,5 @@
 pub enum PkgBackend {
     Apt,
     Pacman,
+    Dnf,
 }

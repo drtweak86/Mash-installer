@@ -25,7 +25,7 @@ pub fn install_phase(ctx: &mut PhaseContext) -> Result<()> {
     }
 
     match ctx.platform.pkg_backend {
-        PkgBackend::Pacman => install_argononed(ctx),
+        PkgBackend::Pacman | PkgBackend::Dnf => install_argononed(ctx),
         PkgBackend::Apt => install_argon_oem(ctx),
     }
 }

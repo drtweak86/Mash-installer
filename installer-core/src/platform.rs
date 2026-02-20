@@ -59,10 +59,13 @@ pub fn detect() -> Result<PlatformInfo> {
         "arch" => {
             tracing::info!("Detected Arch-based distro: {} {}", distro, distro_version);
         }
+        "fedora" => {
+            tracing::info!("Detected Fedora-based distro: {} {}", distro, distro_version);
+        }
         _ => {
             tracing::warn!(
                 "Detected distro '{}' (family '{}') – this installer targets \
-                 Ubuntu/Debian and Manjaro/Arch but may partially work.",
+                 Ubuntu/Debian, Manjaro/Arch, and Fedora/RHEL but may partially work.",
                 distro,
                 distro_family
             );
@@ -84,11 +87,14 @@ pub fn detect() -> Result<PlatformInfo> {
 fn determine_family(distro: &str, id_like: &str) -> String {
     // Exact matches first
     match distro {
-        "ubuntu" | "debian" | "linuxmint" | "pop" | "raspbian" => {
+        "ubuntu" | "debian" | "linuxmint" | "pop" | "raspbian" | "elementary" | "zorin" => {
             return "debian".into();
         }
         "manjaro" | "arch" | "endeavouros" | "garuda" | "artix" | "cachyos" => {
             return "arch".into();
+        }
+        "fedora" | "rhel" | "centos" | "rocky" | "almalinux" | "ol" => {
+            return "fedora".into();
         }
         _ => {}
     }
@@ -98,6 +104,8 @@ fn determine_family(distro: &str, id_like: &str) -> String {
         "arch".into()
     } else if like_lower.contains("debian") || like_lower.contains("ubuntu") {
         "debian".into()
+    } else if like_lower.contains("fedora") || like_lower.contains("rhel") || like_lower.contains("centos") {
+        "fedora".into()
     } else {
         "unknown".into()
     }
