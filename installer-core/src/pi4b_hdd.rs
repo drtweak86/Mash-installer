@@ -422,8 +422,8 @@ pub fn optimize_mount_options(system: &dyn SystemOps) -> Result<Vec<MountOptimiz
 // Swap configuration
 // ---------------------------------------------------------------------------
 
-/// Recommended swap size in MB for Pi 4B 8GB
-const RECOMMENDED_SWAP_MB: u64 = 2048;
+/// Recommended swap size in MB for Pi 4B 8GB (half of RAM)
+const RECOMMENDED_SWAP_MB: u64 = 4096;
 
 /// Analyze current swap and recommend configuration for Pi 4B with HDD.
 pub fn configure_swap(system: &dyn SystemOps) -> Result<SwapConfig> {
