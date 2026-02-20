@@ -3,9 +3,9 @@
 
 use anyhow::Result;
 use installer_core::{
-    dry_run::DryRunLog, ConfigService, DistroDriver, ErrorSeverity, InstallContext,
-    Phase, PhaseContext, PhaseEvent, PhaseObserver, PhaseRunner,
-    PkgBackend, PlatformInfo, ProfileLevel, UIContext, UserOptionsContext,
+    dry_run::DryRunLog, ConfigService, DistroDriver, ErrorSeverity, InstallContext, Phase,
+    PhaseContext, PhaseEvent, PhaseObserver, PhaseRunner, PkgBackend, PlatformInfo, ProfileLevel,
+    UIContext, UserOptionsContext,
 };
 use std::path::PathBuf;
 
@@ -41,7 +41,7 @@ impl Phase for PackageTranslationPhase {
         let driver = ctx.platform.driver;
         let translated = driver.translate_package(self.package_name);
         let expected = self.expected_result.map(|s| s.to_string());
-        
+
         match (&translated, &expected) {
             (Some(t), Some(e)) if t == e => Ok(()),
             (None, None) => Ok(()),
@@ -80,13 +80,14 @@ impl Phase for ServiceNamePhase {
     fn execute(&self, ctx: &mut PhaseContext) -> Result<()> {
         let driver = ctx.platform.driver;
         let actual = driver.service_unit(self.service_name);
-        
+
         if actual == self.expected_unit {
             Ok(())
         } else {
             Err(anyhow::anyhow!(
                 "Service name mismatch: got {}, expected {}",
-                actual, self.expected_unit
+                actual,
+                self.expected_unit
             ))
         }
     }
@@ -116,14 +117,17 @@ impl Phase for DryRunLoggingPhase {
     fn execute(&self, ctx: &mut PhaseContext) -> Result<()> {
         let driver = ctx.platform.driver;
         let translated = driver.translate_package(self.package_name);
-        
+
         // Log the dry-run entry
         ctx.dry_run_log.record(
             self.name(),
             "package translation",
-            Some(format!("Would translate package: {} -> {:?}", self.package_name, translated)),
+            Some(format!(
+                "Would translate package: {} -> {:?}",
+                self.package_name, translated
+            )),
         );
-        
+
         Ok(())
     }
 }
@@ -144,7 +148,7 @@ fn build_context_for_driver(driver: &'static dyn DistroDriver) -> Result<Install
         .into(),
         pi_model: None,
     };
-    
+
     let options = UserOptionsContext {
         profile: ProfileLevel::Minimal,
         staging_dir: PathBuf::from("/tmp/mash-test"),
@@ -174,13 +178,13 @@ fn build_context_for_driver(driver: &'static dyn DistroDriver) -> Result<Install
 
 // Test observer that captures dry-run entries
 struct DryRunObserver {
-    dry_run_entries: Vec<(String, String)>,
+    _dry_run_entries: Vec<(String, String)>,
 }
 
 impl DryRunObserver {
     fn new() -> Self {
         Self {
-            dry_run_entries: Vec::new(),
+            _dry_run_entries: Vec::new(),
         }
     }
 }
@@ -197,7 +201,7 @@ impl PhaseObserver for DryRunObserver {
 fn test_arch_driver_package_translation() -> Result<()> {
     let driver = arch_driver();
     let ctx = build_context_for_driver(driver)?;
-    
+
     let phases: Vec<Box<dyn Phase>> = vec![
         Box::new(PackageTranslationPhase {
             package_name: "build-essential",
@@ -212,15 +216,15 @@ fn test_arch_driver_package_translation() -> Result<()> {
             expected_result: None,
         }),
     ];
-    
+
     let runner = PhaseRunner::from_phases(phases);
     let mut observer = DryRunObserver::new();
-    
+
     let result = runner.run(&ctx, &mut observer)?;
-    
+
     assert_eq!(result.completed_phases.len(), 3);
     assert!(result.errors.is_empty());
-    
+
     Ok(())
 }
 
@@ -228,7 +232,7 @@ fn test_arch_driver_package_translation() -> Result<()> {
 fn test_debian_driver_package_translation() -> Result<()> {
     let driver = debian_driver();
     let ctx = build_context_for_driver(driver)?;
-    
+
     let phases: Vec<Box<dyn Phase>> = vec![
         Box::new(PackageTranslationPhase {
             package_name: "build-essential",
@@ -239,15 +243,15 @@ fn test_debian_driver_package_translation() -> Result<()> {
             expected_result: Some("docker-ce"),
         }),
     ];
-    
+
     let runner = PhaseRunner::from_phases(phases);
     let mut observer = DryRunObserver::new();
-    
+
     let result = runner.run(&ctx, &mut observer)?;
-    
+
     assert_eq!(result.completed_phases.len(), 2);
     assert!(result.errors.is_empty());
-    
+
     Ok(())
 }
 
@@ -255,7 +259,7 @@ fn test_debian_driver_package_translation() -> Result<()> {
 fn test_fedora_driver_package_translation() -> Result<()> {
     let driver = fedora_driver();
     let ctx = build_context_for_driver(driver)?;
-    
+
     let phases: Vec<Box<dyn Phase>> = vec![
         Box::new(PackageTranslationPhase {
             package_name: "build-essential",
@@ -266,15 +270,15 @@ fn test_fedora_driver_package_translation() -> Result<()> {
             expected_result: Some("docker"),
         }),
     ];
-    
+
     let runner = PhaseRunner::from_phases(phases);
     let mut observer = DryRunObserver::new();
-    
+
     let result = runner.run(&ctx, &mut observer)?;
-    
+
     assert_eq!(result.completed_phases.len(), 2);
     assert!(result.errors.is_empty());
-    
+
     Ok(())
 }
 
@@ -282,7 +286,7 @@ fn test_fedora_driver_package_translation() -> Result<()> {
 fn test_arch_driver_service_names() -> Result<()> {
     let driver = arch_driver();
     let ctx = build_context_for_driver(driver)?;
-    
+
     let phases: Vec<Box<dyn Phase>> = vec![
         Box::new(ServiceNamePhase {
             service_name: installer_core::ServiceName::Docker,
@@ -293,44 +297,42 @@ fn test_arch_driver_service_names() -> Result<()> {
             expected_unit: "argononed.service",
         }),
     ];
-    
+
     let runner = PhaseRunner::from_phases(phases);
     let mut observer = DryRunObserver::new();
-    
+
     let result = runner.run(&ctx, &mut observer)?;
-    
+
     assert_eq!(result.completed_phases.len(), 2);
     assert!(result.errors.is_empty());
-    
+
     Ok(())
 }
 
 #[test]
 fn test_dry_run_logging_for_all_drivers() -> Result<()> {
     let drivers = vec![arch_driver(), debian_driver(), fedora_driver()];
-    
+
     for driver in drivers {
         let ctx = build_context_for_driver(driver)?;
-        
-        let phases: Vec<Box<dyn Phase>> = vec![
-            Box::new(DryRunLoggingPhase {
-                package_name: "docker-ce",
-            }),
-        ];
-        
+
+        let phases: Vec<Box<dyn Phase>> = vec![Box::new(DryRunLoggingPhase {
+            package_name: "docker-ce",
+        })];
+
         let runner = PhaseRunner::from_phases(phases);
         let mut observer = DryRunObserver::new();
-        
+
         let result = runner.run(&ctx, &mut observer)?;
-        
+
         assert_eq!(result.completed_phases.len(), 1);
         assert!(result.errors.is_empty());
-        
+
         // Verify dry-run entries were recorded
         let entries = ctx.dry_run_log.entries();
         assert!(!entries.is_empty());
     }
-    
+
     Ok(())
 }
 
@@ -339,7 +341,7 @@ fn test_driver_matches_correct_platform() -> Result<()> {
     let arch = arch_driver();
     let debian = debian_driver();
     let fedora = fedora_driver();
-    
+
     // Arch should match arch family
     let arch_platform = PlatformInfo {
         arch: "x86_64".into(),
@@ -352,7 +354,7 @@ fn test_driver_matches_correct_platform() -> Result<()> {
     assert!(arch.matches(&arch_platform));
     assert!(!debian.matches(&arch_platform));
     assert!(!fedora.matches(&arch_platform));
-    
+
     // Debian should match debian family
     let debian_platform = PlatformInfo {
         arch: "x86_64".into(),
@@ -365,7 +367,7 @@ fn test_driver_matches_correct_platform() -> Result<()> {
     assert!(!arch.matches(&debian_platform));
     assert!(debian.matches(&debian_platform));
     assert!(!fedora.matches(&debian_platform));
-    
+
     // Fedora should match fedora family
     let fedora_platform = PlatformInfo {
         arch: "x86_64".into(),
@@ -378,6 +380,6 @@ fn test_driver_matches_correct_platform() -> Result<()> {
     assert!(!arch.matches(&fedora_platform));
     assert!(!debian.matches(&fedora_platform));
     assert!(fedora.matches(&fedora_platform));
-    
+
     Ok(())
 }
