@@ -1,4 +1,4 @@
-# Mining Projects – Completed Maps
+# Mining Projects – Explored Maps
 > Archive of completed work, closed at the end of each session.
 
 ## Session: 2026-02-20 – Phase 2 Completion Audit (Hardening)
