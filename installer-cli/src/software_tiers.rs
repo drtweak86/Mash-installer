@@ -434,11 +434,7 @@ fn run_custom_selection(interaction: &InteractionService) -> Result<SoftwareTier
     let mut picks = BTreeMap::new();
     for category in SOFTWARE_CATEGORIES {
         println!("\nCategory: {}", category.label);
-        let option_lines: Vec<String> = category
-            .options
-            .iter()
-            .map(format_option)
-            .collect();
+        let option_lines: Vec<String> = category.options.iter().map(format_option).collect();
         let option_refs: Vec<&str> = option_lines.iter().map(String::as_str).collect();
         let prompt = format!("Pick a tool for {}", category.label);
         let selection = interaction.select_option(
