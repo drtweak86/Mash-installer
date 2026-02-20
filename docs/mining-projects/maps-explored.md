@@ -1,4 +1,4 @@
-# Mining Projects – Completed Maps
+# Mining Projects – Explored Maps
 > Archive of completed work, closed at the end of each session.
 
 ## Session: 2026-02-20 – Phase 2 Completion Audit (Hardening)
@@ -27,3 +27,25 @@ addressed across 5 blocks of surgical fixes.
 - cargo fmt: clean
 - cargo clippy --all-targets --all-features -- -D warnings: clean
 - cargo test: all passing
+
+---
+
+## Session: 2026-02-20 – Step 1: CI Lockdown
+
+### Summary
+Locked down the CI pipeline with proper flags, dependency auditing, toolchain
+pinning, and cleanup of legacy workflow duplication.
+
+### Deliverables
+- [x] Deleted `.github/workflows/rust.yml` (legacy duplicate of ci.yml)
+- [x] Added `--all-features` to clippy and test steps in `ci.yml`
+- [x] Added `cargo audit` job for dependency vulnerability scanning
+- [x] Pinned Rust 1.93.1 via `rust-toolchain.toml` (deterministic local + CI builds)
+- [x] Set branch protection on `main` (via `gh api`)
+- [x] Verify: PR from `work` → `main` triggers full pipeline (PR #6 — 5/5 green)
+- [x] Fix ShellCheck: removed unused `BOLD` var (SC2034), added source directive (SC1091)
+
+### Build Status
+- cargo fmt: clean
+- cargo clippy --all-targets --all-features -- -D warnings: clean
+- cargo test: 68 tests passing

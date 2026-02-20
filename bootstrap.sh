@@ -7,9 +7,9 @@ set -euo pipefail
 # ── colours ─────────────────────────────────────────────────────
 if [ -t 2 ]; then
     RED='\033[0;31m' GREEN='\033[0;32m' YELLOW='\033[0;33m'
-    CYAN='\033[0;36m' PURPLE='\033[1;35m' BOLD='\033[1m' RESET='\033[0m'
+    CYAN='\033[0;36m' PURPLE='\033[1;35m' RESET='\033[0m'
 else
-    RED='' GREEN='' YELLOW='' CYAN='' PURPLE='' BOLD='' RESET=''
+    RED='' GREEN='' YELLOW='' CYAN='' PURPLE='' RESET=''
 fi
 
 info()  { echo -e "${GREEN}[info]${RESET}  $*" >&2; }
@@ -91,6 +91,7 @@ if ! command -v cargo &>/dev/null; then
 
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
     export PATH="$HOME/.cargo/bin:$PATH"
+    # shellcheck source=/dev/null
     source "$HOME/.cargo/env" 2>/dev/null || true
 
     if ! command -v cargo &>/dev/null; then die "Failed to install Rust."; fi
