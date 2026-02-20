@@ -34,8 +34,8 @@ fn install_gh(ctx: &mut PhaseContext) -> Result<()> {
     }
 
     match ctx.platform.pkg_backend {
-        PkgBackend::Pacman => {
-            // On Arch/Manjaro gh is `github-cli` in community
+        PkgBackend::Pacman | PkgBackend::Dnf => {
+            // On Arch/Manjaro/Fedora, gh is available in standard repos
             package_manager::ensure_packages(ctx.platform.driver, &["gh"], ctx.options.dry_run)?;
         }
         PkgBackend::Apt => {

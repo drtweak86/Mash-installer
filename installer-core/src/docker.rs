@@ -24,7 +24,9 @@ pub fn install_phase(ctx: &mut PhaseContext) -> Result<()> {
 
     let already = match backend {
         PkgBackend::Apt => package_manager::is_installed(ctx.platform.driver, "docker-ce"),
-        PkgBackend::Pacman => package_manager::is_installed(ctx.platform.driver, "docker"),
+        PkgBackend::Pacman | PkgBackend::Dnf => {
+            package_manager::is_installed(ctx.platform.driver, "docker")
+        }
     };
 
     if already {
@@ -35,8 +37,8 @@ pub fn install_phase(ctx: &mut PhaseContext) -> Result<()> {
                 apt_repo::ensure_repo(ctx, RepoKind::Docker)?;
                 install_docker_apt(ctx)?;
             }
-            PkgBackend::Pacman => {
-                install_docker_pacman(ctx)?;
+            PkgBackend::Pacman | PkgBackend::Dnf => {
+                install_docker_generic(ctx)?;
             }
         }
     }
@@ -69,8 +71,8 @@ fn install_docker_apt(ctx: &mut PhaseContext) -> Result<()> {
 
 // ── Pacman path ─────────────────────────────────────────────────
 
-fn install_docker_pacman(ctx: &mut PhaseContext) -> Result<()> {
-    // On Arch/Manjaro, Docker is in the community repo
+fn install_docker_generic(ctx: &mut PhaseContext) -> Result<()> {
+    // On Arch/Manjaro/Fedora, Docker is available in standard repos
     let pkgs = ["docker", "docker-buildx", "docker-compose"];
     package_manager::ensure_packages(ctx.platform.driver, &pkgs, ctx.options.dry_run)
 }

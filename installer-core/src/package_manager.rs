@@ -15,14 +15,17 @@ pub trait PackageInstaller {
 
 struct AptInstaller;
 struct PacmanInstaller;
+struct DnfInstaller;
 
 static APT_INSTALLER: AptInstaller = AptInstaller;
 static PACMAN_INSTALLER: PacmanInstaller = PacmanInstaller;
+static DNF_INSTALLER: DnfInstaller = DnfInstaller;
 
 fn installer_for(driver: &dyn DistroDriver) -> &'static dyn PackageInstaller {
     match driver.pkg_backend() {
         PkgBackend::Apt => &APT_INSTALLER,
         PkgBackend::Pacman => &PACMAN_INSTALLER,
+        PkgBackend::Dnf => &DNF_INSTALLER,
     }
 }
 
@@ -207,5 +210,89 @@ fn pacman_ensure(pkgs: &[&str], dry_run: bool) -> Result<()> {
     cmd::run(&mut cmd)
         .context("running pacman -S")
         .map_err(|err| anyhow!("pacman -S failed for {}: {err}", pkgs.join(" ")))?;
+    Ok(())
+}
+
+// ── DNF installer (Fedora, RHEL, CentOS, Rocky, AlmaLinux) ──
+
+impl PackageInstaller for DnfInstaller {
+    fn is_installed(&self, pkg: &str) -> bool {
+        dnf_is_installed(pkg)
+    }
+
+    fn update(&self, dry_run: bool) -> Result<()> {
+        dnf_update(dry_run)
+    }
+
+    fn ensure_packages(&self, pkgs: &[&str], dry_run: bool) -> Result<()> {
+        dnf_ensure(pkgs, dry_run)
+    }
+
+    fn try_optional(&self, pkg: &str, dry_run: bool) {
+        if self.is_installed(pkg) {
+            return;
+        }
+        if dry_run {
+            tracing::info!("[dry-run] would attempt optional: {pkg}");
+            return;
+        }
+        let mut cmd = Command::new("sudo");
+        cmd.args(["dnf", "install", "-y", pkg])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null());
+        match cmd::run(&mut cmd) {
+            Ok(_) => tracing::info!("Installed optional package: {pkg}"),
+            Err(_) => tracing::warn!("Optional package '{pkg}' not available; skipping"),
+        }
+    }
+}
+
+fn dnf_is_installed(pkg: &str) -> bool {
+    let mut cmd = Command::new("rpm");
+    cmd.args(["-q", pkg])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null());
+    cmd::run(&mut cmd).map(|_| true).unwrap_or(false)
+}
+
+fn dnf_update(dry_run: bool) -> Result<()> {
+    if dry_run {
+        tracing::info!("[dry-run] dnf check-update");
+        return Ok(());
+    }
+    let mut cmd = Command::new("sudo");
+    cmd.args(["dnf", "check-update", "-q"]);
+    // dnf check-update returns 100 if updates are available, 0 if none, error otherwise
+    let _ = cmd::run(&mut cmd);
+    Ok(())
+}
+
+fn dnf_ensure(pkgs: &[&str], dry_run: bool) -> Result<()> {
+    let missing: Vec<&str> = pkgs
+        .iter()
+        .copied()
+        .filter(|p| !dnf_is_installed(p))
+        .collect();
+    if missing.is_empty() {
+        tracing::info!("All packages already installed");
+        return Ok(());
+    }
+    tracing::info!(
+        "Installing {} packages via dnf: {}",
+        missing.len(),
+        missing.join(", ")
+    );
+    if dry_run {
+        tracing::info!("[dry-run] would install: {}", missing.join(" "));
+        return Ok(());
+    }
+    let mut cmd = Command::new("sudo");
+    cmd.args(["dnf", "install", "-y"]);
+    for p in &missing {
+        cmd.arg(p);
+    }
+    cmd::run(&mut cmd)
+        .context("running dnf install")
+        .map_err(|err| anyhow!("dnf install failed for {}: {err}", missing.join(" ")))?;
     Ok(())
 }

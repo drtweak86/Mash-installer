@@ -5,19 +5,19 @@ pub struct FedoraDriver;
 
 impl DistroDriver for FedoraDriver {
     fn name(&self) -> &'static str {
-        "Fedora"
+        "Fedora/RHEL"
     }
 
     fn description(&self) -> &'static str {
-        "Fedora / RPM-based systems (dnf)"
+        "Fedora/RHEL/CentOS/Rocky/AlmaLinux with dnf backend"
     }
 
     fn matches(&self, info: &PlatformInfo) -> bool {
-        info.distro == "fedora"
+        info.distro_family == "fedora"
     }
 
     fn pkg_backend(&self) -> PkgBackend {
-        PkgBackend::Pacman
+        PkgBackend::Dnf
     }
 
     fn translate_package(&self, canonical: &str) -> Option<String> {
@@ -44,8 +44,8 @@ impl DistroDriver for FedoraDriver {
             Some(name) => name,
             None => return false,
         };
-        let mut cmd = Command::new("pacman");
-        cmd.args(["-Q", native.as_str()]);
+        let mut cmd = Command::new("rpm");
+        cmd.args(["-q", native.as_str()]);
         cmd::run(&mut cmd).is_ok()
     }
 }

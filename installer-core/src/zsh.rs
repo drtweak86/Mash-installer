@@ -107,8 +107,8 @@ fn try_p10k_pkg(ctx: &mut PhaseContext) -> Result<bool> {
                 }
             }
         }
-        PkgBackend::Apt => {
-            // Not in standard Ubuntu/Debian repos
+        PkgBackend::Apt | PkgBackend::Dnf => {
+            // Not in standard Ubuntu/Debian/Fedora repos
             Ok(false)
         }
     }
