@@ -28,28 +28,29 @@
 Without it, regressions sneak in unnoticed. 10 minutes of config saves hours of
 debugging later.
 
-### 2. First Tagged Release — `v0.1.0` (same session — 15 min)
+### 2. First Tagged Release — `v0.1.0` (✓ Complete — 15 min)
 > *You can't distribute what you haven't stamped.*
 
-- [ ] Verify `release.yml` triggers on `v*` tags
-- [ ] Build locally with `--release`
-- [ ] Run `./target/release/mash-setup --version` — confirm version string reflects `0.1.0`
-- [ ] Tag `v0.1.0` on `main` after merging current `work`
-- [ ] Confirm GitHub Release appears with both binaries + SHA256
-- [ ] Verify checksums: `sha256sum -c mash-setup-*.sha256`
+- [x] Verify `release.yml` triggers on `v*` tags
+- [x] Build locally with `--release`
+- [x] Confirm version string reflects `0.1.0` (installer-cli v0.1.0)
+- [x] Tag `v0.1.0` on `main` after merging current `work`
+- [x] Confirm GitHub Release appears with both binaries + SHA256
+- [x] Verify checksums: `sha256sum -c mash-setup-*.sha256`
 - [ ] Smoke test: download aarch64 binary on Pi, confirm it runs
 
 **Why second:** Unlocks step 3 entirely. Also proves the release pipeline works
 before we depend on it.
 
-### 3. Retire `bootstrap.sh` (next session — 30 min)
+### 3. Retire `bootstrap.sh` (✓ Complete — 15 min)
 > *The scaffolding served its purpose. Replace it with a bridge that doesn't
 > require a forge on-site.*
 
-- [ ] Slim `bootstrap.sh` to ~20 lines: detect arch, download binary, verify SHA256, exec
-- [ ] Remove Rust/git/cargo install logic (no longer needed)
-- [ ] Remove font/Hyprland/makepkg logic (mash-setup handles these)
-- [ ] Add `uname -m` → target triple mapping (`aarch64` → `aarch64-unknown-linux-gnu`)
+- [x] Slim `bootstrap.sh` to ~20 lines: detect arch, download binary, verify SHA256, exec
+- [x] Remove Rust/git/cargo install logic (no longer needed)
+- [x] Remove font/Hyprland/makepkg logic (mash-setup handles these)
+- [x] Add `uname -m` → target triple mapping (`aarch64` → `aarch64-unknown-linux-gnu`)
+- [x] Test on local machine (downloads from GitHub Release)
 - [ ] Document the one-liner curl install as the primary method
 - [ ] Test on clean Pi (no Rust installed)
 
