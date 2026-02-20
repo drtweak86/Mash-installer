@@ -249,7 +249,8 @@ mod tests {
             vec![
                 "System packages",
                 "Rust toolchain + cargo tools",
-                "Git, GitHub CLI, SSH"
+                "Git, GitHub CLI, SSH",
+                "Pi 4B HDD Tuning",
             ]
         );
     }

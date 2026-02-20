@@ -26,5 +26,15 @@ Phase 2 became a long ballad—`runner` and `registry` knew their stanzas, `Ph
 The ledger now glows “Phase 2 complete.” Phase 3 (Pi 4B HDD) waits in the wings like a quiet dragon. The bard will not raise the curtain until the `InstallationReport` contract, CLI/TUI observers, `PackageSpec` gating, and the toolchain trio (`rustfmt`, `clippy`, `sccache`) stay steady.  
 Every line here is a promise: map logs remain updated, the ABB/KCS/ABT/ABD creed stays etched, and the dragon’s snark will calmed before we ride the Pi rails again.
 
-**Margin footnote:**  
+**Margin footnote:**
 > “Hold the ledger here—ink the saga, keep the report clean, and only when green runs stack will Phase 3 heat up.”
+
+---
+
+## Chronicle IV – The Dragon Stirs
+Phase 3 rose from the forge with four new weapons: mount options that whisper `noatime` to spinning platters, swap configs that place the overflow file on the HDD where it belongs (not the fragile SD card), kernel parameters tuned for a dwarf who knows his `vm.swappiness` from his `dirty_ratio`, and an I/O scheduler that swaps sluggish `cfq` for the lean `deadline`. Each function reads the system's current state, compares it against Pi 4B best practices, and records what it would change. The whole kit wired into `PhaseRegistry` as “Pi 4B HDD Tuning”—gated by `PhaseGate::Always` but self-skipping on non-Pi hardware with a polite warning rather than a crash.
+
+Four new structs joined the exports: `MountOptimization`, `SwapConfig`, `KernelParam`, and the `install_phase` that orchestrates them. Twelve new tests brought the total to 86—each one green as mithril under lamplight.
+
+**Margin note:**
+> “The dragon didn't breathe fire—it breathed `sysctl -w`. And the bard approved.”

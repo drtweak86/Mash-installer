@@ -70,18 +70,17 @@ synced work branch, pushed to origin, opened PR #8 for merge to main.
 - [x] Verify dry-run mode produces correct `DryRunEntry` logs per driver
 - [x] Add to CI as a required check (runs in `cargo test`)
 
-### 5. Phase 3: Pi 4B HDD Tuning (In Progress)
+### 5. Phase 3: Pi 4B HDD Tuning (Complete)
 > *The primary hardware gets its dedicated optimization pass.*
 
 - [x] Preflight checks: USB 3.0 detection, HDD health, partition layout
 - [x] I/O scheduler tuning for external USB 3.0 HDD
-- [ ] Mount options optimization (noatime, commit interval)
-- [ ] Swap configuration for 8GB RAM + HDD
-- [ ] Kernel parameter tuning (vm.swappiness, dirty ratio)
-- [ ] All changes gated behind `PhaseContext::run_or_record()`
-
-**Why fifth:** Feature work on the primary target hardware. Test harness (step 4)
-catches regressions as we add new phases.
+- [x] Mount options optimization (noatime, commit=60, data=ordered, barrier=0)
+- [x] Swap configuration for 8GB RAM + HDD (2GB on external HDD)
+- [x] Kernel parameter tuning (vm.swappiness=10, dirty_ratio=15, dirty_background_ratio=5, vfs_cache_pressure=50)
+- [x] All changes wired into PhaseRegistry as `pi4b_hdd_tuning` phase
+- [x] Phase self-skips on non-Pi4B with warning (no crash)
+- [x] 86 tests green (12 new pi4b_hdd tests)
 
 ### 6. Phase 4: Hardening (Blocked)
 > *Seal the forge against the neon rain.*

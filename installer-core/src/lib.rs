@@ -56,9 +56,10 @@ pub use options::{InstallOptions, ProfileLevel};
 pub use orchestrator::run_with_driver;
 pub use package_spec::{PackageIntent, PackageSpec};
 pub use pi4b_hdd::{
-    analyze_partition_layout, check_hdd_health, detect_usb3_controllers, get_io_scheduler,
-    is_raspberry_pi_4b, optimize_io_scheduler, optimize_pi4b_hdd, pi4b_hdd_preflight_checks,
-    set_io_scheduler, HddHealth, IoScheduler, PartitionLayout, Usb3Controller,
+    analyze_partition_layout, check_hdd_health, configure_swap, detect_usb3_controllers,
+    get_io_scheduler, is_raspberry_pi_4b, optimize_io_scheduler, optimize_mount_options,
+    optimize_pi4b_hdd, pi4b_hdd_preflight_checks, set_io_scheduler, tune_kernel_params, HddHealth,
+    IoScheduler, KernelParam, MountOptimization, PartitionLayout, SwapConfig, Usb3Controller,
 };
 pub use platform::{detect as detect_platform, PlatformInfo};
 pub use registry::PhaseRegistry;
