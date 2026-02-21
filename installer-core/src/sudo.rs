@@ -1,5 +1,4 @@
 use std::{
-    io::{self, Write},
     process::Command,
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -25,6 +24,7 @@ impl Drop for SudoKeepalive {
 }
 
 /// Check if sudo requires a password and prompt for it if needed
+#[allow(dead_code)]
 pub fn ensure_sudo_access() -> bool {
     let mut test_cmd = Command::new("sudo");
     test_cmd.args(["-v"]);
@@ -34,11 +34,11 @@ pub fn ensure_sudo_access() -> bool {
     match cmd::run(&mut test_cmd) {
         Ok(_) => {
             debug!("sudo access verified successfully");
-            return true;
+            true
         }
         Err(e) => {
             error!("sudo access check failed: {}", e);
-            return false;
+            false
         }
     }
 }
