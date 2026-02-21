@@ -13,16 +13,18 @@
 ## ✅ SHAFT E: The Station Interface <COMPLETED> 📟
 **Result**: Hybrid Ratatui/Crossterm engine. KISS error handling. Ancient Manual inked.
 
-## 🏗️ SHAFT G: The Foundation <ACTIVE> ⛏️
-**Status**: Excavation Commencing.
-**Objective**: Ensure distro equality (Arch/Debian/Fedora), refactor docs, and automate release rituals.
+## ✅ SHAFT G: The Foundation <COMPLETED> 🏗️
+**Result**: Distro equality established. Documentation consolidated. Release workflow verified.
 
-### 🛠️ Execution Plan (Shaft G)
-1.  **Distro Equality Audit**: Verify phase parity between Arch, Debian, and Fedora.
-2.  **Release Automata**: Add `.deb`, `.rpm`, and `PKGBUILD` generation to the GitHub Release workflow.
-3.  **Branch Ritual**: Prune all branches except `main` and `forge`.
-4.  **Refactor**: Consolidate duplicated documentation in `docs/legacy`.
-5.  **Hardening**: Final clippy/fmt pass across the entire workspace.
+## 🚀 SHAFT H: The Expansion <ACTIVE> ⛏️
+**Status**: Excavation Commencing.
+**Objective**: AI Agent installation, filesystem snapshots, and Pi 5 / SBC expansion.
+
+### 🛠️ Execution Plan (Shaft H)
+1.  **AI Spirits**: Add a new phase to install Vibe, Gemini, and Claude AI agents.
+2.  **Snapshot Magic**: Implement Btrfs/Ext4 detection and offer a pre-install snapshot via Timeshift or Snapper.
+3.  **New Horizons**: Update `platform.rs` to detect Pi 5 and mark it as experimental.
+4.  **Python to Rust**: Evaluate wallhaven downloader for Rustification.
 
 ---
 **Last Updated**: 2026-02-22  

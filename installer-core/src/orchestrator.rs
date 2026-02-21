@@ -138,36 +138,36 @@ pub fn run_with_driver(
         driver.description()
     );
 
-    let is_pi_4b = plat
-        .pi_model
-        .as_ref()
-        .is_some_and(|model| model.contains("Raspberry Pi 4") || model.contains("Pi 4"));
+    let pi_model = plat.pi_model.as_ref().map(|m| m.as_str()).unwrap_or("");
+    let is_pi_4b = pi_model.contains("Raspberry Pi 4") || pi_model.contains("Pi 4");
+    let is_pi_5 = pi_model.contains("Raspberry Pi 5") || pi_model.contains("Pi 5");
 
     if let Some(ref model) = plat.pi_model {
-        info!("Raspberry Pi model: {}", model);
+        info!("STATION_01: HARDWARE_SIGIL IDENTIFIED: {}", model);
         if is_pi_4b {
-            info!("✓ Running on Raspberry Pi 4 - optimal performance!");
+            info!("✓ Optimal performance profile active: Raspberry Pi 4");
+        } else if is_pi_5 {
+            let warning = "⚠ EXPERIMENTAL: Raspberry Pi 5 detected. \
+                           Tuning profiles may be suboptimal. Proceed with caution.";
+            observer.on_event(PhaseEvent::Warning { message: warning.to_string() });
+            info!("{}", warning);
         }
     }
 
-    if !is_pi_4b {
+    if !is_pi_4b && !is_pi_5 {
         let detected = plat.pi_model.as_deref().unwrap_or("Non-Pi system");
         let warning = format!(
-            "This installer is OPTIMIZED FOR RASPBERRY PI 4B 8GB ONLY.\n\
-             Detected: {detected}\n\
-             Proceeding at your own risk: no performance guarantees, \
-             no bug reports accepted for non-Pi4B systems."
+            "STATION_01: CAUTION: Hardware {} is outside optimal parameters.\n\
+             Proceeding at your own risk: no performance guarantees.",
+            detected
         );
         observer.on_event(PhaseEvent::Warning { message: warning });
 
         if opts.interactive {
-            if !observer.confirm("Do you understand the risks and want to proceed anyway? [y/N]") {
-                info!("Installation cancelled by user on non-Pi4B system");
+            if !observer.confirm("STATION_01: PROCEED WITH SUBOPTIMAL HARDWARE? [y/N]") {
+                info!("Installation cancelled by user on suboptimal hardware");
                 return Err(warn_non_pi_4b(&opts, driver));
             }
-            info!("User acknowledged risks and chose to proceed on non-Pi4B system");
-        } else {
-            info!("Non-interactive mode; proceeding despite non-Pi4B platform");
         }
     }
 

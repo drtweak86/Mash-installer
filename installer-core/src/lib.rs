@@ -1,3 +1,4 @@
+mod ai_agents;
 mod apt_repo;
 mod argon;
 mod backend;
@@ -33,6 +34,7 @@ mod rollback;
 mod runner;
 mod rust;
 mod signal;
+mod snapshots;
 mod software_tiers;
 mod staging;
 mod sudo;
