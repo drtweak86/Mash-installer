@@ -3,49 +3,50 @@
 > *“Foundations before features, gates before gold!”* — Bard 🍺
 
 ## ✅ Completed Shafts (The Mithril is Piled High!)
-- **Block 1**: Smashed the panics in the production paths! `logging.rs` and `zsh.rs` now sing without crashing. 🔨
-- **Block 2**: Purified the core of direct I/O! Orchestrator, dry_run, doctor, and config now obey the central gate. 🛡️
-- **Block 3**: Surfaced the swallowed errors as warnings! Docker, rust, zsh, and github are now loud and clear. 🐚
-- **Block 4**: Tightened the public API! Removed `RealSystem` from the exports. Clean as a whistle! 🧼
-- **Block 5**: Confirmed the green build! `fmt` + `clippy` + `test` = A dwarf’s dream! 🟢
+- **Block 1**: Smashed the panics in the production paths! 🔨
+- **Block 2**: Purified the core of direct I/O! 🛡️
+- **Block 3**: Surfaced swallowed errors as warnings! 🐚
+- **Block 4**: Tightened the public API! 🧼
+- **Block 5**: Confirmed the green build! 🟢
 
-## 🔮 Shaft A: The Ratatui Forge (Session: 2026-02-20)
-`mash-setup --tui` now summons a Ratatui-driven cockpit! The old `indicatif` bars have melted away. Every `PhaseEvent` fuels the loop, and the log tail stays visible inside the alternate screen. A new neon telemetry pane (emoji status, signal %, fake network chatter, log counts) shares the row beside the phase list so the cockpit truly feels like a cyberpunk console! 🔮✨
+## 🔮 Shaft A: The Ratatui Forge <COMPLETED> ✅
+`mash-setup --tui` now summons a Ratatui-driven cockpit! The neon cyberpunk forge is operational.
 
 ### 📦 Deliverables
-- [x] Melted the `indicatif` progress ensemble.
-- [x] Fed phase events into the `TuiPhaseObserver`.
-- [x] Drove module/profile selection through the `run_module_profile_menu`.
-- [x] Surfaced error context/advice in the neon terminal epilog.
-- [x] Added the `install.sh` helper for the apprentices! 🥧
+- [x] Melted the `indicatif` bars.
+- [x] Fed live events into the `TuiPhaseObserver`.
+- [x] Drove module/profile selection into the TUI.
+- [x] Added `install.sh` for the apprentices. 🥧
 
-## 🐉 Shaft B: Retro Theme & Wallpaper Rituals (ACTIVE)
+## 🐉 Shaft B: Retro Theme & Wallpaper Rituals <NOT_COMPLETED> ⏳
 **Status**: Integration Pending... the dragon is snoring! 💤
-**Plan**: `docs/mining-projects/shaftb.md`
 
 ### 📜 Summary
-Integrate the BBC/UNIX retro-futuristic theme (i3-gaps + Kitty) and the wallpaper downloader into the MASH Installer main flow! Reorganize the TUI flow for a logical progression: Detection → Profile → Options → Themes → Software → Install. The walls will paint themselves when the door first opens! 🐉🎨
+Integrate BBC/UNIX retro-futuristic theme (i3-gaps + Kitty) and wallpaper downloader. Reorganize TUI flow: Detection → Profile → Options → Themes → Software → Install. 🐉🎨
 
-## 🏗️ SHAFT C: The Sudo Sigil (CURRENT)
-**Status**: Infrastructure Ready! 🛡️
+## 🏗️ The bard beings his quest in a new tunnel below is his 10 point plan to safely excavate the ruin he needs from the rich vein...
+**SHAFT C: The 1984 Retro-Station Aesthetic** <NOT_COMPLETED> ⏳
 
-### 📜 Summary
-The sudo password ritual is being integrated into the Ratatui cockpit! No more crashing in the neon rain when a password is needed. The `sudo_password` module is ready to store the runes securely in memory, and the TUI is prepared to show the hidden password prompt. 🔐✨
-
-### 📦 Deliverables
-- [x] `sudo_password` module implemented for thread-safe rune storage.
-- [x] `SudoKeepalive` re-piped to avoid terminal raw mode clashes.
-- [x] TUI `Password` screen and `PasswordPrompt` message bus ready.
-- [ ] Final wiring in `orchestrator.rs` and `sudo.rs`.
+### 🛠️ 10 Point Plan (Shaft C)
+1. **Foundation**: Lock the state machine for visual stability. 🛡️
+2. **Palette**: Switch neon cyans to Green-on-Black or Amber phosphor. 📟
+3. **Typography**: Enforce `Terminus` for pixel-perfect logic. 🔠
+4. **Art**: ASCII banner for the BBC Micro ritual. 🦉
+5. **Layout**: Focused single-pane UNIX terminal flow. 🖥️
+6. **Interaction**: Menu selection via command prompts (> _). 🖱️
+7. **Sound**: Optional 8-bit chime on completion. 🎶
+8. **Animation**: Blocky Teletext-style page transitions. 📊
+9. **Errors**: Format as classic "FATAL ERROR" messages. ⚠️
+10. **Manual**: Document the 1984 style guide in the ledger. 📜
 
 ---
 
 ## ⚒️ Guiding Principles of the Forge
-- **ABB**: Always Be Backing up! (Git commits are your save points!) 💾
-- **ABT**: Always Be Testing! (Green builds only, or no ale for you!) 🍺
-- **ABD**: Always Be Documenting! (Update the scrolls, or the apprentices will be lost!) 📜
-- **KCS**: Keep Commits Small! (Atomic changes, like a well-struck chisel!) 🔨
+- **ABB**: Always Be Backing up! 💾
+- **ABT**: Always Be Testing! 🍺
+- **ABD**: Always Be Documenting! 📜
+- **KCS**: Keep Commits Small! 🔨
 
 ---
-**Last Updated**: 2026-02-21 (Day of the Glowup)  
-**Owner**: Bard, Drunken Dwarf Runesmith 🍺
+**Last Updated**: 2026-02-21 (Day of the 1984 Shift)  
+**Owner**: Bard, Drunken Dwarf Runesmith 🍺⚒️
