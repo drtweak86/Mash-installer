@@ -43,6 +43,18 @@ pub enum TuiMessage {
         prompt: String,
         reply: Sender<bool>,
     },
+<<<<<<< HEAD
+=======
+    #[allow(dead_code)]
+>>>>>>> ddc3885dfd9b45043e46295832538432e7c593a8
+    PasswordPrompt {
+        prompt: String,
+        reply: Sender<String>,
+    },
+<<<<<<< HEAD
+=======
+
+>>>>>>> ddc3885dfd9b45043e46295832538432e7c593a8
     Done(Box<InstallationReport>),
     InstallError(String),
 }
@@ -59,6 +71,11 @@ pub enum Screen {
     SoftwareMode,
     SoftwareSelect,
     Confirm,
+<<<<<<< HEAD
+=======
+    #[allow(dead_code)]
+>>>>>>> ddc3885dfd9b45043e46295832538432e7c593a8
+    Password,
     Installing,
     Done,
     Error,
@@ -132,6 +149,14 @@ pub struct ConfirmState {
     pub selected: bool, // true = Yes, false = No
 }
 
+// ── Password prompt state ────────────────────────────────────────────────────
+
+pub struct PasswordState {
+    pub prompt: String,
+    pub reply: Sender<String>,
+    pub password: String,
+}
+
 // ── Module selection (mirrors menu::ModuleSelection) ─────────────────────────
 
 #[derive(Debug, Clone, Default)]
@@ -186,6 +211,8 @@ pub struct TuiApp {
     pub bbs_msg: String,
     // Confirm prompt (mid-install)
     pub confirm_state: Option<ConfirmState>,
+    // Password prompt (mid-install)
+    pub password_state: Option<PasswordState>,
     // Final report
     pub report: Option<Box<InstallationReport>>,
     pub error_msg: Option<String>,
@@ -222,6 +249,7 @@ impl TuiApp {
             sys_stats: SysStats::default(),
             bbs_msg: "⚡ Initialising the forge...".to_string(),
             confirm_state: None,
+            password_state: None,
             report: None,
             error_msg: None,
             tx,
@@ -332,6 +360,13 @@ impl TuiApp {
             Screen::ProfileSelect => self.handle_list_key(code, 3),
             Screen::ModuleSelect => self.handle_module_key(code),
             Screen::ThemeSelect => self.handle_list_key(code, 3),
+            Screen::Password => {
+                // Password input is handled below in the password_state check
+            }
+<<<<<<< HEAD
+=======
+
+>>>>>>> ddc3885dfd9b45043e46295832538432e7c593a8
             Screen::SoftwareMode => self.handle_list_key(code, 2),
             Screen::SoftwareSelect => self.handle_software_key(code),
             Screen::Confirm => self.handle_confirm_key(code),
@@ -444,6 +479,31 @@ impl TuiApp {
                 }
             }
             _ => {}
+        }
+
+        // Mid-install password prompt
+        if let Some(ref mut s) = self.password_state {
+            match code {
+                KeyCode::Char(c) => {
+                    s.password.push(c);
+                }
+                KeyCode::Backspace => {
+                    s.password.pop();
+                }
+                KeyCode::Enter => {
+                    if let Some(s) = self.password_state.take() {
+                        let _ = s.reply.send(s.password);
+                        self.screen = Screen::Installing;
+                    }
+                }
+                KeyCode::Esc => {
+                    if let Some(s) = self.password_state.take() {
+                        let _ = s.reply.send(String::new());
+                        self.screen = Screen::Installing;
+                    }
+                }
+                _ => {}
+            }
         }
     }
 
@@ -667,6 +727,18 @@ impl TuiApp {
                 });
                 self.screen = Screen::Confirm;
             }
+            TuiMessage::PasswordPrompt { prompt, reply } => {
+                self.password_state = Some(PasswordState {
+                    prompt,
+                    reply,
+                    password: String::new(),
+                });
+                self.screen = Screen::Password;
+            }
+<<<<<<< HEAD
+=======
+
+>>>>>>> ddc3885dfd9b45043e46295832538432e7c593a8
             TuiMessage::Done(report) => {
                 self.report = Some(report);
                 if self.error_msg.is_none() {
