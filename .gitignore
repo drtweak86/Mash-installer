@@ -1,5 +1,7 @@
 # Rust build artifacts
-/target/
+target/
+debug/
+release/
 
 # Common editor/IDE temporary files
 *.swp
@@ -15,9 +17,18 @@
 
 # Claude Code
 .claude/
+.gemini/
 
-# Installer logs
-.logs/
-.bard-persona.md
-.bard-persona.md
+# Node/NPM artifacts
 node_modules/
+package-lock.json
+
+# Installer specifics
+.logs/
+mash-installer.lock
+{}
+
+# Sensitive or temporary files
+.env
+*.key
+*.pem
