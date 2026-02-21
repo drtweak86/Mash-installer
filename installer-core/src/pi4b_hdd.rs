@@ -99,7 +99,10 @@ pub fn detect_usb3_controllers(system: &dyn SystemOps) -> Result<Vec<Usb3Control
     }
 
     let mut cmd = Command::new("lsusb");
-    let output = system.command_output(&mut cmd)?;
+    let output = match system.command_output(&mut cmd) {
+        Ok(o) => o,
+        Err(_) => return Ok(controllers), // lsusb not installed or failed
+    };
     let lsusb_output = String::from_utf8_lossy(&output.stdout);
 
     if lsusb_output.contains("xHCI") || lsusb_output.contains("USB 3") {
