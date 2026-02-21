@@ -1,4 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
+use std::fs;
+use std::os::unix::fs::PermissionsExt;
 
 use anyhow::{Context, Result};
 
@@ -438,10 +440,10 @@ fn install_retro_theme_plan(ctx: &mut PhaseContext, with_wallpapers: bool) -> Re
 fn install_wallpaper_downloader(ctx: &mut PhaseContext, home_dir: &std::path::Path) -> Result<()> {
     let script_path = home_dir.join(".local/bin/wallpaper_downloader_final.py");
     let pip_cmd = ["-m", "pip", "install", "--user", "requests"];
-    let download_cmd = [
-        script_path.to_string_lossy().to_string(),
-        "--first-boot".to_string(),
-    ];
+    let first_boot_script = home_dir.join(".local/bin/mash-retro-wallpapers-first-boot.sh");
+    let systemd_dir = home_dir.join(".config/systemd/user");
+    let service_path = systemd_dir.join("mash-retro-wallpapers.service");
+    let marker_path = home_dir.join(".config/mash-installer/retro-wallpapers.done");
 
     if ctx.options.dry_run {
         ctx.record_dry_run(
@@ -451,8 +453,8 @@ fn install_wallpaper_downloader(ctx: &mut PhaseContext, home_dir: &std::path::Pa
         );
         ctx.record_dry_run(
             "software_tiers",
-            "Would download retro wallpapers",
-            Some(download_cmd.join(" ")),
+            "Would configure first-boot wallpaper download",
+            Some(first_boot_script.display().to_string()),
         );
         return Ok(());
     }
@@ -462,11 +464,64 @@ fn install_wallpaper_downloader(ctx: &mut PhaseContext, home_dir: &std::path::Pa
         .execute()
         .context("installing Python requests dependency")?;
 
-    cmd::Command::new("python3")
-        .args(download_cmd)
-        .execute()
-        .context("running wallpaper downloader")?;
+    if let Some(parent) = first_boot_script.parent() {
+        fs::create_dir_all(parent).context("creating first-boot script directory")?;
+    }
+    if let Some(parent) = service_path.parent() {
+        fs::create_dir_all(parent).context("creating systemd user directory")?;
+    }
 
-    ctx.record_action("Downloaded retro wallpaper pack");
+    let script_body = format!(
+        r#"#!/bin/sh
+set -e
+MARKER="{marker}"
+if [ -f "$MARKER" ]; then
+  exit 0
+fi
+python3 "{downloader}" --first-boot
+mkdir -p "$(dirname "$MARKER")"
+touch "$MARKER"
+"#,
+        marker = marker_path.display(),
+        downloader = script_path.display()
+    );
+    fs::write(&first_boot_script, script_body).context("writing first-boot script")?;
+    let mut perms = fs::metadata(&first_boot_script)
+        .context("reading first-boot script permissions")?
+        .permissions();
+    perms.set_mode(0o755);
+    fs::set_permissions(&first_boot_script, perms)
+        .context("setting first-boot script permissions")?;
+
+    let service_body = format!(
+        r#"[Unit]
+Description=MASH Retro Wallpapers (first boot)
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart={script}
+
+[Install]
+WantedBy=default.target
+"#,
+        script = first_boot_script.display()
+    );
+    fs::write(&service_path, service_body).context("writing systemd user service")?;
+
+    if crate::theme::command_exists("systemctl") {
+        if let Err(err) = cmd::Command::new("systemctl")
+            .args(["--user", "enable", "--now", "mash-retro-wallpapers.service"])
+            .execute()
+        {
+            ctx.record_warning(format!(
+                "Failed to enable first-boot wallpaper service: {err}"
+            ));
+        }
+    } else {
+        ctx.record_warning("systemctl not found; first-boot wallpaper service not enabled");
+    }
+
+    ctx.record_action("Configured first-boot retro wallpaper download");
     Ok(())
 }

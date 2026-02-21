@@ -13,14 +13,17 @@ use crossterm::terminal::{
 };
 use installer_core::{
     DistroDriver, InstallOptions, InstallationReport, PhaseEvent, ProfileLevel, SoftwareTierPlan,
+    ThemePlan,
 };
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 
+use crate::software_catalog::SOFTWARE_CATEGORIES;
 use crate::tui::bbs::spawn_bbs_cycler;
 use crate::tui::observer::RatatuiPhaseObserver;
 use crate::tui::render;
 use crate::tui::sysinfo_poller::spawn_sysinfo_poller;
+use std::collections::BTreeMap;
 
 // ── Message bus ──────────────────────────────────────────────────────────────
 
@@ -50,8 +53,11 @@ pub enum TuiMessage {
 pub enum Screen {
     Welcome,
     DistroSelect,
-    ModuleSelect,
     ProfileSelect,
+    ModuleSelect,
+    ThemeSelect,
+    SoftwareMode,
+    SoftwareSelect,
     Confirm,
     Installing,
     Done,
@@ -158,6 +164,12 @@ pub struct TuiApp {
     pub modules: ModuleState,
     // Profile selection  (0=Minimal, 1=Dev, 2=Full)
     pub profile_idx: usize,
+    // Theme selection
+    pub theme_plan: ThemePlan,
+    // Software tiers
+    pub software_full: bool,
+    pub software_picks: BTreeMap<&'static str, &'static str>,
+    pub software_category_idx: usize,
     // Dry-run flag (passed in from CLI)
     pub dry_run: bool,
     pub continue_on_error: bool,
@@ -196,6 +208,10 @@ impl TuiApp {
             selected_driver_idx: 0,
             modules: ModuleState::default(),
             profile_idx: 1, // Dev by default
+            theme_plan: ThemePlan::None,
+            software_full: true,
+            software_picks: BTreeMap::new(),
+            software_category_idx: 0,
             dry_run: false,
             continue_on_error: false,
             phases: Vec::new(),
@@ -246,8 +262,23 @@ impl TuiApp {
             enable_p10k: self.modules.enable_p10k,
             docker_data_root: self.modules.docker_data_root,
             continue_on_error: self.continue_on_error,
-            software_plan: SoftwareTierPlan::default(),
+            software_plan: self.build_software_plan(),
         }
+    }
+
+    fn build_software_plan(&self) -> SoftwareTierPlan {
+        let picks = if self.software_full {
+            let mut picks = BTreeMap::new();
+            for category in SOFTWARE_CATEGORIES {
+                if let Some(recommended) = category.options.first() {
+                    picks.insert(category.label, recommended.name);
+                }
+            }
+            picks
+        } else {
+            self.software_picks.clone()
+        };
+        SoftwareTierPlan::new(self.software_full, picks, self.theme_plan.clone())
     }
 
     fn spawn_installer(&self, driver: &'static dyn DistroDriver) {
@@ -298,8 +329,11 @@ impl TuiApp {
                 let len = self.drivers.len();
                 self.handle_list_key(code, len);
             }
-            Screen::ModuleSelect => self.handle_module_key(code),
             Screen::ProfileSelect => self.handle_list_key(code, 3),
+            Screen::ModuleSelect => self.handle_module_key(code),
+            Screen::ThemeSelect => self.handle_list_key(code, 3),
+            Screen::SoftwareMode => self.handle_list_key(code, 2),
+            Screen::SoftwareSelect => self.handle_software_key(code),
             Screen::Confirm => self.handle_confirm_key(code),
             Screen::Installing => self.handle_installing_key(code),
             Screen::Done | Screen::Error => match code {
@@ -355,8 +389,8 @@ impl TuiApp {
                 self.toggle_module(self.menu_cursor);
             }
             KeyCode::Enter => {
-                self.screen = Screen::ProfileSelect;
-                self.menu_cursor = self.profile_idx;
+                self.screen = Screen::ThemeSelect;
+                self.menu_cursor = self.theme_menu_index();
             }
             KeyCode::Esc => {
                 self.go_back();
@@ -382,8 +416,8 @@ impl TuiApp {
                     self.start_install();
                 }
                 KeyCode::Esc | KeyCode::Char('n') | KeyCode::Char('N') => {
-                    self.screen = Screen::ProfileSelect;
-                    self.menu_cursor = self.profile_idx;
+                    self.screen = Screen::SoftwareMode;
+                    self.menu_cursor = if self.software_full { 0 } else { 1 };
                 }
                 _ => {}
             }
@@ -429,13 +463,36 @@ impl TuiApp {
         match self.screen {
             Screen::DistroSelect => {
                 self.selected_driver_idx = self.menu_cursor;
-                self.screen = Screen::ModuleSelect;
-                self.menu_cursor = 0;
+                self.screen = Screen::ProfileSelect;
+                self.menu_cursor = self.profile_idx;
             }
             Screen::ProfileSelect => {
                 self.profile_idx = self.menu_cursor;
-                self.screen = Screen::Confirm;
+                self.screen = Screen::ModuleSelect;
                 self.menu_cursor = 0;
+            }
+            Screen::ThemeSelect => {
+                self.theme_plan = match self.menu_cursor {
+                    0 => ThemePlan::RetroOnly,
+                    1 => ThemePlan::RetroWithWallpapers,
+                    _ => ThemePlan::None,
+                };
+                self.screen = Screen::SoftwareMode;
+                self.menu_cursor = if self.software_full { 0 } else { 1 };
+            }
+            Screen::SoftwareMode => {
+                if self.menu_cursor == 0 {
+                    self.software_full = true;
+                    self.software_picks.clear();
+                    self.screen = Screen::Confirm;
+                    self.menu_cursor = 0;
+                } else {
+                    self.software_full = false;
+                    self.software_picks.clear();
+                    self.software_category_idx = 0;
+                    self.menu_cursor = 0;
+                    self.screen = Screen::SoftwareSelect;
+                }
             }
             _ => {}
         }
@@ -444,19 +501,110 @@ impl TuiApp {
     fn go_back(&mut self) {
         match self.screen {
             Screen::DistroSelect => self.screen = Screen::Welcome,
-            Screen::ModuleSelect => {
+            Screen::ProfileSelect => {
                 self.screen = Screen::DistroSelect;
                 self.menu_cursor = self.selected_driver_idx;
             }
-            Screen::ProfileSelect => {
-                self.screen = Screen::ModuleSelect;
-                self.menu_cursor = 0;
-            }
-            Screen::Confirm => {
+            Screen::ModuleSelect => {
                 self.screen = Screen::ProfileSelect;
                 self.menu_cursor = self.profile_idx;
             }
+            Screen::ThemeSelect => {
+                self.screen = Screen::ModuleSelect;
+                self.menu_cursor = 0;
+            }
+            Screen::SoftwareMode => {
+                self.screen = Screen::ThemeSelect;
+                self.menu_cursor = self.theme_menu_index();
+            }
+            Screen::SoftwareSelect => {
+                if self.software_category_idx == 0 {
+                    self.screen = Screen::SoftwareMode;
+                    self.menu_cursor = if self.software_full { 0 } else { 1 };
+                } else {
+                    self.software_category_idx = self.software_category_idx.saturating_sub(1);
+                    self.menu_cursor = self
+                        .selected_option_index(self.software_category_idx)
+                        .unwrap_or(0);
+                }
+            }
+            Screen::Confirm => {
+                self.screen = Screen::SoftwareMode;
+                self.menu_cursor = if self.software_full { 0 } else { 1 };
+            }
             _ => {}
+        }
+    }
+
+    fn handle_software_key(&mut self, code: KeyCode) {
+        let category = match SOFTWARE_CATEGORIES.get(self.software_category_idx) {
+            Some(category) => category,
+            None => {
+                self.screen = Screen::Confirm;
+                self.menu_cursor = 0;
+                return;
+            }
+        };
+        match code {
+            KeyCode::Up | KeyCode::Char('k') => {
+                if self.menu_cursor > 0 {
+                    self.menu_cursor -= 1;
+                }
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                if self.menu_cursor + 1 < category.options.len() {
+                    self.menu_cursor += 1;
+                }
+            }
+            KeyCode::Enter => {
+                let chosen = &category.options[self.menu_cursor];
+                self.software_picks.insert(category.label, chosen.name);
+                if self.software_category_idx + 1 >= SOFTWARE_CATEGORIES.len() {
+                    self.screen = Screen::Confirm;
+                    self.menu_cursor = 0;
+                } else {
+                    self.software_category_idx += 1;
+                    self.menu_cursor = self
+                        .selected_option_index(self.software_category_idx)
+                        .unwrap_or(0);
+                }
+            }
+            KeyCode::Esc => self.go_back(),
+            _ => {}
+        }
+    }
+
+    fn selected_option_index(&self, category_idx: usize) -> Option<usize> {
+        let category = SOFTWARE_CATEGORIES.get(category_idx)?;
+        let picked = self.software_picks.get(category.label)?;
+        category.options.iter().position(|opt| opt.name == *picked)
+    }
+
+    fn theme_menu_index(&self) -> usize {
+        match self.theme_plan {
+            ThemePlan::RetroOnly => 0,
+            ThemePlan::RetroWithWallpapers => 1,
+            ThemePlan::None => 2,
+        }
+    }
+
+    pub fn theme_plan_label(&self) -> &'static str {
+        match self.theme_plan {
+            ThemePlan::RetroOnly => "BBC/UNIX Retro Theme",
+            ThemePlan::RetroWithWallpapers => "Retro Theme + Wallpapers",
+            ThemePlan::None => "No theme changes",
+        }
+    }
+
+    pub fn software_plan_label(&self) -> String {
+        if self.software_full {
+            "Full S-tier".to_string()
+        } else {
+            format!(
+                "Custom ({}/{})",
+                self.software_picks.len(),
+                SOFTWARE_CATEGORIES.len()
+            )
         }
     }
 
@@ -471,6 +619,14 @@ impl TuiApp {
         );
         self.push_log(
             format!("Profile: {:?}", self.profile_level()),
+            LogLevel::Info,
+        );
+        self.push_log(
+            format!("Theme: {}", self.theme_plan_label()),
+            LogLevel::Info,
+        );
+        self.push_log(
+            format!("Software plan: {}", self.software_plan_label()),
             LogLevel::Info,
         );
         self.spawn_installer(driver);

@@ -11,6 +11,7 @@ use tracing::info;
 
 mod catalog;
 mod menu;
+mod software_catalog;
 mod software_tiers;
 mod tui;
 mod ui_legacy;

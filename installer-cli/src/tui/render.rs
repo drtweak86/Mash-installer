@@ -28,8 +28,11 @@ pub fn draw(f: &mut Frame, app: &TuiApp) {
     match app.screen {
         Screen::Welcome => menus::draw_welcome(f, f.area(), app),
         Screen::DistroSelect => menus::draw_distro_select(f, f.area(), app),
-        Screen::ModuleSelect => menus::draw_module_select(f, f.area(), app),
         Screen::ProfileSelect => menus::draw_profile_select(f, f.area(), app),
+        Screen::ModuleSelect => menus::draw_module_select(f, f.area(), app),
+        Screen::ThemeSelect => menus::draw_theme_select(f, f.area(), app),
+        Screen::SoftwareMode => menus::draw_software_mode_select(f, f.area(), app),
+        Screen::SoftwareSelect => menus::draw_software_select(f, f.area(), app),
         Screen::Confirm => {
             if app.confirm_state.is_some() {
                 menus::draw_mid_install_confirm(f, f.area(), app);
