@@ -551,6 +551,7 @@ mod tests {
             options,
             platform: platform_ctx,
             ui: UIContext,
+            interaction: crate::interaction::InteractionService::new(false, Default::default()),
             localization,
             rollback: RollbackManager::new(),
             dry_run_log: DryRunLog::new(),
