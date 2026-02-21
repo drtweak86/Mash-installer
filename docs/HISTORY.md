@@ -88,3 +88,13 @@ The newest page glows a brighter orange, because the bard realized the Forge sho
 
 **Margin scribble:**
 > “The apprentice’s spellbook is down to one line, so the dwarves and the dragons alike can brew the forge with a single chant.”
+
+---
+
+## Chronicle X – The Retro Sigils and the First-Boot Oath (v0.1.4)
+The forge now speaks in retro runes. The TUI journey was re-ordered into a clean ritual—Detection, Profile, Options, Themes, Software, Install—so the dwarf knows exactly which altar he stands at. The theme choice now lives in the cockpit itself, and software tiers can be blessed with either the full S-tier canon or a curated per-category path. Beneath the hood, the retro theme no longer just lands on disk; it lights a first-boot oath: a one-shot systemd user service that pulls the wallpaper pack on first login, stamps a marker, and never repeats the rite.
+
+Under the same banner, the software-tier registry learned to deploy the retro theme and dependencies directly, while Hyprland’s old echoes were retired to the archive. The result is a cohesive path from selection to installation, with a first-boot promise that the walls will be dressed the moment the session begins.
+
+**Margin scribble:**
+> “The forge now asks the right questions in the right order, and the walls paint themselves when the door first opens.”
