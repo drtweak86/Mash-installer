@@ -646,9 +646,8 @@ mod tests {
             "PHASE_PHASE-ERROR: HALTED_WITH_ERROR: BOOM"
         );
         assert_eq!(err.result.errors.len(), 1);
-        assert!(observer.events.iter().any(|evt| evt.starts_with(
-            "failure:2:phase-error:PHASE_PHASE-ERROR: HALTED_WITH_ERROR: BOOM"
-        )));
+        assert!(observer.events.iter().any(|evt| evt
+            .starts_with("failure:2:phase-error:PHASE_PHASE-ERROR: HALTED_WITH_ERROR: BOOM")));
         assert!(observer
             .events
             .iter()
@@ -692,9 +691,8 @@ mod tests {
         );
         assert_eq!(result.errors.len(), 1);
         assert_eq!(result.errors[0].severity, ErrorSeverity::Recoverable);
-        assert!(observer.events.iter().any(|evt| evt.starts_with(
-            "failure:2:phase-error:PHASE_PHASE-ERROR: HALTED_WITH_ERROR: BOOM"
-        )));
+        assert!(observer.events.iter().any(|evt| evt
+            .starts_with("failure:2:phase-error:PHASE_PHASE-ERROR: HALTED_WITH_ERROR: BOOM")));
         Ok(())
     }
 
