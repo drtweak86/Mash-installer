@@ -54,6 +54,7 @@ pub enum TuiMessage {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Screen {
     Welcome,
+    ArchDetected,
     DistroSelect,
     ProfileSelect,
     ModuleSelect,
@@ -192,6 +193,8 @@ pub struct TuiApp {
     pub sys_stats: SysStats,
     // BBS message
     pub bbs_msg: String,
+    // Arch detection timer
+    pub arch_timer: Option<Instant>,
     // Confirm prompt (mid-install)
     pub confirm_state: Option<ConfirmState>,
     // Password prompt (mid-install)
@@ -231,6 +234,7 @@ impl TuiApp {
             log: VecDeque::with_capacity(500),
             sys_stats: SysStats::default(),
             bbs_msg: "⚡ Initialising the forge...".to_string(),
+            arch_timer: None,
             confirm_state: None,
             password_state: None,
             report: None,
@@ -253,6 +257,23 @@ impl TuiApp {
         });
         // Auto-scroll to bottom
         self.log_scroll = self.log.len().saturating_sub(1);
+    }
+
+    pub fn tick(&mut self) {
+        if self.screen == Screen::ArchDetected {
+            if let Some(start) = self.arch_timer {
+                if start.elapsed().as_secs() >= 15 {
+                    self.screen = Screen::DistroSelect;
+                    self.arch_timer = None;
+                }
+            }
+        }
+    }
+
+    pub fn handle_auto_arch(&mut self, arch: String) {
+        self.screen = Screen::ArchDetected;
+        self.bbs_msg = format!("STATION_01: ARCH_SIGIL_{} identified.", arch.to_uppercase());
+        self.arch_timer = Some(Instant::now());
     }
 
     fn profile_level(&self) -> ProfileLevel {
@@ -342,6 +363,17 @@ impl TuiApp {
                 if code == KeyCode::Enter || code == KeyCode::Char(' ') {
                     self.screen = Screen::DistroSelect;
                     self.menu_cursor = 0;
+                }
+            }
+            Screen::ArchDetected => {
+                if code == KeyCode::Enter || code == KeyCode::Char(' ') {
+                    self.screen = Screen::DistroSelect;
+                    self.arch_timer = None;
+                }
+                if code == KeyCode::Char('c') || code == KeyCode::Char('C') || code == KeyCode::Esc {
+                    // Go to manual select (for now just DistroSelect)
+                    self.screen = Screen::DistroSelect;
+                    self.arch_timer = None;
                 }
             }
             Screen::DistroSelect => {
@@ -869,6 +901,7 @@ pub fn run(
     drivers: Vec<&'static dyn DistroDriver>,
     dry_run: bool,
     continue_on_error: bool,
+    arch: Option<String>,
 ) -> anyhow::Result<()> {
     let _guard = TerminalGuard::enter()?;
     let backend = CrosstermBackend::new(io::stdout());
@@ -884,10 +917,15 @@ pub fn run(
     app.dry_run = dry_run;
     app.continue_on_error = continue_on_error;
 
+    if let Some(a) = arch {
+        app.handle_auto_arch(a);
+    }
+
     let tick_rate = Duration::from_millis(250);
     let mut last_tick = Instant::now();
 
     loop {
+        app.tick();
         // Draw
         terminal.draw(|f| render::draw(f, &app))?;
 

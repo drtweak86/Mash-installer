@@ -87,25 +87,19 @@ pub fn draw_welcome(f: &mut Frame, area: Rect, _app: &TuiApp) {
         ])
         .split(inner);
 
-    // Banner
     let banner = Paragraph::new(WELCOME_BANNER)
         .style(theme::accent_style())
         .alignment(Alignment::Center);
     f.render_widget(banner, chunks[0]);
 
-    // Tagline
     let tagline = Paragraph::new("STATION IDENTIFICATION: FORGE_TAVERN_PI_4B")
         .style(theme::title_style())
         .alignment(Alignment::Center);
     f.render_widget(tagline, chunks[1]);
 
-    // Prompt
     let prompt = Paragraph::new(Text::from(vec![
         Line::from(""),
-        Line::from(Span::styled(
-            "COMMAND > BOOT_SYSTEM",
-            theme::success_style(),
-        )),
+        Line::from(Span::styled("COMMAND > BOOT_SYSTEM", theme::success_style())),
         Line::from(""),
         Line::from(Span::styled(
             "PRESS ENTER TO COMMENCE INITIALIZATION...",
@@ -115,12 +109,75 @@ pub fn draw_welcome(f: &mut Frame, area: Rect, _app: &TuiApp) {
     .alignment(Alignment::Center);
     f.render_widget(prompt, chunks[2]);
 
-    // Footer
     let footer = Paragraph::new(Span::styled(
         "OS REV 0.1.6 (C) 1984 MYTHIC ASSEMBLY",
         theme::dim_style(),
     ))
     .alignment(Alignment::Right);
+    f.render_widget(footer, chunks[3]);
+}
+
+// ── Arch detected screen ──────────────────────────────────────────────────────
+
+pub fn draw_arch_detected(f: &mut Frame, area: Rect, app: &TuiApp) {
+    let block = station_block("HARDWARE RECONNAISSANCE");
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(9),
+            Constraint::Length(3),
+            Constraint::Min(0),
+            Constraint::Length(1),
+        ])
+        .split(inner);
+
+    let banner = Paragraph::new(WELCOME_BANNER)
+        .style(theme::accent_style())
+        .alignment(Alignment::Center);
+    f.render_widget(banner, chunks[0]);
+
+    let info = Paragraph::new(vec![
+        Line::from(""),
+        Line::from(vec![
+            Span::styled("STATION_01: ARCH_SIGIL IDENTIFIED: ", theme::default_style()),
+            Span::styled("VERIFIED", theme::success_style()),
+        ]),
+        Line::from(""),
+    ])
+    .alignment(Alignment::Center);
+    f.render_widget(info, chunks[1]);
+
+    let elapsed = app.arch_timer.map(|t| t.elapsed().as_secs()).unwrap_or(0);
+    let remaining = 15u64.saturating_sub(elapsed);
+
+    let prompt = Paragraph::new(vec![
+        Line::from(vec![
+            Span::styled("PROCEEDING TO DRIVER CONFIGURATION IN ", theme::dim_style()),
+            Span::styled(format!("{:02}", remaining), theme::accent_style()),
+            Span::styled(" SECONDS...", theme::dim_style()),
+        ]),
+        Line::from(""),
+        Line::from(Span::styled(
+            "PRESS ESC OR 'C' FOR MANUAL OVERRIDE",
+            theme::warning_style(),
+        )),
+        Line::from(""),
+        Line::from(Span::styled(
+            "PRESS ENTER TO PROCEED IMMEDIATELY",
+            theme::success_style(),
+        )),
+    ])
+    .alignment(Alignment::Center);
+    f.render_widget(prompt, chunks[2]);
+
+    let footer = Paragraph::new(Span::styled(
+        "SCANNING HARDWARE...",
+        theme::dim_style().add_modifier(Modifier::BOLD),
+    ))
+    .alignment(Alignment::Left);
     f.render_widget(footer, chunks[3]);
 }
 

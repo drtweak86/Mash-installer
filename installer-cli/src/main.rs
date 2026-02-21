@@ -44,6 +44,10 @@ struct Cli {
     #[arg(long, value_name = "LEVEL")]
     profile: Option<String>,
 
+    /// Force a specific architecture (skips detection/selection)
+    #[arg(long, value_name = "ARCH")]
+    arch: Option<String>,
+
     /// Use the classic stdio interface instead of the Ratatui TUI
     #[arg(long)]
     no_tui: bool,
@@ -86,7 +90,7 @@ fn main() -> Result<()> {
 
     // ── TUI path (default) ───────────────────────────────────────────────────
     if !cli.no_tui && !cli.non_interactive {
-        return tui::run(drivers, cli.dry_run, cli.continue_on_error)
+        return tui::run(drivers, cli.dry_run, cli.continue_on_error, cli.arch)
             .context("TUI exited with error");
     }
 

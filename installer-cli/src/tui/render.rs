@@ -27,6 +27,7 @@ pub fn draw(f: &mut Frame, app: &TuiApp) {
 
     match app.screen {
         Screen::Welcome => menus::draw_welcome(f, f.area(), app),
+        Screen::ArchDetected => menus::draw_arch_detected(f, f.area(), app),
         Screen::DistroSelect => menus::draw_distro_select(f, f.area(), app),
         Screen::ProfileSelect => menus::draw_profile_select(f, f.area(), app),
         Screen::ModuleSelect => menus::draw_module_select(f, f.area(), app),
