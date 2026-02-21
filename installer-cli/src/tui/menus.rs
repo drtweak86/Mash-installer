@@ -6,6 +6,7 @@ use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph, Wrap};
 use ratatui::Frame;
 
+use crate::software_catalog::SOFTWARE_CATEGORIES;
 use crate::tui::app::{ModuleState, TuiApp, MODULE_LABELS};
 use crate::tui::theme;
 
@@ -121,7 +122,7 @@ pub fn draw_welcome(f: &mut Frame, area: Rect, _app: &TuiApp) {
 
 pub fn draw_distro_select(f: &mut Frame, area: Rect, app: &TuiApp) {
     let popup = centered_rect(60, 70, area);
-    let block = menu_block("STEP 1/3 — SELECT DISTRO");
+    let block = menu_block("STEP 1/5 — SELECT DISTRO");
     let inner = block.inner(popup);
     f.render_widget(block, popup);
 
@@ -152,7 +153,7 @@ pub fn draw_distro_select(f: &mut Frame, area: Rect, app: &TuiApp) {
 
 pub fn draw_module_select(f: &mut Frame, area: Rect, app: &TuiApp) {
     let popup = centered_rect(60, 70, area);
-    let block = menu_block("STEP 2/3 — SELECT MODULES");
+    let block = menu_block("STEP 3/5 — SELECT OPTIONS");
     let inner = block.inner(popup);
     f.render_widget(block, popup);
 
@@ -216,7 +217,7 @@ const PROFILE_LABELS: &[(&str, &str)] = &[
 
 pub fn draw_profile_select(f: &mut Frame, area: Rect, app: &TuiApp) {
     let popup = centered_rect(60, 60, area);
-    let block = menu_block("STEP 3/3 — SELECT PROFILE");
+    let block = menu_block("STEP 2/5 — SELECT PROFILE");
     let inner = block.inner(popup);
     f.render_widget(block, popup);
 
@@ -240,6 +241,126 @@ pub fn draw_profile_select(f: &mut Frame, area: Rect, app: &TuiApp) {
     let hint = Paragraph::new(hint_line("↑/↓ navigate · Enter select · Esc back"))
         .alignment(Alignment::Center);
     f.render_widget(hint, chunks[1]);
+}
+
+// ── Theme select ─────────────────────────────────────────────────────────────
+
+const THEME_LABELS: &[&str] = &[
+    "BBC/UNIX Retro Theme (i3 + Kitty)",
+    "Retro Theme + Wallpaper Pack (6000+)",
+    "No theme changes",
+];
+
+pub fn draw_theme_select(f: &mut Frame, area: Rect, app: &TuiApp) {
+    let popup = centered_rect(70, 60, area);
+    let block = menu_block("STEP 4/5 — SELECT THEME");
+    let inner = block.inner(popup);
+    f.render_widget(block, popup);
+
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(0), Constraint::Length(1)])
+        .split(inner);
+
+    let items: Vec<ListItem> = THEME_LABELS
+        .iter()
+        .enumerate()
+        .map(|(i, label)| list_item_line(*label, i == app.menu_cursor))
+        .collect();
+
+    let list = List::new(items).style(theme::default_style());
+    f.render_widget(list, chunks[0]);
+
+    let hint = Paragraph::new(hint_line("↑/↓ navigate · Enter select · Esc back"))
+        .alignment(Alignment::Center);
+    f.render_widget(hint, chunks[1]);
+}
+
+// ── Software mode select ─────────────────────────────────────────────────────
+
+pub fn draw_software_mode_select(f: &mut Frame, area: Rect, app: &TuiApp) {
+    let popup = centered_rect(70, 60, area);
+    let block = menu_block("STEP 5/5 — SOFTWARE TIERS");
+    let inner = block.inner(popup);
+    f.render_widget(block, popup);
+
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(0), Constraint::Length(1)])
+        .split(inner);
+
+    let options = [
+        "Full S-tier install (recommended)",
+        "Custom selections per category",
+    ];
+    let items: Vec<ListItem> = options
+        .iter()
+        .enumerate()
+        .map(|(i, label)| list_item_line(*label, i == app.menu_cursor))
+        .collect();
+
+    let list = List::new(items).style(theme::default_style());
+    f.render_widget(list, chunks[0]);
+
+    let hint = Paragraph::new(hint_line("↑/↓ navigate · Enter select · Esc back"))
+        .alignment(Alignment::Center);
+    f.render_widget(hint, chunks[1]);
+}
+
+// ── Software tier select (per category) ──────────────────────────────────────
+
+pub fn draw_software_select(f: &mut Frame, area: Rect, app: &TuiApp) {
+    let popup = centered_rect(80, 70, area);
+    let block = menu_block("STEP 5/5 — SOFTWARE TIERS");
+    let inner = block.inner(popup);
+    f.render_widget(block, popup);
+
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(2),
+            Constraint::Min(0),
+            Constraint::Length(1),
+        ])
+        .split(inner);
+
+    let category = SOFTWARE_CATEGORIES
+        .get(app.software_category_idx)
+        .map(|cat| cat.label)
+        .unwrap_or("Unknown");
+    let header = Paragraph::new(Line::from(vec![
+        Span::styled("Category: ", theme::dim_style()),
+        Span::styled(category, theme::title_style()),
+        Span::styled(
+            format!(
+                "  ({}/{})",
+                app.software_category_idx + 1,
+                SOFTWARE_CATEGORIES.len()
+            ),
+            theme::dim_style(),
+        ),
+    ]));
+    f.render_widget(header, chunks[0]);
+
+    let options = SOFTWARE_CATEGORIES
+        .get(app.software_category_idx)
+        .map(|cat| cat.options)
+        .unwrap_or(&[]);
+
+    let items: Vec<ListItem> = options
+        .iter()
+        .enumerate()
+        .map(|(i, opt)| {
+            let label = format!("{} ({}) — {}", opt.name, opt.tier, opt.description);
+            list_item_line(label, i == app.menu_cursor)
+        })
+        .collect();
+    let list = List::new(items).style(theme::default_style());
+    f.render_widget(list, chunks[1]);
+
+    let hint = Paragraph::new(hint_line("↑/↓ navigate · Enter select · Esc back"))
+        .alignment(Alignment::Center);
+    f.render_widget(hint, chunks[2]);
 }
 
 // ── Pre-install confirm ───────────────────────────────────────────────────────
@@ -272,6 +393,14 @@ pub fn draw_pre_install_confirm(f: &mut Frame, area: Rect, app: &TuiApp) {
         Line::from(vec![
             Span::styled("  Profile: ", theme::dim_style()),
             Span::styled(profile_label, theme::success_style()),
+        ]),
+        Line::from(vec![
+            Span::styled("  Theme:   ", theme::dim_style()),
+            Span::styled(app.theme_plan_label(), theme::success_style()),
+        ]),
+        Line::from(vec![
+            Span::styled("  Software:", theme::dim_style()),
+            Span::styled(app.software_plan_label(), theme::success_style()),
         ]),
         Line::from(""),
         Line::from(Span::styled("  Modules:", theme::dim_style())),
