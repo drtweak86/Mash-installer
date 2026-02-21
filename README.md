@@ -36,10 +36,25 @@ curl -fsSL https://github.com/drtweak86/Mash-installer/releases/latest/download/
 The `mash-setup` binary now embodies the Mythic Assembly & Sigil Heuristics creed: pragmatic Rust craftspersonry, Ratatui glyphs flickering like tavern lanterns, and dry-run gates that keep the neon forge honest.
 
 ## ⚙️ What the Bard Recommends
-- **First dram:** Run `./mash-setup --help` to see the full CLI menu; the Ratatui UI sings when you pass `--profile dev` or `--profile full`.  
-- **Dry-run mode:** Add `--dry-run` to preview every stage; the bard records the plan in `docs/HISTORY.md`.  
-- **Green oath:** Always `cd /work/Mash-installer` before running `cargo fmt`, `cargo clippy --all-targets --all-features -- -D warnings`, and `cargo test`; the forge only crowns green builds.  
+- **First dram:** Run `./mash-setup --help` to see the full CLI menu; the Ratatui TUI launches by default with a 4-pane cyberpunk layout.
+- **Classic mode:** Add `--no-tui` to fall back to the original `indicatif` progress-bar UI — handy for CI, SSH sessions, and pipe-friendly scripts.
+- **Dry-run mode:** Add `--dry-run` to preview every stage without touching your system.
+- **Green oath:** Always `cd /work/Mash-installer` before running `cargo fmt`, `cargo clippy --all-targets --all-features -- -D warnings`, and `cargo test`; the forge only crowns green builds.
 - **Commits:** Keep them tight (KCS), back up your work (ABB), test everything (ABT), and ink the changes in `docs/mining-projects/maps*.md` plus this very README (ABD).
+
+## 🖥️ TUI Layout
+```
+┌──────────────────────────────────────────┬──────────────────┐
+│  MAIN (65%)                               │  ACTION LOG      │
+│  ASCII banner · phase list · gauge        │  timestamped     │
+│  elapsed time · current phase detail      ├──────────────────┤
+│                                           │  SYS STATS       │
+│                                           │  CPU RAM NET I/O │
+├───────────────────────────────────────────┴──────────────────┤
+│ 🔮 BBS: Summoning the daemon lords of pkg management...      │
+└──────────────────────────────────────────────────────────────┘
+```
+Keys: `↑/↓` or `j/k` navigate · `Space` toggle · `Enter` confirm · `Esc` back · `q` quit
 
 ## 👑 The Lore of MASH
 `Mythic Assembly & Sigil Heuristics` is the championed interpretation, but if the tavern prefers other toasts, consider:

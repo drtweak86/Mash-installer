@@ -143,13 +143,32 @@ matter most when everything else is already working.
 - [ ] `.rpm` package for Fedora (via `cargo-rpm` or manual)
 - [ ] Add package builds to release pipeline
 
-### 8. TUI Rendering via Ratatui (stretch goal)
-> *The forge works. Now make it glow.*
+**Why seventh:** Gold-standard distribution, but requires stable releases and
+mature feature set. Premature packaging means constant re-packaging.
 
-- [ ] Replace indicatif progress bars with ratatui terminal UI
-- [ ] Phase-by-phase progress with live log tailing
-- [ ] Interactive mode: phase selection, profile picker
-- [ ] Error display with context and advice rendering
+### 8. TUI Rendering via Ratatui (✓ In Progress — `work` branch)
+> *The forge glows. The neon rain falls. The bard broadcasts.*
+
+- [x] `tui/theme.rs` — cyberpunk palette (cyan borders, magenta selected, matrix green success)
+- [x] `tui/bbs.rs` — 44-entry whimsical BBS message bank + 4-second cycler thread
+- [x] `tui/sysinfo_poller.rs` — CPU/RAM via sysinfo 0.33, NET/IO from /proc, 1-second poll
+- [x] `tui/observer.rs` — RatatuiPhaseObserver implementing PhaseObserver via mpsc channel
+- [x] `tui/app.rs` — TuiApp state machine, Screen enum (Welcome→Done), TuiMessage bus, run() loop
+- [x] `tui/render.rs` — 4-pane installing layout (Main 65%/Log+Stats 35%/BBS strip) + summary
+- [x] `tui/menus.rs` — Welcome, DistroSelect, ModuleSelect, ProfileSelect, Confirm screens
+- [x] `--no-tui` flag added to CLI (legacy stdio path preserved for CI/non-interactive)
+- [ ] CI green: cargo fmt + clippy --all-features + test (validates on PR)
+
+**Layout (Installing screen):**
+```
+┌──────────────────────────────────┬──────────────────┐
+│ MAIN: banner · phases · gauge    │ ACTION LOG       │
+│                                  ├──────────────────┤
+│                                  │ SYS STATS        │
+├──────────────────────────────────┴──────────────────┤
+│ BBS: 🔮 Summoning daemon lords of pkg management... │
+└─────────────────────────────────────────────────────┘
+```
 
 ---
 

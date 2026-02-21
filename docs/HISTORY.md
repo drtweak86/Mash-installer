@@ -32,12 +32,12 @@ Every line here is a promise: map logs remain updated, the ABB/KCS/ABT/ABD creed
 ---
 
 ## Chronicle IV – The Dragon Stirs
-Phase 3 rose from the forge with four new weapons: mount options that whisper `noatime` to spinning platters, swap configs that place the overflow file on the HDD where it belongs (not the fragile SD card), kernel parameters tuned for a dwarf who knows his `vm.swappiness` from his `dirty_ratio`, and an I/O scheduler that swaps sluggish `cfq` for the lean `deadline`. Each function reads the system's current state, compares it against Pi 4B best practices, and records what it would change. The whole kit wired into `PhaseRegistry` as “Pi 4B HDD Tuning”—gated by `PhaseGate::Always` but self-skipping on non-Pi hardware with a polite warning rather than a crash.
+Phase 3 rose from the forge with four new weapons: mount options that whisper `noatime` to spinning platters, swap configs that place the overflow file on the HDD where it belongs (not the fragile SD card), kernel parameters tuned for a dwarf who knows his `vm.swappiness` from his `dirty_ratio`, and an I/O scheduler that swaps sluggish `cfq` for the lean `deadline`. Each function reads the system’s current state, compares it against Pi 4B best practices, and records what it would change. The whole kit wired into `PhaseRegistry` as “Pi 4B HDD Tuning”—gated by `PhaseGate::Always` but self-skipping on non-Pi hardware with a polite warning rather than a crash.
 
 Four new structs joined the exports: `MountOptimization`, `SwapConfig`, `KernelParam`, and the `install_phase` that orchestrates them. Twelve new tests brought the total to 86—each one green as mithril under lamplight.
 
 **Margin note:**
-> “The dragon didn't breathe fire—it breathed `sysctl -w`. And the bard approved.”
+> “The dragon didn’t breathe fire—it breathed `sysctl -w`. And the bard approved.”
 
 ---
 
@@ -46,18 +46,18 @@ The forge worked, the dragon purred, and the dwarves had their dry runs—but an
 
 First came the **lockfile**—`InstallerLock` wraps `nix::fcntl::Flock` in an exclusive, non-blocking grip on `$XDG_RUNTIME_DIR/mash-installer.lock`. Try to run two installers at once and the second one bounces off with a clear message. Drop the struct and the lock evaporates. Three tests prove it: acquire once, fail from a child process, release on drop.
 
-Then the **TLS hardening**—every `curl` invocation across `apt_repo.rs`, `rclone.rs`, `argon.rs`, and `zsh.rs` now carries `--proto '=https' --tlsv1.2`. A `curl_flags()` helper in `cmd.rs` centralizes the pattern, and `rustup` and `cargo-binstall` already had it from day one.
+Then the **TLS hardening**—every `curl` invocation across `apt_repo.rs`, `rclone.rs`, `argon.rs`, and `zsh.rs` now carries `--proto ‘=https’ --tlsv1.2`. A `curl_flags()` helper in `cmd.rs` centralizes the pattern, and `rustup` and `cargo-binstall` already had it from day one.
 
 The **signal handler** came next—`SignalGuard` registers `SIGINT` and `SIGTERM` via `signal-hook`, setting an `Arc<AtomicBool>` flag instead of killing the process. The `PhaseRunner` polls `is_interrupted()` between phases and triggers `rollback_all()` before a graceful exit.
 
-**Rollback expansion** gave teeth to phases that previously left no breadcrumbs: `zsh.rs` registers removal of the `.oh-my-zsh` directory, `rust.rs` logs a note pointing to `rustup self uninstall`, and `argon.rs` cleans up its config files under `/etc/argon/`. Docker's rollback was already the gold standard.
+**Rollback expansion** gave teeth to phases that previously left no breadcrumbs: `zsh.rs` registers removal of the `.oh-my-zsh` directory, `rust.rs` logs a note pointing to `rustup self uninstall`, and `argon.rs` cleans up its config files under `/etc/argon/`. Docker’s rollback was already the gold standard.
 
 Finally, **filesystem forensics**—`verify.rs` offers `verify_file_written()` (re-reads and compares head/tail bytes) and `sync_file()` (forces `fsync` for SD-card survival). Infrastructure ready for phases to call on critical writes.
 
 Thirteen new tests joined the roster, bringing the total to 99—every one green as mithril under lamplight.
 
 **Margin note:**
-> “The forge doesn't just work now—it locks its doors, checks its papers, catches the signal before the blade falls, and verifies the rune after the ink dries. The neon rain can pound all it wants.”
+> “The forge doesn’t just work now—it locks its doors, checks its papers, catches the signal before the blade falls, and verifies the rune after the ink dries. The neon rain can pound all it wants.”
 
 ## Chronicle VI – The Courier and the Vault
 The release workflow now breathes two new couriers: `package-deb` and `package-rpm` take their orders from `build-release`, forge their `.deb`/`.rpm` shells, and then march the results into the `publish` vault beside the golden `PKGBUILD`. The publish step now bundles every artifact (x86_64/aarch64 binaries, debs, rpms, checksummed PKGBUILD) so every release tag leaves the forge fully armed. I ran the trilogy once more—`cargo fmt`, `cargo clippy --all-targets --all-features -- -D warnings`, `cargo test`—to make sure the neon lights stayed steady while the package trains rolled past the gate.
