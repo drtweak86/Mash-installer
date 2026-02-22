@@ -3,9 +3,9 @@
 
 use anyhow::Result;
 use installer_core::{
-    dry_run::DryRunLog, ConfigService, DistroDriver, ErrorSeverity, InstallContext, Phase,
-    PhaseContext, PhaseEvent, PhaseObserver, PhaseRunner, PkgBackend, PlatformInfo, ProfileLevel,
-    SoftwareTierPlan, UIContext, UserOptionsContext,
+    dry_run::DryRunLog, ConfigService, DistroDriver, InstallContext, Phase, PhaseContext,
+    PhaseObserver, PhaseRunner, PkgBackend, PlatformInfo, ProfileLevel, SoftwareTierPlan,
+    UIContext, UserOptionsContext,
 };
 use std::path::PathBuf;
 
@@ -16,10 +16,18 @@ struct MockDriver {
 }
 
 impl DistroDriver for MockDriver {
-    fn name(&self) -> &'static str { self.name }
-    fn description(&self) -> &'static str { "mock driver" }
-    fn matches(&self, info: &PlatformInfo) -> bool { info.arch == self.arch }
-    fn pkg_backend(&self) -> PkgBackend { PkgBackend::Apt }
+    fn name(&self) -> &'static str {
+        self.name
+    }
+    fn description(&self) -> &'static str {
+        "mock driver"
+    }
+    fn matches(&self, info: &PlatformInfo) -> bool {
+        info.arch == self.arch
+    }
+    fn pkg_backend(&self) -> PkgBackend {
+        PkgBackend::Apt
+    }
 }
 
 fn build_mock_context(arch: &'static str) -> Result<InstallContext> {
@@ -30,7 +38,11 @@ fn build_mock_context(arch: &'static str) -> Result<InstallContext> {
         distro_version: "1.0".into(),
         distro_codename: "mock".into(),
         distro_family: "debian".into(),
-        pi_model: if arch == "aarch64" { Some("Raspberry Pi 4 Model B".to_string()) } else { None },
+        pi_model: if arch == "aarch64" {
+            Some("Raspberry Pi 4 Model B".to_string())
+        } else {
+            None
+        },
     };
 
     let options = UserOptionsContext {
@@ -55,7 +67,10 @@ fn build_mock_context(arch: &'static str) -> Result<InstallContext> {
             pkg_backend: PkgBackend::Apt,
         },
         ui: UIContext,
-        interaction: installer_core::interaction::InteractionService::new(false, Default::default()),
+        interaction: installer_core::interaction::InteractionService::new(
+            false,
+            Default::default(),
+        ),
         localization,
         rollback: installer_core::RollbackManager::new(),
         dry_run_log: DryRunLog::new(),
@@ -81,8 +96,12 @@ fn test_x86_64_detection() -> Result<()> {
 
 struct ArchSpecificPhase;
 impl Phase for ArchSpecificPhase {
-    fn name(&self) -> &str { "arch-check" }
-    fn description(&self) -> &str { "arch check" }
+    fn name(&self) -> &str {
+        "arch-check"
+    }
+    fn description(&self) -> &str {
+        "arch check"
+    }
     fn execute(&self, ctx: &mut PhaseContext) -> Result<()> {
         let arch = &ctx.platform.platform.arch;
         ctx.record_action(format!("Running on {}", arch));
@@ -97,13 +116,16 @@ fn test_arch_logic_in_phases() -> Result<()> {
         let ctx = build_mock_context(arch)?;
         let phases: Vec<Box<dyn Phase>> = vec![Box::new(ArchSpecificPhase)];
         let runner = PhaseRunner::from_phases(phases);
-        
+
         struct NoopObserver;
         impl PhaseObserver for NoopObserver {}
         let mut observer = NoopObserver;
 
         let result = runner.run(&ctx, &mut observer, None)?;
-        assert_eq!(result.outputs[0].actions_taken[0], format!("Running on {}", arch));
+        assert_eq!(
+            result.outputs[0].actions_taken[0],
+            format!("Running on {}", arch)
+        );
     }
     Ok(())
 }

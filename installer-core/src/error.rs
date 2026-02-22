@@ -100,8 +100,11 @@ impl InstallerError {
         let phase = phase.into();
         let description = description.into();
         let cause = source.root_cause().to_string().to_uppercase();
-        let fix = advice.as_deref().unwrap_or("CHECK_LOGS_FOR_DETAILS").to_uppercase();
-        
+        let fix = advice
+            .as_deref()
+            .unwrap_or("CHECK_LOGS_FOR_DETAILS")
+            .to_uppercase();
+
         let message = format!(
             "STATUS: HALTED\nPHASE:  {}\nERROR:  {}\nLOG:    ~/mash-install.log\nFIX:    {}",
             phase.to_uppercase(),

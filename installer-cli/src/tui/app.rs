@@ -370,7 +370,8 @@ impl TuiApp {
                     self.screen = Screen::DistroSelect;
                     self.arch_timer = None;
                 }
-                if code == KeyCode::Char('c') || code == KeyCode::Char('C') || code == KeyCode::Esc {
+                if code == KeyCode::Char('c') || code == KeyCode::Char('C') || code == KeyCode::Esc
+                {
                     // Go to manual select (for now just DistroSelect)
                     self.screen = Screen::DistroSelect;
                     self.arch_timer = None;

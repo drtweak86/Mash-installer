@@ -109,10 +109,12 @@ impl InstallContext {
     }
 
     /// Request a sudo password from the user via the provided observer and interaction service.
-    pub fn request_sudo_password(&self, observer: &mut dyn PhaseObserver) -> anyhow::Result<String> {
-        self.interaction.sudo_password(|_prompt| {
-            observer.sudo_password()
-        })
+    pub fn request_sudo_password(
+        &self,
+        observer: &mut dyn PhaseObserver,
+    ) -> anyhow::Result<String> {
+        self.interaction
+            .sudo_password(|_prompt| observer.sudo_password())
     }
 }
 // 1984 transition verified

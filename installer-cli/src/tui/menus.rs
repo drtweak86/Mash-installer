@@ -99,7 +99,10 @@ pub fn draw_welcome(f: &mut Frame, area: Rect, _app: &TuiApp) {
 
     let prompt = Paragraph::new(Text::from(vec![
         Line::from(""),
-        Line::from(Span::styled("COMMAND > BOOT_SYSTEM", theme::success_style())),
+        Line::from(Span::styled(
+            "COMMAND > BOOT_SYSTEM",
+            theme::success_style(),
+        )),
         Line::from(""),
         Line::from(Span::styled(
             "PRESS ENTER TO COMMENCE INITIALIZATION...",
@@ -142,7 +145,10 @@ pub fn draw_arch_detected(f: &mut Frame, area: Rect, app: &TuiApp) {
     let info = Paragraph::new(vec![
         Line::from(""),
         Line::from(vec![
-            Span::styled("STATION_01: ARCH_SIGIL IDENTIFIED: ", theme::default_style()),
+            Span::styled(
+                "STATION_01: ARCH_SIGIL IDENTIFIED: ",
+                theme::default_style(),
+            ),
             Span::styled("VERIFIED", theme::success_style()),
         ]),
         Line::from(""),

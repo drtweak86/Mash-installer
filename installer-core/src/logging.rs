@@ -76,9 +76,10 @@ fn build_env_filter(config: &LoggingConfig, verbose: bool) -> EnvFilter {
 }
 
 pub fn init(config: &LoggingConfig, verbose: bool) -> Result<()> {
-    let log_file = config.file.clone().or_else(|| {
-        dirs::home_dir().map(|h| h.join("mash-install.log"))
-    });
+    let log_file = config
+        .file
+        .clone()
+        .or_else(|| dirs::home_dir().map(|h| h.join("mash-install.log")));
 
     let env_filter = build_env_filter(config, verbose);
     let mut layers = Vec::new();
@@ -112,9 +113,7 @@ pub fn init(config: &LoggingConfig, verbose: bool) -> Result<()> {
         layers.push(stdout_layer);
     }
 
-    let subscriber = tracing_subscriber::registry()
-        .with(env_filter)
-        .with(layers);
+    let subscriber = tracing_subscriber::registry().with(env_filter).with(layers);
 
     tracing::subscriber::set_global_default(subscriber)
         .context("initializing global logging subscriber")?;
@@ -202,7 +201,12 @@ mod tests {
         let env_filter = build_env_filter(&config, false);
         let file = File::create(&log_path)?;
         let writer = Arc::new(Mutex::new(file));
-        let layer = fmt::layer().with_writer(move || LockedWriter { inner: writer.clone() }).json().boxed();
+        let layer = fmt::layer()
+            .with_writer(move || LockedWriter {
+                inner: writer.clone(),
+            })
+            .json()
+            .boxed();
         let subscriber = tracing_subscriber::registry().with(env_filter).with(layer);
         let dispatch = dispatcher::Dispatch::new(subscriber);
         dispatcher::with_default(&dispatch, || info!("structured event"));
@@ -228,7 +232,11 @@ mod tests {
         let env_filter = build_env_filter(&config, false);
         let file = File::create(&log_path)?;
         let writer = Arc::new(Mutex::new(file));
-        let layer = fmt::layer().with_writer(move || LockedWriter { inner: writer.clone() }).boxed();
+        let layer = fmt::layer()
+            .with_writer(move || LockedWriter {
+                inner: writer.clone(),
+            })
+            .boxed();
         let subscriber = tracing_subscriber::registry().with(env_filter).with(layer);
         let dispatch = dispatcher::Dispatch::new(subscriber);
         dispatcher::with_default(&dispatch, || {

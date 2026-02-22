@@ -21,7 +21,7 @@ pub fn run(cmd: &mut StdCommand) -> Result<Output> {
         // Inject -S (stdin) into sudo command if not already present
         let args: Vec<_> = cmd.get_args().collect();
         let has_s = args.iter().any(|a| a.to_string_lossy() == "-S");
-        
+
         let mut new_cmd = StdCommand::new(cmd.get_program());
         if !has_s {
             new_cmd.arg("-S");
@@ -43,14 +43,18 @@ pub fn run(cmd: &mut StdCommand) -> Result<Output> {
         new_cmd.stdout(Stdio::piped());
         new_cmd.stderr(Stdio::piped());
 
-        let mut child = new_cmd.spawn().with_context(|| format!("spawning command: {desc}"))?;
-        
+        let mut child = new_cmd
+            .spawn()
+            .with_context(|| format!("spawning command: {desc}"))?;
+
         if let Some(mut stdin) = child.stdin.take() {
             use std::io::Write;
             let _ = writeln!(stdin, "{}", pass);
         }
 
-        child.wait_with_output().with_context(|| format!("waiting for command: {desc}"))?
+        child
+            .wait_with_output()
+            .with_context(|| format!("waiting for command: {desc}"))?
     } else {
         cmd.output()
             .with_context(|| format!("running command: {desc}"))?

@@ -756,6 +756,10 @@ mod tests {
         fn connect(&self, host: &str, port: u16, timeout: Duration) -> Result<TcpStream> {
             (self.connect_fn)(host, port, timeout)
         }
+
+        fn detect_root_fstype(&self) -> Result<String> {
+            Ok("ext4".to_string())
+        }
     }
 
     #[test]

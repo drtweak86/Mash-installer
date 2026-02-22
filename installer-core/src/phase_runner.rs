@@ -650,8 +650,10 @@ mod tests {
         assert!(err.source.user_message().contains("STATUS: HALTED"));
         assert!(err.source.user_message().contains("PHASE:  PHASE-ERROR"));
         assert_eq!(err.result.errors.len(), 1);
-        assert!(observer.events.iter().any(|evt| evt
-            .starts_with("failure:2:phase-error:STATUS: HALTED")));
+        assert!(observer
+            .events
+            .iter()
+            .any(|evt| evt.starts_with("failure:2:phase-error:STATUS: HALTED")));
         assert!(observer
             .events
             .iter()
@@ -695,8 +697,10 @@ mod tests {
         );
         assert_eq!(result.errors.len(), 1);
         assert_eq!(result.errors[0].severity, ErrorSeverity::Recoverable);
-        assert!(observer.events.iter().any(|evt| evt
-            .starts_with("failure:2:phase-error:STATUS: HALTED")));
+        assert!(observer
+            .events
+            .iter()
+            .any(|evt| evt.starts_with("failure:2:phase-error:STATUS: HALTED")));
         Ok(())
     }
 

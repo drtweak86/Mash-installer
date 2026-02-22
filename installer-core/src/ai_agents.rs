@@ -1,10 +1,10 @@
+use crate::{cmd, package_manager, PhaseContext};
 use anyhow::Result;
 use std::process::Command;
-use crate::{package_manager, PhaseContext, cmd};
 
 pub fn install_phase(ctx: &mut PhaseContext) -> Result<()> {
     let selections = &ctx.options.software_plan.selections;
-    
+
     // Check if any AI agents are selected in the "AI Spirits" category
     let mut selected_agents = Vec::new();
     if let Some(pick) = selections.get("AI Spirits") {
@@ -39,28 +39,43 @@ pub fn install_phase(ctx: &mut PhaseContext) -> Result<()> {
 }
 
 fn install_claude(ctx: &mut PhaseContext) -> Result<()> {
-    ctx.run_or_record("AI Spirits", "Install Claude Code", Some("@anthropic-ai/claude-code".into()), |_| {
-        let mut cmd = Command::new("sudo");
-        cmd.args(["npm", "install", "-g", "@anthropic-ai/claude-code"]);
-        cmd::run(&mut cmd)?;
-        Ok(())
-    })
+    ctx.run_or_record(
+        "AI Spirits",
+        "Install Claude Code",
+        Some("@anthropic-ai/claude-code".into()),
+        |_| {
+            let mut cmd = Command::new("sudo");
+            cmd.args(["npm", "install", "-g", "@anthropic-ai/claude-code"]);
+            cmd::run(&mut cmd)?;
+            Ok(())
+        },
+    )
 }
 
 fn install_gemini(ctx: &mut PhaseContext) -> Result<()> {
-    ctx.run_or_record("AI Spirits", "Install Gemini CLI", Some("@google/gemini-cli".into()), |_| {
-        let mut cmd = Command::new("sudo");
-        cmd.args(["npm", "install", "-g", "@google/gemini-cli"]);
-        cmd::run(&mut cmd)?;
-        Ok(())
-    })
+    ctx.run_or_record(
+        "AI Spirits",
+        "Install Gemini CLI",
+        Some("@google/gemini-cli".into()),
+        |_| {
+            let mut cmd = Command::new("sudo");
+            cmd.args(["npm", "install", "-g", "@google/gemini-cli"]);
+            cmd::run(&mut cmd)?;
+            Ok(())
+        },
+    )
 }
 
 fn install_vibe(ctx: &mut PhaseContext) -> Result<()> {
-    ctx.run_or_record("AI Spirits", "Install Mistral Vibe", Some("@mistral-ai/vibe".into()), |_| {
-        let mut cmd = Command::new("sudo");
-        cmd.args(["npm", "install", "-g", "@mistral-ai/vibe"]);
-        cmd::run(&mut cmd)?;
-        Ok(())
-    })
+    ctx.run_or_record(
+        "AI Spirits",
+        "Install Mistral Vibe",
+        Some("@mistral-ai/vibe".into()),
+        |_| {
+            let mut cmd = Command::new("sudo");
+            cmd.args(["npm", "install", "-g", "@mistral-ai/vibe"]);
+            cmd::run(&mut cmd)?;
+            Ok(())
+        },
+    )
 }

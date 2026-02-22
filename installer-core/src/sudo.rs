@@ -31,7 +31,7 @@ pub fn ensure_sudo_access(observer: &mut dyn PhaseObserver) -> bool {
     // 1. Try passwordless sudo first
     let mut test_cmd = Command::new("sudo");
     test_cmd.args(["-n", "-v"]); // -n = non-interactive
-    
+
     if cmd::run(&mut test_cmd).is_ok() {
         debug!("sudo access verified (passwordless)");
         return true;
@@ -43,7 +43,7 @@ pub fn ensure_sudo_access(observer: &mut dyn PhaseObserver) -> bool {
         Ok(pass) if !pass.is_empty() => {
             // Store the password globally so cmd::run can use it
             sudo_password::set_sudo_password(pass.clone());
-            
+
             // Verify the password with sudo -S -v
             let mut verify_cmd = Command::new("sudo");
             verify_cmd.args(["-S", "-v"]);
@@ -107,7 +107,7 @@ pub fn start_sudo_keepalive() -> SudoKeepalive {
                 cmd.stdin(Stdio::piped());
                 cmd.stdout(Stdio::null());
                 cmd.stderr(Stdio::null());
-                
+
                 if let Ok(mut child) = cmd.spawn() {
                     if let Some(mut stdin) = child.stdin.take() {
                         let _ = writeln!(stdin, "{}", pass);
