@@ -109,13 +109,16 @@ def update_file_version(file_path: str, old_version: str, new_version: str):
     else:
         print(f"No change needed in {file_path}")
 
+import os
+
 def run_command(command: str):
     """Runs a shell command and checks for errors."""
-    result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
-    if result.stdout:
-        print(result.stdout)
-    if result.stderr:
-        print(result.stderr)
+    process = os.popen(command)
+    output = process.read()
+    process.close()
+    if process.wait() != 0:
+        raise RuntimeError(f"Command '{command}' failed")
+    print(output)
 
 def main():
     parser = argparse.ArgumentParser(description="Automate version bumping for the MASH Installer workspace.")
