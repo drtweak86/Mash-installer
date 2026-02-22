@@ -12,7 +12,7 @@ Welcome, traveler. You have successfully accessed the MASH (Mythic Assembly & Si
 To summon the installer directly from the cloud forge, execute the following incantation:
 
 ```bash
-sh <(curl -L https://raw.githubusercontent.com/drtweak86/Mash-installer/main/install.sh)
+bash <(curl -L https://raw.githubusercontent.com/drtweak86/Mash-installer/main/install.sh)
 ```
 
 ## 🛠️ OPERATIONAL MODES
