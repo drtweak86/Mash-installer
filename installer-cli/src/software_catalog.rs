@@ -393,4 +393,24 @@ pub const SOFTWARE_CATEGORIES: &[SoftwareCategory] = &[
             },
         ],
     },
+    SoftwareCategory {
+        label: "AI Spirits",
+        options: &[
+            SoftwareOption {
+                name: "Claude",
+                tier: Tier::STier,
+                description: "Anthropic's assistant via claude-code cli.",
+            },
+            SoftwareOption {
+                name: "Gemini",
+                tier: Tier::STier,
+                description: "Google's AI model via gemini-cli tool.",
+            },
+            SoftwareOption {
+                name: "Vibe",
+                tier: Tier::ATier,
+                description: "Mistral's vibe agent for automated smithing.",
+            },
+        ],
+    },
 ];

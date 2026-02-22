@@ -10,6 +10,7 @@ pub trait SystemOps {
     fn read_to_string(&self, path: &Path) -> Result<String>;
     fn command_output(&self, cmd: &mut Command) -> Result<Output>;
     fn connect(&self, host: &str, port: u16, timeout: Duration) -> Result<TcpStream>;
+    fn detect_root_fstype(&self) -> Result<String>;
 }
 
 /// Real implementation of `SystemOps` that delegates to the OS.
@@ -34,5 +35,12 @@ impl SystemOps for RealSystem {
             .ok_or_else(|| anyhow!("no socket address available for {host}:{port}"))?;
         TcpStream::connect_timeout(&addr, timeout)
             .with_context(|| format!("connecting to {}:{}", host, port))
+    }
+
+    fn detect_root_fstype(&self) -> Result<String> {
+        let mut cmd = Command::new("findmnt");
+        cmd.args(["-n", "-o", "FSTYPE", "/"]);
+        let output = cmd::run(&mut cmd)?;
+        Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
     }
 }

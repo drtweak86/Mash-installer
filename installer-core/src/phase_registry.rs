@@ -1,3 +1,4 @@
+use crate::ai_agents;
 use crate::argon;
 use crate::buildroot;
 use crate::context::UserOptionsContext;
@@ -11,6 +12,7 @@ use crate::pi4b_hdd;
 use crate::pkg;
 use crate::rclone;
 use crate::rust;
+use crate::snapshots;
 use crate::software_tiers;
 use crate::zsh;
 use crate::PhaseContext;
@@ -104,6 +106,20 @@ impl Default for PhaseRegistry {
                 "rclone ready",
                 rclone::install_phase,
                 PhaseGate::Profile(ProfileLevel::Dev),
+            ),
+            PhaseEntry::new(
+                "snapshots",
+                "Filesystem Snapshots",
+                "Pre-install snapshot ready",
+                snapshots::install_phase,
+                PhaseGate::Always,
+            ),
+            PhaseEntry::new(
+                "ai_spirits",
+                "AI Spirits",
+                "AI assistants installed",
+                ai_agents::install_phase,
+                PhaseGate::Always,
             ),
             PhaseEntry::new(
                 "pi4b_hdd_tuning",

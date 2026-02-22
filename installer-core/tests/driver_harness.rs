@@ -171,6 +171,10 @@ fn build_context_for_driver(driver: &'static dyn DistroDriver) -> Result<Install
             pkg_backend: driver.pkg_backend(),
         },
         ui: UIContext,
+        interaction: installer_core::interaction::InteractionService::new(
+            false,
+            Default::default(),
+        ),
         localization,
         rollback: installer_core::RollbackManager::new(),
         dry_run_log: DryRunLog::new(),

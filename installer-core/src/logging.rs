@@ -6,7 +6,7 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{self, Write};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use tracing::{Span, Subscriber};
+use tracing::Span;
 use tracing_subscriber::{
     filter::LevelFilter, fmt, fmt::format::FmtSpan, fmt::writer::BoxMakeWriter, prelude::*,
     EnvFilter,
@@ -60,15 +60,6 @@ impl LoggingConfig {
     }
 }
 
-pub fn init(config: &LoggingConfig, verbose: bool) -> Result<()> {
-    let writer = make_writer(config.file.as_ref())?;
-    let subscriber = build_subscriber(config, verbose, writer);
-
-    tracing::subscriber::set_global_default(subscriber)
-        .context("initializing global logging subscriber")?;
-    Ok(())
-}
-
 fn build_env_filter(config: &LoggingConfig, verbose: bool) -> EnvFilter {
     let base_level = if verbose {
         LevelFilter::DEBUG
@@ -84,34 +75,49 @@ fn build_env_filter(config: &LoggingConfig, verbose: bool) -> EnvFilter {
     }
 }
 
-fn build_subscriber(
-    config: &LoggingConfig,
-    verbose: bool,
-    writer: BoxMakeWriter,
-) -> Box<dyn Subscriber + Send + Sync> {
+pub fn init(config: &LoggingConfig, verbose: bool) -> Result<()> {
+    let log_file = config
+        .file
+        .clone()
+        .or_else(|| dirs::home_dir().map(|h| h.join("mash-install.log")));
+
     let env_filter = build_env_filter(config, verbose);
-    match config.format {
-        LogFormat::Json => Box::new(
-            tracing_subscriber::registry()
-                .with(env_filter.clone())
-                .with(
-                    fmt::layer()
-                        .event_format(fmt::format().json())
-                        .with_writer(writer)
-                        .with_span_events(FmtSpan::FULL),
-                ),
-        ),
-        LogFormat::Human => Box::new(
-            tracing_subscriber::registry()
-                .with(env_filter.clone())
-                .with(
-                    fmt::layer()
-                        .event_format(fmt::format().compact())
-                        .with_writer(writer)
-                        .with_span_events(FmtSpan::FULL),
-                ),
-        ),
+    let mut layers = Vec::new();
+
+    // 1. File Layer (Always enabled if path is resolvable)
+    if let Some(path) = log_file {
+        if let Some(parent) = path.parent() {
+            let _ = fs::create_dir_all(parent);
+        }
+        if let Ok(file) = OpenOptions::new().create(true).append(true).open(&path) {
+            let guard = Arc::new(Mutex::new(file));
+            let writer = BoxMakeWriter::new(move || LockedWriter {
+                inner: guard.clone(),
+            });
+            let file_layer = fmt::layer()
+                .with_writer(writer)
+                .event_format(fmt::format().compact())
+                .with_ansi(false)
+                .with_span_events(FmtSpan::CLOSE)
+                .boxed();
+            layers.push(file_layer);
+        }
     }
+
+    // 2. Stdout Layer (Only if verbose or no file layer)
+    if verbose || layers.is_empty() {
+        let stdout_layer = fmt::layer()
+            .with_writer(io::stdout)
+            .event_format(fmt::format().compact())
+            .boxed();
+        layers.push(stdout_layer);
+    }
+
+    let subscriber = tracing_subscriber::registry().with(env_filter).with(layers);
+
+    tracing::subscriber::set_global_default(subscriber)
+        .context("initializing global logging subscriber")?;
+    Ok(())
 }
 
 fn make_writer(path: Option<&PathBuf>) -> Result<BoxMakeWriter, io::Error> {
@@ -192,8 +198,16 @@ mod tests {
             file: Some(log_path.clone()),
         };
 
-        let writer = make_writer(config.file.as_ref())?;
-        let subscriber = build_subscriber(&config, false, writer);
+        let env_filter = build_env_filter(&config, false);
+        let file = File::create(&log_path)?;
+        let writer = Arc::new(Mutex::new(file));
+        let layer = fmt::layer()
+            .with_writer(move || LockedWriter {
+                inner: writer.clone(),
+            })
+            .json()
+            .boxed();
+        let subscriber = tracing_subscriber::registry().with(env_filter).with(layer);
         let dispatch = dispatcher::Dispatch::new(subscriber);
         dispatcher::with_default(&dispatch, || info!("structured event"));
 
@@ -215,8 +229,15 @@ mod tests {
             file: Some(log_path.clone()),
         };
 
-        let writer = make_writer(config.file.as_ref())?;
-        let subscriber = build_subscriber(&config, false, writer);
+        let env_filter = build_env_filter(&config, false);
+        let file = File::create(&log_path)?;
+        let writer = Arc::new(Mutex::new(file));
+        let layer = fmt::layer()
+            .with_writer(move || LockedWriter {
+                inner: writer.clone(),
+            })
+            .boxed();
+        let subscriber = tracing_subscriber::registry().with(env_filter).with(layer);
         let dispatch = dispatcher::Dispatch::new(subscriber);
         dispatcher::with_default(&dispatch, || {
             info!("filtered info");

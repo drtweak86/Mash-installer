@@ -330,6 +330,11 @@ pub trait PhaseObserver {
     fn confirm(&mut self, _prompt: &str) -> bool {
         true
     }
+
+    /// Ask the user for a sudo password.
+    fn sudo_password(&mut self) -> anyhow::Result<String> {
+        Ok(String::new())
+    }
 }
 
 pub trait Phase {
@@ -546,6 +551,7 @@ mod tests {
             options,
             platform: platform_ctx,
             ui: UIContext,
+            interaction: crate::interaction::InteractionService::new(false, Default::default()),
             localization,
             rollback: RollbackManager::new(),
             dry_run_log: DryRunLog::new(),
@@ -641,13 +647,13 @@ mod tests {
 
         let err = runner.run(&ctx, &mut observer, None).unwrap_err();
         assert_eq!(err.source.phase, "phase-error");
-        assert_eq!(
-            err.source.user_message(),
-            "PHASE_PHASE-ERROR: HALTED_WITH_ERROR: BOOM"
-        );
+        assert!(err.source.user_message().contains("STATUS: HALTED"));
+        assert!(err.source.user_message().contains("PHASE:  PHASE-ERROR"));
         assert_eq!(err.result.errors.len(), 1);
-        assert!(observer.events.iter().any(|evt| evt
-            .starts_with("failure:2:phase-error:PHASE_PHASE-ERROR: HALTED_WITH_ERROR: BOOM")));
+        assert!(observer
+            .events
+            .iter()
+            .any(|evt| evt.starts_with("failure:2:phase-error:STATUS: HALTED")));
         assert!(observer
             .events
             .iter()
@@ -691,8 +697,10 @@ mod tests {
         );
         assert_eq!(result.errors.len(), 1);
         assert_eq!(result.errors[0].severity, ErrorSeverity::Recoverable);
-        assert!(observer.events.iter().any(|evt| evt
-            .starts_with("failure:2:phase-error:PHASE_PHASE-ERROR: HALTED_WITH_ERROR: BOOM")));
+        assert!(observer
+            .events
+            .iter()
+            .any(|evt| evt.starts_with("failure:2:phase-error:STATUS: HALTED")));
         Ok(())
     }
 

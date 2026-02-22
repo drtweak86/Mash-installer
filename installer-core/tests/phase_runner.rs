@@ -135,6 +135,10 @@ fn build_install_context() -> Result<InstallContext> {
         options,
         platform: platform_ctx,
         ui: UIContext,
+        interaction: installer_core::interaction::InteractionService::new(
+            false,
+            Default::default(),
+        ),
         localization,
         rollback: RollbackManager::new(),
         dry_run_log: DryRunLog::new(),

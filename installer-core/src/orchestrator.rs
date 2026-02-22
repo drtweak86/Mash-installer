@@ -122,6 +122,9 @@ pub fn run_with_driver(
         }
     }
 
+    if !crate::sudo::ensure_sudo_access(observer) {
+        tracing::warn!("Could not verify sudo access. Some phases may fail if they require elevated privileges.");
+    }
     let _sudo_keepalive = crate::sudo::start_sudo_keepalive();
 
     let plat = detect_platform()?;
@@ -135,36 +138,38 @@ pub fn run_with_driver(
         driver.description()
     );
 
-    let is_pi_4b = plat
-        .pi_model
-        .as_ref()
-        .is_some_and(|model| model.contains("Raspberry Pi 4") || model.contains("Pi 4"));
+    let pi_model = plat.pi_model.as_deref().unwrap_or("");
+    let is_pi_4b = pi_model.contains("Raspberry Pi 4") || pi_model.contains("Pi 4");
+    let is_pi_5 = pi_model.contains("Raspberry Pi 5") || pi_model.contains("Pi 5");
 
     if let Some(ref model) = plat.pi_model {
-        info!("Raspberry Pi model: {}", model);
+        info!("STATION_01: HARDWARE_SIGIL IDENTIFIED: {}", model);
         if is_pi_4b {
-            info!("✓ Running on Raspberry Pi 4 - optimal performance!");
+            info!("✓ Optimal performance profile active: Raspberry Pi 4");
+        } else if is_pi_5 {
+            let warning = "⚠ EXPERIMENTAL: Raspberry Pi 5 detected. \
+                           Tuning profiles may be suboptimal. Proceed with caution.";
+            observer.on_event(PhaseEvent::Warning {
+                message: warning.to_string(),
+            });
+            info!("{}", warning);
         }
     }
 
-    if !is_pi_4b {
+    if !is_pi_4b && !is_pi_5 {
         let detected = plat.pi_model.as_deref().unwrap_or("Non-Pi system");
         let warning = format!(
-            "This installer is OPTIMIZED FOR RASPBERRY PI 4B 8GB ONLY.\n\
-             Detected: {detected}\n\
-             Proceeding at your own risk: no performance guarantees, \
-             no bug reports accepted for non-Pi4B systems."
+            "STATION_01: CAUTION: Hardware {} is outside optimal parameters.\n\
+             Proceeding at your own risk: no performance guarantees.",
+            detected
         );
         observer.on_event(PhaseEvent::Warning { message: warning });
 
-        if opts.interactive {
-            if !observer.confirm("Do you understand the risks and want to proceed anyway? [y/N]") {
-                info!("Installation cancelled by user on non-Pi4B system");
-                return Err(warn_non_pi_4b(&opts, driver));
-            }
-            info!("User acknowledged risks and chose to proceed on non-Pi4B system");
-        } else {
-            info!("Non-interactive mode; proceeding despite non-Pi4B platform");
+        if opts.interactive
+            && !observer.confirm("STATION_01: PROCEED WITH SUBOPTIMAL HARDWARE? [y/N]")
+        {
+            info!("Installation cancelled by user on suboptimal hardware");
+            return Err(warn_non_pi_4b(&opts, driver));
         }
     }
 
@@ -201,10 +206,16 @@ pub fn run_with_driver(
         pkg_backend: driver.pkg_backend(),
     };
 
+    let interaction = crate::interaction::InteractionService::new(
+        opts.interactive,
+        platform_ctx.config().interaction.clone(),
+    );
+
     let ctx = InstallContext {
         options,
         platform: platform_ctx,
         ui: UIContext,
+        interaction,
         localization,
         rollback: RollbackManager::new(),
         dry_run_log: DryRunLog::new(),
@@ -280,7 +291,7 @@ fn warn_non_pi_4b(
             "platform_check",
             "Platform compatibility check",
             ErrorSeverity::Fatal,
-            anyhow!("User declined to proceed on non-Pi4B system"),
+            anyhow!("User declined to proceed on suboptimal hardware"),
             InstallerStateSnapshot::from_options(&UserOptionsContext {
                 profile: opts.profile,
                 staging_dir: PathBuf::from("/tmp"),
@@ -291,7 +302,7 @@ fn warn_non_pi_4b(
                 docker_data_root: opts.docker_data_root,
                 software_plan: opts.software_plan.clone(),
             }),
-            Some("This installer is designed for Raspberry Pi 4B only.".to_string()),
+            Some("This installer is optimized for Raspberry Pi 4B and 5.".to_string()),
         ),
     })
 }
@@ -329,15 +340,17 @@ mod tests {
         let registry = PhaseRegistry::default();
         let phases = registry.build_phases(&opts, &strings);
         let names: Vec<_> = phases.iter().map(|p| p.name()).collect();
-        assert_eq!(
-            names,
-            vec![
-                "System packages",
-                "Rust toolchain + cargo tools",
-                "Git, GitHub CLI, SSH",
-                "Pi 4B HDD Tuning",
-            ]
-        );
+        let expected = vec![
+            "System packages",
+            "Filesystem Snapshots",
+            "AI Spirits",
+            "Rust toolchain + cargo tools",
+            "Git, GitHub CLI, SSH",
+            "Pi 4B HDD Tuning",
+        ];
+        for name in expected {
+            assert!(names.contains(&name), "missing phase: {}", name);
+        }
     }
 
     #[test]
