@@ -48,6 +48,10 @@ struct Cli {
     #[arg(long, value_name = "ARCH")]
     arch: Option<String>,
 
+    /// Run in demo mode (simulates UI without installing)
+    #[arg(long)]
+    demo: bool,
+
     /// Use the classic stdio interface instead of the Ratatui TUI
     #[arg(long)]
     no_tui: bool,
@@ -90,7 +94,7 @@ fn main() -> Result<()> {
 
     // ── TUI path (default) ───────────────────────────────────────────────────
     if !cli.no_tui && !cli.non_interactive {
-        return tui::run(drivers, cli.dry_run, cli.continue_on_error)
+        return tui::run(drivers, cli.dry_run || cli.demo, cli.continue_on_error)
             .context("TUI exited with error");
     }
 

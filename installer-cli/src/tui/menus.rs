@@ -11,14 +11,19 @@ use crate::tui::app::{ModuleState, TuiApp, MODULE_LABELS};
 use crate::tui::theme;
 
 const WELCOME_BANNER: &str = r"
-   _______________________________________
-  /                                       \
-  |  * * *  MASH BOOT LOADER v1.0  * * *  |
-  |                                       |
-  |  STATION STATUS: READY                |
-  |  IO MODULES:     LOADED               |
-  |  PHOSPHOR:       STABILIZED           |
-  \_______________________________________/
+  __  __    _    ____  _   _ 
+ |  \/  |  / \  / ___|| | | |
+ | |\/| | / _ \ \___ \| |_| |
+ | |  | |/ ___ \ ___) |  _  |
+ |_|  |_/_/   \_\____/|_| |_|
+ _______________________________________
+/                                       \
+|  * * *  MASH BOOT LOADER v1.0  * * *  |
+|                                       |
+|  STATION STATUS: READY                |
+|  IO MODULES:     LOADED               |
+|  PHOSPHOR:       STABILIZED           |
+\_______________________________________/
 ";
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
@@ -113,7 +118,7 @@ pub fn draw_welcome(f: &mut Frame, area: Rect, _app: &TuiApp) {
     f.render_widget(prompt, chunks[2]);
 
     let footer = Paragraph::new(Span::styled(
-        "OS REV 0.1.6 (C) 1984 MYTHIC ASSEMBLY",
+        "OS REV 0.2.2 (C) 1984 MYTHIC ASSEMBLY",
         theme::dim_style(),
     ))
     .alignment(Alignment::Right);

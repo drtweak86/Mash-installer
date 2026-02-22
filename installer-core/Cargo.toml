@@ -1,6 +1,6 @@
 [package]
 name = "installer-core"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 description = "Core logic and invariants for the mash installer"
 license = "MIT"

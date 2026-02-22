@@ -19,6 +19,11 @@ Phase 2 is a long ballad, and the `runner` and `registry` finally know their sta
 
 The Dragon stirred today. Phase 3 rose from the forge with four new weapons: mount options that whisper `noatime` to spinning platters, and swap configs that place the overflow file on the HDD where it belongs! No more fragile SD cards for this dwarf. I tuned the kernel parameters until the `vm.swappiness` was just right. The dragon didn’t breathe fire—it breathed `sysctl -w`. And I approved with a hearty toast! 🍺🔥
 
+### 🌌 22nd of Deep-Winter, Year of the Digital Dragon
+**Location: The Forge Tavern, Neon District**
+
+The Bard returns with a refined rhythm! Version 0.2.2 has been hammered into shape. We've smoothed the sudo transition with a direct `crossterm` handshake, no more reliance on external prompt crates. The TUI's banners have been enlarged—the MASH sigil now looms bold and retro, as it was meant to be in '84. We also taught the AI spirits to share their GitHub secrets; if one agent knows the token, they all do. The forge is hot, the build is clean, and the release is ready to fly. 🦅⚔️
+
 ### 🛡️ 4th of Spring-Thaw, Year of the Gilded Sigil
 **Location: The High-Vault, Mythic Assembly HQ**
 
