@@ -380,7 +380,7 @@ fn check_memory() -> PreflightCheck {
 }
 
 fn check_cpu() -> PreflightCheck {
-    let cores = num_cpus::get();
+    let cores = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1);
     let status = if cores < MIN_CPU_CORES {
         CheckStatus::Warning
     } else {
