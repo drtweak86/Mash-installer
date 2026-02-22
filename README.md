@@ -9,7 +9,7 @@ MASH-installer is a comprehensive system provisioning tool designed for rapid re
 ### 🚀 Quick Start
 Run the following command to summon the installer directly from the forge:
 ```bash
-sh <(curl -L https://raw.githubusercontent.com/drtweak86/Mash-installer/main/install.sh)
+bash <(curl -L https://raw.githubusercontent.com/drtweak86/Mash-installer/main/install.sh)
 ```
 
 For detailed operating instructions and troubleshooting, see the [MANUAL.md](docs/MANUAL.md).
@@ -47,10 +47,10 @@ shellcheck install.sh
 ```
 
 ## 📜 Documentation
-- 🍺 [Bard's BBS Profile](docs/bard-bbs-profile.md) — The engineer's persona and rules of the forge.
+- 🍺 [Bard's BBS Profile](docs/scratch/bard-bbs-profile.md) — The engineer's persona and rules of the forge.
 - 📖 [History & Journal](docs/HISTORY.md) — The chronicle of the installer's evolution.
 - 🗺️ [Mining Maps](docs/mining-projects/maps.md) — Current session work and future shafts.
-- 🛡️ [Sudo Technical Report](BUG_REPORT_SUDO_TUI.md) — Technical details on TUI password handling.
+- 🛡️ [Sudo Technical Report](docs/scratch/SUDO_TECHNICAL_REPORT.md) — Technical details on TUI password handling.
 
 ## ⚖️ License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

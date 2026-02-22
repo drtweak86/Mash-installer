@@ -1,14 +1,14 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # MASH Installer - The Gate & Guardian
 # (C) 1984 Mythic Assembly & Sigil Heuristics
+# Strictly POSIX-compliant for maximum compatibility across station nodes.
 
-set -euo pipefail
+set -e
 
 # ── Dependency Checks ─────────────────────────────────────────────────────────
 
 check_dependencies() {
-  local deps=("curl" "uname" "mktemp" "chmod")
-  for dep in "${deps[@]}"; do
+  for dep in curl uname mktemp chmod; do
     if ! command -v "$dep" >/dev/null 2>&1; then
       printf "HALTED: Missing essential rune: %s\n" "$dep" >&2
       exit 1
@@ -19,7 +19,6 @@ check_dependencies() {
 # ── Architecture Detection ────────────────────────────────────────────────────
 
 detect_arch() {
-  local raw_arch
   raw_arch=$(uname -m)
   case "$raw_arch" in
     x86_64) echo "x86_64" ;;
@@ -41,16 +40,18 @@ printf "STATION_01: ARCHITECTURE_DETECTED: %s\n" "$target_arch"
 
 # 15s Grace Period
 printf "PRESS CTRL+C WITHIN 15s TO ABORT OR MANUAL SELECT...\n"
-for i in {15..1}; do
+i=15
+while [ "$i" -gt 0 ]; do
   printf "\rPROCEEDING IN %2d SECONDS... " "$i"
   sleep 1
+  i=$((i - 1))
 done
 printf "\rPROCEEDING NOW.               \n"
 
 file="mash-setup-${target_arch}-unknown-linux-gnu"
 url="https://github.com/drtweak86/Mash-installer/releases/latest/download/${file}"
 
-staging_dir="$(mktemp -d "${TMPDIR:-/tmp}/mash-installer.XXXXXXXX")"
+staging_dir=$(mktemp -d)
 trap 'rm -rf "${staging_dir}"' EXIT INT TERM
 
 printf "FETCHING RUNES FROM FORGE...\n"
