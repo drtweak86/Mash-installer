@@ -1079,7 +1079,6 @@ dependencies = [
  "installer-fedora",
  "nix",
  "num_cpus",
- "once_cell",
  "reqwest",
  "serde",
  "serde_json",
