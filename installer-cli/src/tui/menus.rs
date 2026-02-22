@@ -118,7 +118,7 @@ pub fn draw_welcome(f: &mut Frame, area: Rect, _app: &TuiApp) {
     f.render_widget(prompt, chunks[2]);
 
     let footer = Paragraph::new(Span::styled(
-        "OS REV 0.2.2 (C) 1984 MYTHIC ASSEMBLY",
+        "OS REV 0.2.3 (C) 1984 MYTHIC ASSEMBLY",
         theme::dim_style(),
     ))
     .alignment(Alignment::Right);
@@ -539,6 +539,40 @@ pub fn draw_pre_install_confirm(f: &mut Frame, area: Rect, app: &TuiApp) {
             theme::success_style().add_modifier(Modifier::SLOW_BLINK),
         ),
     ]));
+
+    let para = Paragraph::new(Text::from(lines))
+        .style(theme::default_style())
+        .wrap(Wrap { trim: false });
+    f.render_widget(para, inner);
+}
+
+// ── Font Prep screen ─────────────────────────────────────────────────────────
+
+pub fn draw_font_prep(f: &mut Frame, area: Rect, _app: &TuiApp) {
+    let popup = centered_rect(70, 60, area);
+    let block = station_block("FONT RECONNAISSANCE");
+    let inner = block.inner(popup);
+    f.render_widget(block, popup);
+
+    let mut lines: Vec<Line> = vec![
+        Line::from(""),
+        Line::from(Span::styled("STATION_01: FONT_SIGIL VERIFICATION:", theme::title_style())),
+        Line::from(""),
+        Line::from("This station recommends Nerd Fonts (Terminess) for optimal glyph rendering."),
+        Line::from("If emojis or runes are not rendering, this is required."),
+        Line::from(""),
+        Line::from(vec![
+            Span::styled("CAUTION: ", theme::warning_style()),
+            Span::styled("Installing fonts may take several minutes.", theme::default_style()),
+        ]),
+        Line::from(""),
+        Line::from(Span::styled("PROCEED WITH FONT INITIALIZATION? (Y/N)", theme::accent_style())),
+        Line::from(""),
+        Line::from(vec![
+            Span::styled("COMMAND > ", theme::success_style()),
+            Span::styled("_", theme::success_style().add_modifier(Modifier::SLOW_BLINK)),
+        ]),
+    ];
 
     let para = Paragraph::new(Text::from(lines))
         .style(theme::default_style())

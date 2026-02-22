@@ -62,6 +62,7 @@ pub enum Screen {
     SoftwareMode,
     SoftwareSelect,
     Confirm,
+    FontPrep,
     #[allow(dead_code)]
     Password,
     Installing,
@@ -389,6 +390,7 @@ impl TuiApp {
             Screen::SoftwareMode => self.handle_list_key(code, 2),
             Screen::SoftwareSelect => self.handle_software_key(code),
             Screen::Confirm => self.handle_confirm_key(code),
+            Screen::FontPrep => self.handle_font_prep_key(code),
             Screen::Installing => self.handle_installing_key(code),
             Screen::Done | Screen::Error => match code {
                 KeyCode::Up => {
@@ -542,7 +544,7 @@ impl TuiApp {
             // Pre-install confirm screen
             match code {
                 KeyCode::Enter | KeyCode::Char('y') | KeyCode::Char('Y') => {
-                    self.start_install();
+                    self.screen = Screen::FontPrep;
                 }
                 KeyCode::Esc | KeyCode::Char('n') | KeyCode::Char('N') => {
                     self.screen = Screen::SoftwareMode;
@@ -571,6 +573,22 @@ impl TuiApp {
                     let _ = s.reply.send(false);
                     self.screen = Screen::Installing;
                 }
+            }
+            _ => {}
+        }
+    }
+
+    fn handle_font_prep_key(&mut self, code: KeyCode) {
+        match code {
+            KeyCode::Enter | KeyCode::Char('y') | KeyCode::Char('Y') => {
+                // User wants nerd fonts
+                self.push_log("User requested Nerd Font installation.", LogLevel::Info);
+                self.start_install();
+            }
+            KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
+                // User skips nerd fonts
+                self.push_log("Nerd Font installation skipped by user.", LogLevel::Warning);
+                self.start_install();
             }
             _ => {}
         }

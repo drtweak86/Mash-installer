@@ -45,6 +45,13 @@ impl Default for PhaseRegistry {
     fn default() -> Self {
         Self::new(vec![
             PhaseEntry::new(
+                "fonts",
+                "Fonts",
+                "Fonts installed",
+                fonts::install_phase,
+                PhaseGate::Always,
+            ),
+            PhaseEntry::new(
                 "system_packages",
                 "System packages",
                 "System packages installed",
@@ -91,13 +98,6 @@ impl Default for PhaseRegistry {
                 "Shell & UX (zsh, starship)",
                 "Shell & UX ready",
                 zsh::install_phase,
-                PhaseGate::Profile(ProfileLevel::Dev),
-            ),
-            PhaseEntry::new(
-                "fonts",
-                "Fonts",
-                "Fonts installed",
-                fonts::install_phase,
                 PhaseGate::Profile(ProfileLevel::Dev),
             ),
             PhaseEntry::new(

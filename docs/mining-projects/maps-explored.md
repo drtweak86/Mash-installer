@@ -57,5 +57,30 @@ Complete aesthetic transformation from cyberpunk neon to 1984 BBC Micro/UNIX ter
 - ✅ Excavated and operational.
 
 ---
-**Last Updated**: 2026-02-21
+
+## SHAFT D <COMPLETED> ✅
+
+### Summary
+Stability refinement for Debian 13, UI layout restoration, and pre-install Font initialization.
+
+### Technical Analysis
+- **Debian 13 Compatibility**: Identified and resolved `software-properties-common` missing package failure on Debian 13 (Trixie). Implemented package translation to skip non-essential or renamed packages.
+- **Layout Restoration**: Reverted the single-pane station to a more informative 4-panel layout (Main Terminal, System Status, Station Intel, and BBS Console).
+- **Font Initialization**: Implemented an automated "Font Prep" phase that downloads and installs Terminess Nerd Font from GitHub. Added a user opt-out/warning screen to ensure glyph rendering compatibility.
+- **Sudo Robustness**: Continued refinement of the `crossterm`-based sudo password input for the legacy CLI.
+- **MCP Synchronicity**: Enhanced AI Agent configuration to detect and propagate GitHub tokens across multiple platforms (Claude, Zed, Cursor, Code).
+
+### Files Touched
+- `installer-core/src/fonts.rs` (Refactored for manual download)
+- `installer-core/src/phase_registry.rs` (Phase order updated)
+- `installer-debian/src/lib.rs` (Debian 13 package translation)
+- `installer-cli/src/tui/app.rs` (Screen state machine expanded)
+- `installer-cli/src/tui/render.rs` (4-panel layout implemented)
+- `installer-cli/src/tui/menus.rs` (Font Prep UI added)
+
+### Status
+- ✅ Excavated and operational.
+
+---
+**Last Updated**: 2026-02-22
 **Owner**: Bard, Drunken Dwarf Runesmith 🍺⚒️

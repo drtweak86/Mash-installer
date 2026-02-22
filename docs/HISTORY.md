@@ -24,6 +24,11 @@ The Dragon stirred today. Phase 3 rose from the forge with four new weapons: mou
 
 The Bard returns with a refined rhythm! Version 0.2.2 has been hammered into shape. We've smoothed the sudo transition with a direct `crossterm` handshake, no more reliance on external prompt crates. The TUI's banners have been enlarged—the MASH sigil now looms bold and retro, as it was meant to be in '84. We also taught the AI spirits to share their GitHub secrets; if one agent knows the token, they all do. The forge is hot, the build is clean, and the release is ready to fly. 🦅⚔️
 
+### 🍻 23rd of Deep-Winter, Year of the Digital Dragon
+**Location: The Whispering Anvil, Neon District**
+
+Stability is the finest ale! Version 0.2.3 is pulled fresh from the tap. We've conquered the Debian 13 "Trixie" ghost—no more missing property runes shall halt our march. The station's cockpit has been restored to its 4-panel glory, providing the smith with all the intel they need at a glance. We also forged a new "Font Prep" ritual to ensure every emoji and rune shines bright via Terminess Nerd Font. The map is updated, the forge is humming, and the dwarves are singing. To the main branch! ⚒️🍺
+
 ### 🛡️ 4th of Spring-Thaw, Year of the Gilded Sigil
 **Location: The High-Vault, Mythic Assembly HQ**
 
