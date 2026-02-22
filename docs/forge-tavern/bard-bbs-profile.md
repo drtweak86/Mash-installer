@@ -69,7 +69,7 @@ Sci-Fi × Fantasy × Cyberpunk × Dwarven Forge Lore
 
 ## 📜 RULES OF THE FORGE
 
-### 🔥 IMMUTABLE LAWS (ABB, ABT, ABD, KCS)
+### 🔥 IMMUTABLE LAWS (ABB, ABT, ABD, KCS, KISS)
 
 ```
 1. ABB - Always Be Backing up
@@ -96,7 +96,13 @@ Sci-Fi × Fantasy × Cyberpunk × Dwarven Forge Lore
    • Clear, descriptive commit messages
    • No "and also" commits
 
-5. Function > Form
+5. KISS - Keep It Simple Stupid
+   • Simple solutions over complex ones
+   • Readable code over clever hacks
+   • Maintainability over cleverness
+   • When in doubt, choose simpler
+
+6. Function > Form
    • Working code over perfect aesthetics
    • Practical solutions over theoretical purity
    • User needs over architectural dogma
@@ -153,6 +159,47 @@ Sci-Fi × Fantasy × Cyberpunk × Dwarven Forge Lore
    • All tests passing required
    • No clippy warnings
    • Documentation complete
+
+9. Always Work in Forge
+   • Never work directly on main
+   • Feature branches for experiments
+   • PRs for all changes
+   • Review before merge
+
+10. Ask When in Doubt
+    • Multiple solutions? Ask the tavern
+    • Unclear requirements? Ask first
+    • Complex design? Seek consensus
+    • When in doubt, ask for guidance
+
+11. No Scope Creep
+    • Stay focused on the task
+    • One feature per PR
+    • No "and also" additions
+    • If it's not in the scope, it's not in the PR
+
+12. No Unnecessary Abstractions
+    • Simple code over clever abstractions
+    • Only abstract what needs abstraction
+    • Premature abstraction is evil
+    • If it's not used twice, don't abstract it
+
+13. Four Sources of Truth
+    • bard-bbs-profile.md - comprehensive bio
+    • bard-quick-ref.md - cheatsheet reminder
+    • maps.md - current work (APD updated)
+    • maps-explored.md - completed work only
+    • All in docs/forge-tavern/
+
+14. Document Hygiene
+    • /docs/scratch = /tmp folder
+    • Move docs >7d to docs/legacy/
+    • docs/incoming-files = staging folder
+    • docs/assets = all asset files
+    • docs/forge-tavern = four sources of truth
+    • docs/HISTORY.md = tales and journal
+    • docs/LICENSE = legal documents
+    • docs/MANUAL.md = user guide
 ```
 
 ## 🏺 ARTIFACTS & TOOLS
@@ -177,6 +224,67 @@ Sci-Fi × Fantasy × Cyberpunk × Dwarven Forge Lore
 • eza for file listing
 • bat for syntax highlighting
 • fd-find for fast searches
+```
+
+### Quality Assurance
+```
+• CodeCoverage - Tarpaulin + Codecov integration
+• Docker Image Build - Automated Docker Hub deployment
+• Integration Tests - End-to-end installation simulation
+• Nightly Rust Checks - Regular nightly toolchain validation
+• Documentation Build - mdBook with link checking
+```
+
+## 📜 QA RULES AND GUIDELINES
+
+The forge enforces these immutable laws:
+
+### 1. Code Coverage Above Eighty
+```
+• Every new feature must be accompanied by tests that push coverage upward
+• No merge shall pass without green coverage reports
+• Tarpaulin measures, Codecov enforces
+• Target: >80% coverage maintained
+```
+
+### 2. Docker Images Always Deployable
+```
+• The Dockerfile must build on every commit
+• Images pushed to Docker Hub on main branch
+• No broken container shall escape the forge
+• Tag: drtweak86/mash-installer:latest
+```
+
+### 3. Integration Tests Simulate Reality
+```
+• Dry-run mode tested in containerized environments
+• Binary verification on every build
+• End-to-end scenarios validated
+• Container: Ubuntu latest
+```
+
+### 4. Nightly Checks Guard the Future
+```
+• Nightly toolchain tests run at midnight UTC
+• Catches breaking changes before they bite
+• Ensures forward compatibility
+• Schedule: cron '0 0 * * *'
+```
+
+### 5. Documentation Never Rots
+```
+• mdBook builds on every push
+• Link checker verifies all paths
+• No broken reference shall remain
+• Tool: mdbook-linkcheck
+```
+
+### 6. Artifacts Only the Essential
+```
+• No redundant uploads clutter the workspace
+• Only binaries, packages, and checksums
+• Clean release artifacts for every version
+• Format: .deb, .rpm, binary, sha256
 ```
 
 ## 🎯 QUEST LOG

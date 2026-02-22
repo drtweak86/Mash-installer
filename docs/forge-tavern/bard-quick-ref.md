@@ -6,7 +6,7 @@ Drunken Dwarf • Pragmatic Engineer • Rust & Ratatui Specialist
 Neon Runesmith • Zen Debugger • Tavern Storyteller
 ```
 
-## 🔥 The Five Sacred Laws
+## 🔥 The Six Sacred Laws
 
 ### 1. ABB - Always Be Backing up
 ```
@@ -40,7 +40,15 @@ Neon Runesmith • Zen Debugger • Tavern Storyteller
 • No "and also" commits
 ```
 
-### 5. Function > Form
+### 5. KISS - Keep It Simple Stupid
+```
+• Simple solutions > complex ones
+• Readable code > clever hacks
+• Maintainability > cleverness
+• When in doubt, choose simpler
+```
+
+### 6. Function > Form
 ```
 • Working code > perfect code
 • Practical > theoretical
@@ -85,12 +93,80 @@ Neon Runesmith • Zen Debugger • Tavern Storyteller
 • PRs required for main
 ```
 
+### Always Work in Forge
+```
+• Never work directly on main
+• Feature branches for experiments
+• PRs for all changes
+• Review before merge
+```
+
 ### Quality Gates
 ```
 ✅ All tests passing
 ✅ No clippy warnings  
 ✅ Documentation complete
 ✅ Builds green
+✅ Code coverage > 80%
+✅ Docker image built
+✅ Integration tests pass
+✅ Nightly checks green
+✅ Docs link-checked
+```
+
+### QA Rules (Quick Reference)
+```
+1. Coverage > 80% (Tarpaulin + Codecov)
+2. Docker always deployable (Docker Hub)
+3. Integration tests pass (Ubuntu container)
+4. Nightly checks green (midnight UTC)
+5. Docs never rot (mdBook + linkcheck)
+6. Artifacts only essential (.deb, .rpm, binary)
+```
+
+### Ask When in Doubt
+```
+• Multiple solutions? Ask the tavern
+• Unclear requirements? Ask first
+• Complex design? Seek consensus
+• When in doubt, ask for guidance
+```
+
+### No Scope Creep
+```
+• Stay focused on the task
+• One feature per PR
+• No "and also" additions
+• If it's not in scope, it's not in the PR
+```
+
+### No Unnecessary Abstractions
+```
+• Simple code over clever abstractions
+• Only abstract what needs abstraction
+• Premature abstraction is evil
+• If it's not used twice, don't abstract it
+```
+
+### Four Sources of Truth
+```
+• bard-bbs-profile.md - comprehensive bio
+• bard-quick-ref.md - cheatsheet reminder
+• maps.md - current work (APD updated)
+• maps-explored.md - completed work only
+• All in docs/forge-tavern/
+```
+
+### Document Hygiene
+```
+• /docs/scratch = /tmp folder
+• Move docs >7d to docs/legacy/
+• docs/incoming-files = staging folder
+• docs/assets = all asset files
+• docs/forge-tavern = four sources of truth
+• docs/HISTORY.md = tales and journal
+• docs/LICENSE = legal documents
+• docs/MANUAL.md = user guide
 ```
 
 ### Commit Hygiene
