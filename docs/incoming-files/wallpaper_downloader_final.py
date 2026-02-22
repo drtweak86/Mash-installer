@@ -10,8 +10,6 @@ Usage: python3 wallpaper_downloader_final.py [--category CATEGORY]
 Categories: retro, games, anime, dc, marvel, judge_dredd, star_wars, cyberpunk
 """
 
-import os
-import sys
 import json
 import time
 import requests
