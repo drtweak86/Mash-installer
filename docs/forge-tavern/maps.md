@@ -9,7 +9,7 @@ All previous shafts (A through J) are complete. See `maps-explored.md` for full 
 
 ---
 
-## ⛏️ SHAFT K: FORGE HARDENING — ACTIVE
+## ✅ SHAFT K: FORGE HARDENING — COMPLETE
 > *Branch*: `work-shaftj-phase1` → new `work-shaftk-hardening`
 > *Detailed plan*: `docs/scratch/shaft-k.md`
 
@@ -47,20 +47,20 @@ consolidate duplicate crate logic, align deps.
 - [x] K5.1 Aligned `indicatif`: core 0.17 → 0.18 (matches installer-cli)
 - [x] K5.2 Removed dead `which = "4"` from installer-cli (not used in source)
       core keeps `which = "7"` (used in doctor.rs etc.)
-- [ ] K5.3 `once_cell` → `std::sync::OnceLock` migration — DEFERRED to Shaft L
-      (requires reading all once_cell usages; not blocking)
-- [ ] K5.4 Toolchain upgrade 1.93.1 → 1.85.0 — DEFERRED to Shaft L (no CI here to validate)
+- [x] K5.3 `once_cell` → `std::sync::OnceLock` — COMPLETE (sudo_password.rs; dep removed)
+- [x] K5.4 Toolchain — CONFIRMED current (1.93.1 IS stable tip; no upgrade needed)
 - [x] K5.5 Build: fmt clean | clippy clean | build green
 
 ### PHASE 6: SHAFT K COMMIT ✅ COMPLETE — Checkpoint ζ
 - [x] K6.1 Two commits: baseline (f89d203) + hardening (3a7b7e0)
 - [ ] K6.2 Open PR `work-shaftj-phase1` → CI green → merge ← NEXT ACTION
+- Commits: f89d203 | 3a7b7e0 | e4430b2 | dfbfe16
 
 **Risk**: LOW | **Reward**: HIGH
 
 ---
 
-## ⬜ SHAFT L: FINAL RELEASE CLEARANCE — PENDING
+## ⛏️ SHAFT L: FINAL RELEASE CLEARANCE — ACTIVE (after K PR merges)
 > *Starts after Shaft K is merged*
 > *Detailed plan*: `docs/scratch/shaft-l.md`
 
