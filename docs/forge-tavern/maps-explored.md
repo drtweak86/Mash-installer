@@ -3,6 +3,37 @@
 
 ---
 
+## Session: 2026-02-22 – Shaft L + Release Gate + Cron + Laws
+
+### Summary
+Executed the full Shaft L release clearance (all 4 phases), opened PR #35 covering Shaft J+K+L,
+added Immutable Laws 7 (SVR) and 8 (1.0 Threshold), configured cron automation, and bumped all
+crates to v1.0.0. The forge stands ready to tag.
+
+### Deliverables
+- [x] Laws: SVR (Rule 7) and 1.0 Threshold (Rule 8) added to bard-bbs-profile.md and bard-quick-ref.md
+- [x] Cron: mash-branch-prune (weekly Sun 02:00) + mash-doc-hygiene (daily 03:00) live in crontab
+- [x] Cron binaries compiled to ~/.local/bin/ via rustc --edition 2021
+- [x] PR #35 opened: work-shaftj-phase1 → main
+- [x] L Phase 1: verify.rs → pub mod; ai_agents.rs doc comment; software_tiers boundary docs
+- [x] L Phase 2: WallpaperConfig::with_env_keys(); doctor wallpaper API key section; L2.3 confirmed done
+- [x] L Phase 3: HISTORY.md Shaft J+K entries; MANUAL.md full refresh; 4 broken links fixed
+- [x] L Phase 4: release_checklist green; shellcheck clean; all 6 crates bumped to 1.0.0
+- [x] Bug: stale wallpaper_downloader_final.py reference in theme.rs and test fixed (Shaft K Phase 2 deletion)
+- [x] 110 tests passing; clippy clean; fmt clean
+
+### Build Status
+- cargo fmt: clean
+- cargo clippy --all-targets --all-features -- -D warnings: clean
+- cargo test --workspace: 110 tests passing (0 failed)
+- shellcheck install.sh: clean
+- check_docs.rs: clean
+
+### Remaining (post-CI)
+- Merge PR #35 → main → `git tag v1.0.0 && git push --tags` → release pipeline auto-fires
+
+---
+
 ## Session: 2026-02-20 – Block 1: Panic Elimination
 
 ### Summary
