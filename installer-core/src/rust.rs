@@ -38,11 +38,58 @@ pub fn install_phase(ctx: &mut PhaseContext) -> Result<()> {
     // 2. Components
     install_components(ctx)?;
 
-    // 3. Cargo tools (dev+ profile)
+    // 3. Apply Pi 4B optimizations to ~/.cargo/config.toml
+    apply_pi_optimizations(ctx)?;
+
+    // 4. Cargo tools (dev+ profile)
     if ctx.options.profile >= crate::ProfileLevel::Dev {
         install_cargo_tools(ctx)?;
     }
 
+    Ok(())
+}
+
+fn apply_pi_optimizations(ctx: &mut PhaseContext) -> Result<()> {
+    let cargo_config_path = cargo_home().join("config.toml");
+
+    let config_content = r#"# STATION_01: RASPBERRY PI 4B OPTIMIZED FORGE
+# If on Pi 5 or other SBC:
+# 1. Remove [target.aarch64-unknown-linux-gnu] section below
+# 2. Uncomment the safe fallback section at the bottom (remove #)
+
+[target.aarch64-unknown-linux-gnu]
+rustflags = [
+    "-C", "target-cpu=cortex-a72",
+    "-C", "link-arg=-fuse-ld=lld",
+]
+
+[build]
+jobs = 4 # Utilize all 4 cores of the Pi 4B
+
+# SAFE FALLBACK FOR OTHER SYSTEMS
+#[build]
+#rustflags = []
+#jobs = 1 # Safe default
+"#;
+
+    tracing::info!("Applying Pi 4B Rust optimizations to ~/.cargo/config.toml");
+
+    if ctx.options.dry_run {
+        ctx.record_dry_run(
+            "rust_toolchain",
+            "Would apply Pi 4B optimizations to cargo config",
+            Some(cargo_config_path.display().to_string()),
+        );
+        return Ok(());
+    }
+
+    if let Some(parent) = cargo_config_path.parent() {
+        std::fs::create_dir_all(parent).context("creating .cargo directory")?;
+    }
+
+    std::fs::write(&cargo_config_path, config_content).context("writing cargo config.toml")?;
+
+    ctx.record_action("Applied Cortex-A72 optimizations to ~/.cargo/config.toml");
     Ok(())
 }
 
