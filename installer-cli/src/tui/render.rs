@@ -11,12 +11,17 @@ use crate::tui::menus;
 use crate::tui::theme;
 
 const BANNER: &str = r"
-   _______________________________________
-  /                                       \
-  |  MASH INSTALLER v0.1.6 - (C) 1984     |
-  |  MYTHIC ASSEMBLY & SIGIL HEURISTICS   |
-  |  SYSTEM READY.                        |
-  \_______________________________________/
+  __  __    _    ____  _   _ 
+ |  \/  |  / \  / ___|| | | |
+ | |\/| | / _ \ \___ \| |_| |
+ | |  | |/ ___ \ ___) |  _  |
+ |_|  |_/_/   \_\____/|_| |_|
+ _______________________________
+/                               \
+|  MASH INSTALLER v0.2.2        |
+|  (C) 1984 MYTHIC ASSEMBLY     |
+|  SYSTEM READY.                |
+\_______________________________/
 ";
 
 // ── Top-level dispatch ────────────────────────────────────────────────────────
@@ -34,22 +39,24 @@ pub fn draw(f: &mut Frame, app: &TuiApp) {
         Screen::ThemeSelect => menus::draw_theme_select(f, f.area(), app),
         Screen::SoftwareMode => menus::draw_software_mode_select(f, f.area(), app),
         Screen::SoftwareSelect => menus::draw_software_select(f, f.area(), app),
-        Screen::Confirm => {
-            if app.confirm_state.is_some() {
-                menus::draw_mid_install_confirm(f, f.area(), app);
-            } else {
-                menus::draw_pre_install_confirm(f, f.area(), app);
-            }
-        }
-        Screen::Password => {
-            if let Some(state) = &app.password_state {
-                menus::draw_password_prompt(f, f.area(), app, state);
-            }
-        }
-
+        Screen::Confirm => menus::draw_pre_install_confirm(f, f.area(), app),
         Screen::Installing => draw_installing(f, app),
         Screen::Done => draw_summary(f, app, false),
         Screen::Error => draw_summary(f, app, true),
+        // Password state is now handled as an overlay below
+        Screen::Password => draw_installing(f, app),
+    }
+
+    // ── Overlay Modals (Visible on any screen) ────────────────────────────────
+
+    if let Some(state) = &app.password_state {
+        menus::draw_password_prompt(f, f.area(), app, state);
+    }
+
+    if let Some(_state) = &app.confirm_state {
+        if app.screen == Screen::Installing || app.screen == Screen::Password {
+            menus::draw_mid_install_confirm(f, f.area(), app);
+        }
     }
 }
 
@@ -84,6 +91,14 @@ pub fn draw_installing(f: &mut Frame, app: &TuiApp) {
 // ── Terminal Buffer (Action Log + Phases) ─────────────────────────────────────
 
 fn draw_terminal_buffer(f: &mut Frame, area: Rect, app: &TuiApp) {
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(theme::inner_border_type())
+        .border_style(theme::border_style())
+        .style(theme::default_style());
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
     let mut lines: Vec<Line> = Vec::new();
 
     // Small banner at the top of the buffer
@@ -110,7 +125,7 @@ fn draw_terminal_buffer(f: &mut Frame, area: Rect, app: &TuiApp) {
         "[{:_<width$}] {}%",
         "",
         progress,
-        width = area.width as usize - 10
+        width = inner.width as usize - 10
     );
     lines.push(Line::from(Span::styled(bar_text, theme::success_style())));
     lines.push(Line::from(""));
@@ -128,7 +143,7 @@ fn draw_terminal_buffer(f: &mut Frame, area: Rect, app: &TuiApp) {
         lines.push(Line::from(vec![ts_span, msg_span]));
     }
 
-    let visible_height = area.height as usize;
+    let visible_height = inner.height as usize;
     let total_lines = lines.len();
     let start = total_lines.saturating_sub(visible_height);
 
@@ -136,7 +151,7 @@ fn draw_terminal_buffer(f: &mut Frame, area: Rect, app: &TuiApp) {
         .style(theme::default_style())
         .scroll((start as u16, 0))
         .wrap(Wrap { trim: false });
-    f.render_widget(buffer_para, area);
+    f.render_widget(buffer_para, inner);
 }
 
 // ── Status Bar (CPU/RAM/NET/BBS) ──────────────────────────────────────────────

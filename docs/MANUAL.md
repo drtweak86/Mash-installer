@@ -1,4 +1,4 @@
-# 📟 MASH INSTALLER v0.1.6 - OFFICIAL USER MANUAL
+# 📟 MASH INSTALLER v0.2.2 - OFFICIAL USER MANUAL
 > **STATION:** FORGE_TAVERN_BBS
 > **DATE:** 21-FEB-1984 (RE-SYNCED 2026)
 > **FROM:** BARD (RUNESMITH_STATION_01)
@@ -56,7 +56,7 @@ MASH recognizes the following guilds as first-class citizens:
 ```
    _______________________________________
   /                                       
-  |  MASH INSTALLER v0.1.6 - (C) 1984     |
+  |  MASH INSTALLER v0.2.2 - (C) 1984     |
   |  SYSTEM READY.                        |
   |  > _                                  |
   \_______________________________________/

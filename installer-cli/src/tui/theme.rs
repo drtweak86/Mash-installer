@@ -61,3 +61,7 @@ pub fn accent_style() -> Style {
 pub fn outer_border_type() -> BorderType {
     BorderType::Thick
 }
+
+pub fn inner_border_type() -> BorderType {
+    BorderType::Thick
+}

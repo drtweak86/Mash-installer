@@ -35,7 +35,90 @@ pub fn install_phase(ctx: &mut PhaseContext) -> Result<()> {
         }
     }
 
+    // Configure MCP servers if applicable
+    configure_mcp_servers(ctx)?;
+
     Ok(())
+}
+
+fn configure_mcp_servers(ctx: &mut PhaseContext) -> Result<()> {
+    let home = dirs::home_dir().unwrap_or_default();
+    
+    // Common locations for MCP-compatible configurations
+    let config_paths = vec![
+        (home.join(".config/Claude/claude_desktop_config.json"), "mcpServers"),
+        (home.join(".config/Claude Desktop/claude_desktop_config.json"), "mcpServers"),
+        (home.join(".config/zed/settings.json"), "context_servers"),
+        (home.join(".config/Cursor/User/settings.json"), "mcpServers"),
+        (home.join(".config/Code/User/settings.json"), "mcpServers"),
+    ];
+
+    // Try to find an existing GITHUB_PERSONAL_ACCESS_TOKEN in any of these files
+    let mut existing_token = String::new();
+    if !ctx.options.dry_run {
+        for (path, key) in &config_paths {
+            if path.exists() {
+                if let Ok(content) = std::fs::read_to_string(path) {
+                    if let Ok(config) = serde_json::from_str::<serde_json::Value>(&content) {
+                        if let Some(token) = find_github_token(&config, key) {
+                            existing_token = token;
+                            ctx.record_action(format!("Detected existing GitHub token in {}", path.display()));
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    for (path, key) in config_paths {
+        if path.exists() || ctx.options.dry_run {
+            ctx.run_or_record(
+                "AI Spirits",
+                "Configure MCP GitHub Server",
+                Some(format!("Injecting GitHub server into {}", path.display())),
+                |_| {
+                    if ctx.options.dry_run { return Ok(()); }
+                    
+                    let content = std::fs::read_to_string(&path).unwrap_or_else(|_| "{}".to_string());
+                    let mut config: serde_json::Value = serde_json::from_str(&content).unwrap_or(serde_json::json!({}));
+                    
+                    // Create server container if it doesn't exist
+                    if config.get(key).is_none() {
+                        config[key] = serde_json::json!({});
+                    }
+                    
+                    // Add github server
+                    config[key]["github"] = serde_json::json!({
+                        "command": "npx",
+                        "args": ["-y", "@modelcontextprotocol/server-github"],
+                        "env": {
+                            "GITHUB_PERSONAL_ACCESS_TOKEN": existing_token
+                        }
+                    });
+                    
+                    let new_content = serde_json::to_string_pretty(&config)?;
+                    std::fs::write(&path, new_content)?;
+                    Ok(())
+                },
+            )?;
+        }
+    }
+    Ok(())
+}
+
+fn find_github_token(config: &serde_json::Value, key: &str) -> Option<String> {
+    let token = config.get(key)?
+        .get("github")?
+        .get("env")?
+        .get("GITHUB_PERSONAL_ACCESS_TOKEN")?
+        .as_str()?;
+    
+    if token.trim().is_empty() {
+        None
+    } else {
+        Some(token.to_string())
+    }
 }
 
 fn install_claude(ctx: &mut PhaseContext) -> Result<()> {

@@ -11,7 +11,6 @@ use std::{
 
 use tracing::{debug, error, info, warn};
 
-use crate::cmd;
 use crate::phase_runner::PhaseObserver;
 use crate::sudo_password;
 
@@ -31,10 +30,15 @@ pub fn ensure_sudo_access(observer: &mut dyn PhaseObserver) -> bool {
     // 1. Try passwordless sudo first
     let mut test_cmd = Command::new("sudo");
     test_cmd.args(["-n", "-v"]); // -n = non-interactive
+    test_cmd.stdin(Stdio::null());
+    test_cmd.stdout(Stdio::null());
+    test_cmd.stderr(Stdio::null());
 
-    if cmd::run(&mut test_cmd).is_ok() {
-        debug!("sudo access verified (passwordless)");
-        return true;
+    if let Ok(status) = test_cmd.status() {
+        if status.success() {
+            debug!("sudo access verified (passwordless)");
+            return true;
+        }
     }
 
     // 2. If passwordless fails, we need a password
@@ -44,9 +48,9 @@ pub fn ensure_sudo_access(observer: &mut dyn PhaseObserver) -> bool {
             // Store the password globally so cmd::run can use it
             sudo_password::set_sudo_password(pass.clone());
 
-            // Verify the password with sudo -S -v
+            // Verify the password with sudo -S -p "" -v
             let mut verify_cmd = Command::new("sudo");
-            verify_cmd.args(["-S", "-v"]);
+            verify_cmd.args(["-S", "-p", "", "-v"]);
             verify_cmd.stdin(Stdio::piped());
             verify_cmd.stdout(Stdio::null());
             verify_cmd.stderr(Stdio::null());
@@ -82,11 +86,6 @@ pub fn ensure_sudo_access(observer: &mut dyn PhaseObserver) -> bool {
 }
 
 /// Start a background thread to keep sudo alive during long operations.
-///
-/// Note: When running in TUI mode, sudo password prompts may not work properly
-/// due to terminal raw mode. Users should either:
-/// 1. Configure sudo with NOPASSWD for the installer commands, or
-/// 2. Run the installer in non-TUI mode with --no-tui flag
 pub fn start_sudo_keepalive() -> SudoKeepalive {
     let stop_flag = Arc::new(AtomicBool::new(false));
     let flag_clone = stop_flag.clone();
@@ -103,7 +102,7 @@ pub fn start_sudo_keepalive() -> SudoKeepalive {
             let mut cmd = Command::new("sudo");
             // If we have a password, use it
             if let Some(pass) = sudo_password::get_sudo_password() {
-                cmd.args(["-S", "-v"]);
+                cmd.args(["-S", "-p", "", "-v"]);
                 cmd.stdin(Stdio::piped());
                 cmd.stdout(Stdio::null());
                 cmd.stderr(Stdio::null());
@@ -116,6 +115,9 @@ pub fn start_sudo_keepalive() -> SudoKeepalive {
                 }
             } else {
                 cmd.args(["-n", "-v"]);
+                cmd.stdin(Stdio::null());
+                cmd.stdout(Stdio::null());
+                cmd.stderr(Stdio::null());
                 let _ = cmd.status();
             }
 
