@@ -109,6 +109,36 @@ impl Default for WallpaperConfig {
 }
 
 impl WallpaperConfig {
+    /// Override API keys from environment variables.
+    ///
+    /// Reads `MASH_WALLHAVEN_KEY`, `MASH_PEXELS_KEY`, and `MASH_PIXABAY_KEY`.
+    /// Any non-empty value found in the environment takes precedence over the
+    /// current config value.
+    ///
+    /// # Example
+    /// ```no_run
+    /// use installer_core::WallpaperConfig;
+    /// let config = WallpaperConfig::default().with_env_keys();
+    /// ```
+    pub fn with_env_keys(mut self) -> Self {
+        if let Ok(key) = std::env::var("MASH_WALLHAVEN_KEY") {
+            if !key.trim().is_empty() {
+                self.api_keys.wallhaven = Some(key);
+            }
+        }
+        if let Ok(key) = std::env::var("MASH_PEXELS_KEY") {
+            if !key.trim().is_empty() {
+                self.api_keys.pexels = Some(key);
+            }
+        }
+        if let Ok(key) = std::env::var("MASH_PIXABAY_KEY") {
+            if !key.trim().is_empty() {
+                self.api_keys.pixabay = Some(key);
+            }
+        }
+        self
+    }
+
     /// Validates the configuration
     pub fn validate(&self) -> Result<(), WallpaperError> {
         // Validate output directory path
