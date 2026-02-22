@@ -1,7 +1,6 @@
 //! 1984 Retro-Station Rendering — Single-pane command flow.
 
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
-use ratatui::style::Style;
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 use ratatui::Frame;
@@ -18,7 +17,7 @@ const BANNER: &str = r"
  |_|  |_/_/   \_\____/|_| |_|
  _______________________________
 /                               \
-|  MASH INSTALLER v0.2.2        |
+|  MASH INSTALLER v0.2.3        |
 |  (C) 1984 MYTHIC ASSEMBLY     |
 |  SYSTEM READY.                |
 \_______________________________/
@@ -40,6 +39,7 @@ pub fn draw(f: &mut Frame, app: &TuiApp) {
         Screen::SoftwareMode => menus::draw_software_mode_select(f, f.area(), app),
         Screen::SoftwareSelect => menus::draw_software_select(f, f.area(), app),
         Screen::Confirm => menus::draw_pre_install_confirm(f, f.area(), app),
+        Screen::FontPrep => menus::draw_font_prep(f, f.area(), app),
         Screen::Installing => draw_installing(f, app),
         Screen::Done => draw_summary(f, app, false),
         Screen::Error => draw_summary(f, app, true),
@@ -60,32 +60,146 @@ pub fn draw(f: &mut Frame, app: &TuiApp) {
     }
 }
 
-// ── Installing: Single-pane station flow ──────────────────────────────────────
-
 pub fn draw_installing(f: &mut Frame, app: &TuiApp) {
     let area = f.area();
 
-    // Outer chrome - Thick border for that 80s monitor look
+    // Outer Chrome
     let outer = Block::default()
         .borders(Borders::ALL)
         .border_type(theme::outer_border_type())
         .border_style(theme::border_style())
-        .title(Span::styled(" STATION_01 ", theme::title_style()))
+        .title(Span::styled(
+            " STATION_01 : SYSTEM_INITIALIZATION ",
+            theme::title_style(),
+        ))
         .style(theme::default_style());
-    let inner = outer.inner(area);
+    let inner_area = outer.inner(area);
     f.render_widget(outer, area);
 
-    // Split into main buffer and status bar
-    let chunks = Layout::default()
+    // Split into Horizontal: (Main + BBS) and (Stats + Intel)
+    let main_h_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Min(0),     // Left: Main + BBS
+            Constraint::Length(35), // Right: Stats + Intel
+        ])
+        .split(inner_area);
+
+    // Left side: Main buffer (top) and BBS (bottom)
+    let left_v_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Min(0),    // Main terminal buffer
-            Constraint::Length(1), // Status bar
+            Constraint::Length(3), // BBS Console
         ])
-        .split(inner);
+        .split(main_h_chunks[0]);
 
-    draw_terminal_buffer(f, chunks[0], app);
-    draw_status_bar(f, chunks[1], app);
+    // Right side: Stats (top) and Intel (bottom)
+    let right_v_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(10), // System Status
+            Constraint::Min(0),     // Station Intel
+        ])
+        .split(main_h_chunks[1]);
+
+    draw_terminal_buffer(f, left_v_chunks[0], app);
+    draw_bbs_panel(f, left_v_chunks[1], app);
+    draw_stats_panel(f, right_v_chunks[0], app);
+    draw_intel_panel(f, right_v_chunks[1], app);
+}
+
+// ── BBS Panel (Panel 4) ──────────────────────────────────────────────────────
+
+fn draw_bbs_panel(f: &mut Frame, area: Rect, app: &TuiApp) {
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(theme::inner_border_type())
+        .border_style(theme::border_style())
+        .title(Span::styled(" BBS_CONSOLE ", theme::accent_style()))
+        .style(theme::default_style());
+
+    let text = Paragraph::new(app.bbs_msg.clone())
+        .style(theme::success_style())
+        .alignment(Alignment::Left)
+        .block(block);
+
+    f.render_widget(text, area);
+}
+
+// ── Stats Panel (Panel 2) ─────────────────────────────────────────────────────
+
+fn draw_stats_panel(f: &mut Frame, area: Rect, app: &TuiApp) {
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(theme::inner_border_type())
+        .border_style(theme::border_style())
+        .title(Span::styled(" SYSTEM_STATUS ", theme::accent_style()))
+        .style(theme::default_style());
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    let s = &app.sys_stats;
+    let ram_pct = if s.ram_total_mb > 0 {
+        (s.ram_used_mb * 100 / s.ram_total_mb).min(100)
+    } else {
+        0
+    };
+
+    let stats_text = vec![
+        Line::from(vec![
+            Span::styled(" CPU: ", theme::dim_style()),
+            Span::styled(format!("{:3}%", s.cpu_pct as u16), theme::success_style()),
+        ]),
+        Line::from(vec![
+            Span::styled(" RAM: ", theme::dim_style()),
+            Span::styled(format!("{:3}%", ram_pct), theme::success_style()),
+        ]),
+        Line::from(vec![
+            Span::styled(" NET: ", theme::dim_style()),
+            Span::styled(format!("{:.1}kB/s", s.net_rx_kbps), theme::success_style()),
+        ]),
+        Line::from(vec![
+            Span::styled(" I/O: ", theme::dim_style()),
+            Span::styled("STABLE", theme::success_style()),
+        ]),
+    ];
+
+    let para = Paragraph::new(stats_text).alignment(Alignment::Left);
+    f.render_widget(para, inner);
+}
+
+// ── Intel Panel (Panel 3) ─────────────────────────────────────────────────────
+
+fn draw_intel_panel(f: &mut Frame, area: Rect, _app: &TuiApp) {
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(theme::inner_border_type())
+        .border_style(theme::border_style())
+        .title(Span::styled(" STATION_INTEL ", theme::accent_style()))
+        .style(theme::default_style());
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    // Random bits of lore / info
+    let info = vec![
+        Line::from(Span::styled("> TARGET: PI_4B", theme::dim_style())),
+        Line::from(Span::styled("> OS: MASH_REV_0.2.3", theme::dim_style())),
+        Line::from(Span::styled("> STATUS: OPTIMAL", theme::dim_style())),
+        Line::from(""),
+        Line::from(Span::styled(
+            "RECOVERY RUNES ACTIVE",
+            theme::success_style(),
+        )),
+        Line::from(""),
+        Line::from(Span::styled("Drink your ale.", theme::accent_style())),
+        Line::from(Span::styled("Trust the forge.", theme::accent_style())),
+    ];
+
+    let para = Paragraph::new(info)
+        .alignment(Alignment::Left)
+        .wrap(Wrap { trim: true });
+    f.render_widget(para, inner);
 }
 
 // ── Terminal Buffer (Action Log + Phases) ─────────────────────────────────────
@@ -152,28 +266,6 @@ fn draw_terminal_buffer(f: &mut Frame, area: Rect, app: &TuiApp) {
         .scroll((start as u16, 0))
         .wrap(Wrap { trim: false });
     f.render_widget(buffer_para, inner);
-}
-
-// ── Status Bar (CPU/RAM/NET/BBS) ──────────────────────────────────────────────
-
-fn draw_status_bar(f: &mut Frame, area: Rect, app: &TuiApp) {
-    let s = &app.sys_stats;
-    let cpu = s.cpu_pct as u16;
-    let ram_pct = if s.ram_total_mb > 0 {
-        (s.ram_used_mb * 100 / s.ram_total_mb).min(100) as u16
-    } else {
-        0
-    };
-
-    let status_line = format!(
-        "CPU:{:3}% | RAM:{:3}% | NET:{:.1}kB/s | BBS: {}",
-        cpu, ram_pct, s.net_rx_kbps, app.bbs_msg
-    );
-
-    let para = Paragraph::new(status_line)
-        .style(Style::default().fg(theme::BLACK).bg(theme::GREEN))
-        .alignment(Alignment::Left);
-    f.render_widget(para, area);
 }
 
 // ── Done / Error summary ──────────────────────────────────────────────────────
