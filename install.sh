@@ -59,4 +59,5 @@ curl -fsSL -o "${staging_dir}/${file}" "${url}"
 chmod +x "${staging_dir}/${file}"
 
 printf "BOOTING MASH OPERATING SYSTEM...\n"
-exec "${staging_dir}/${file}" --arch "${target_arch}" "$@"
+# KISS: Remove the --arch flag. The binary is already arch-specific.
+exec "${staging_dir}/${file}" "$@"

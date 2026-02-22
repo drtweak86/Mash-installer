@@ -90,7 +90,7 @@ fn main() -> Result<()> {
 
     // ── TUI path (default) ───────────────────────────────────────────────────
     if !cli.no_tui && !cli.non_interactive {
-        return tui::run(drivers, cli.dry_run, cli.continue_on_error, cli.arch)
+        return tui::run(drivers, cli.dry_run, cli.continue_on_error)
             .context("TUI exited with error");
     }
 
