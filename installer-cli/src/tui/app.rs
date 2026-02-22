@@ -902,7 +902,6 @@ pub fn run(
     drivers: Vec<&'static dyn DistroDriver>,
     dry_run: bool,
     continue_on_error: bool,
-    arch: Option<String>,
 ) -> anyhow::Result<()> {
     let _guard = TerminalGuard::enter()?;
     let backend = CrosstermBackend::new(io::stdout());
@@ -918,9 +917,9 @@ pub fn run(
     app.dry_run = dry_run;
     app.continue_on_error = continue_on_error;
 
-    if let Some(a) = arch {
-        app.handle_auto_arch(a);
-    }
+    // KISS: Internal detection is the source of truth
+    let arch = std::env::consts::ARCH.to_string();
+    app.handle_auto_arch(arch);
 
     let tick_rate = Duration::from_millis(250);
     let mut last_tick = Instant::now();
