@@ -87,6 +87,25 @@ All previous shafts (A through J) are complete. See `maps-explored.md` for full 
 
 ---
 
+## ⏳ SESSION 2026-02-23 — CI UNBLOCKING + MERGE PREP (IN PROGRESS)
+
+**Commits pushed this session** (branch: `work-shaftj-phase1`):
+- `3abf4bd` fix: aarch64 cross-compile — switch to rustls-tls, harden doc CI
+- `11c875f` feat: CLI — wire doctor/config subcommands + bard easter egg
+- `4c66539` docs: hygiene — move release scratch docs; add mdBook sources
+- `ff09418` chore: remove orphaned root src/main.rs
+- `4fadf1f` merge: sync origin/main (release v1.0.0 bump) → resolve MANUAL.md conflict
+
+**Status** (2026-02-23):
+- PR #35: OPEN | MERGEABLE (conflict resolved) | CI ⏳ running
+- No v1.0.0 tag yet
+- Note: PR #36 (another session) already merged a version bump to main — absorbed into our merge commit
+
+**Next** (this session):
+- CI green on PR #35 → merge → `git tag v1.0.0 && git push --tags`
+
+---
+
 ## AWAITING MERGE → TAG → RELEASE
 
 ```
@@ -95,6 +114,7 @@ PR #35 CI ──► MERGE ──► git tag v1.0.0 ──► git push --tags ─
 
 After merge completes, from main:
 ```bash
+git checkout main && git pull origin main
 git tag v1.0.0
 git push --tags
 ```
@@ -114,5 +134,5 @@ git push --tags
 
 ---
 
-**Last Updated**: 2026-02-22
+**Last Updated**: 2026-02-23
 **Owner**: Bard, Drunken Dwarf Runesmith 🍺⚒️
