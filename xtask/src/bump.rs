@@ -1,9 +1,8 @@
-use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-fn get_workspace_members(content: &str) -> Vec<String> {
+fn get_workspace_members(root: &Path, content: &str) -> Vec<String> {
     let workspace_start = match content.find("[workspace]") {
         Some(p) => p,
         None => return Vec::new(),
@@ -25,12 +24,11 @@ fn get_workspace_members(content: &str) -> Vec<String> {
     after_members[open + 1..close]
         .split(',')
         .map(|s| s.trim().trim_matches('"').trim().to_string())
-        .filter(|s| !s.is_empty() && Path::new(s).is_dir())
+        .filter(|s| !s.is_empty() && root.join(s).is_dir())
         .collect()
 }
 
 fn get_current_version(content: &str) -> Option<String> {
-    // Find the first `version = "X.Y.Z"` that looks like a semver
     for line in content.lines() {
         let line = line.trim();
         if line.starts_with("version") && line.contains('"') {
@@ -51,10 +49,7 @@ fn get_current_version(content: &str) -> Option<String> {
 }
 
 fn bump_version(current: &str, bump_type: &str) -> Result<String, String> {
-    let parts: Result<Vec<u32>, _> = current
-        .split('.')
-        .map(|p| p.parse::<u32>())
-        .collect();
+    let parts: Result<Vec<u32>, _> = current.split('.').map(|p| p.parse::<u32>()).collect();
     let mut parts = parts.map_err(|e| format!("Invalid version '{}': {}", current, e))?;
     if parts.len() != 3 {
         return Err(format!("Expected X.Y.Z, got: {}", current));
@@ -72,19 +67,22 @@ fn bump_version(current: &str, bump_type: &str) -> Result<String, String> {
         "patch" => {
             parts[2] += 1;
         }
-        other => return Err(format!("Unknown bump type: {}. Use patch, minor, or major.", other)),
+        other => {
+            return Err(format!(
+                "Unknown bump type: {}. Use patch, minor, or major.",
+                other
+            ))
+        }
     }
     Ok(format!("{}.{}.{}", parts[0], parts[1], parts[2]))
 }
 
 fn update_file(path: &Path, old: &str, new: &str) -> Result<(), std::io::Error> {
     let content = fs::read_to_string(path)?;
-    // Replace `version = "OLD"` entries (Cargo.toml style)
     let updated = content.replace(
         &format!("version = \"{}\"", old),
         &format!("version = \"{}\"", new),
     );
-    // Also replace bare version strings in doc/UI files
     let updated = updated.replace(old, new);
     if updated != content {
         println!("  Updating {}: {} -> {}", path.display(), old, new);
@@ -112,26 +110,29 @@ fn run_command(cmd: &str, args: &[&str]) -> Result<(), String> {
     Ok(())
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args: Vec<String> = env::args().collect();
-    if args.len() < 2 || !["patch", "minor", "major"].contains(&args[1].as_str()) {
-        eprintln!("Usage: auto_bump <patch|minor|major>");
-        std::process::exit(1);
-    }
-    let bump_type = &args[1];
+pub fn run(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    let bump_type = match args.first().map(String::as_str) {
+        Some(t) if ["patch", "minor", "major"].contains(&t) => t,
+        _ => {
+            eprintln!("Usage: cargo xtask bump <patch|minor|major>");
+            std::process::exit(1);
+        }
+    };
 
-    let root = env::current_dir()?;
+    let root = crate::project_root();
     let root_cargo = root.join("Cargo.toml");
     let root_content = fs::read_to_string(&root_cargo)?;
 
-    let current = get_current_version(&root_content)
-        .ok_or("Version not found in root Cargo.toml")?;
+    let current =
+        get_current_version(&root_content).ok_or("Version not found in root Cargo.toml")?;
     let new_version = bump_version(&current, bump_type)?;
 
-    println!("Bumping version: {} -> {} ({})", current, new_version, bump_type);
+    println!(
+        "Bumping version: {} -> {} ({})",
+        current, new_version, bump_type
+    );
 
-    // Collect all Cargo.toml files from workspace members
-    let members = get_workspace_members(&root_content);
+    let members = get_workspace_members(&root, &root_content);
     let mut files: Vec<PathBuf> = vec![root_cargo];
     for member in &members {
         let member_cargo = root.join(member).join("Cargo.toml");
@@ -140,7 +141,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Add doc and UI files that embed the version string
     for extra in &[
         "docs/MANUAL.md",
         "installer-cli/src/tui/render.rs",

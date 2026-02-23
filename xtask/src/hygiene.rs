@@ -8,7 +8,7 @@ const INCOMING_DIR: &str = "docs/incoming-files";
 const ASSETS_DIR: &str = "docs/assets";
 const FORGE_TAVERN_DIR: &str = "docs/forge-tavern";
 
-fn ensure_dirs() -> std::io::Result<()> {
+fn ensure_dirs(root: &Path) -> std::io::Result<()> {
     for dir in &[
         SCRATCH_DIR,
         LEGACY_DIR,
@@ -16,7 +16,7 @@ fn ensure_dirs() -> std::io::Result<()> {
         ASSETS_DIR,
         FORGE_TAVERN_DIR,
     ] {
-        fs::create_dir_all(dir)?;
+        fs::create_dir_all(root.join(dir))?;
     }
     println!("Directories verified.");
     Ok(())
@@ -31,19 +31,18 @@ fn file_age_days(path: &Path) -> u64 {
         .unwrap_or(0)
 }
 
-fn move_old_scratch_files() -> std::io::Result<()> {
+fn move_old_scratch_files(root: &Path) -> std::io::Result<()> {
     println!("Moving files older than 7 days from scratch to legacy...");
-    let scratch = Path::new(SCRATCH_DIR);
-    let legacy = Path::new(LEGACY_DIR);
+    let scratch = root.join(SCRATCH_DIR);
+    let legacy = root.join(LEGACY_DIR);
     let mut moved = 0usize;
 
-    if let Ok(entries) = fs::read_dir(scratch) {
+    if let Ok(entries) = fs::read_dir(&scratch) {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_file() && file_age_days(&path) > 7 {
                 let dest = legacy.join(path.file_name().unwrap());
                 println!("  Moving: {} -> {}", path.display(), dest.display());
-                // rename first; if cross-device, fall back to copy+delete
                 if fs::rename(&path, &dest).is_err() {
                     fs::copy(&path, &dest)?;
                     fs::remove_file(&path)?;
@@ -100,21 +99,25 @@ fn show_hierarchy() {
     println!("└── LICENSE              # Legal");
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+pub fn run(_args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     println!("Starting Document Hygiene...\n");
+    let root = crate::project_root();
 
-    ensure_dirs()?;
-    move_old_scratch_files()?;
+    ensure_dirs(&root)?;
+    move_old_scratch_files(&root)?;
 
     println!("\nDocument counts:");
-    println!("  scratch:      {}", count_files(Path::new(SCRATCH_DIR)));
-    println!("  legacy:       {}", count_files(Path::new(LEGACY_DIR)));
-    println!("  incoming:     {}", count_files(Path::new(INCOMING_DIR)));
-    println!("  assets:       {}", count_files(Path::new(ASSETS_DIR)));
-    println!("  forge-tavern: {}", count_files(Path::new(FORGE_TAVERN_DIR)));
+    println!("  scratch:      {}", count_files(&root.join(SCRATCH_DIR)));
+    println!("  legacy:       {}", count_files(&root.join(LEGACY_DIR)));
+    println!("  incoming:     {}", count_files(&root.join(INCOMING_DIR)));
+    println!("  assets:       {}", count_files(&root.join(ASSETS_DIR)));
+    println!(
+        "  forge-tavern: {}",
+        count_files(&root.join(FORGE_TAVERN_DIR))
+    );
 
     println!("\nCleaning empty scratch subdirs...");
-    remove_empty_subdirs(Path::new(SCRATCH_DIR));
+    remove_empty_subdirs(&root.join(SCRATCH_DIR));
 
     show_hierarchy();
     println!("\nDocument Hygiene Complete.");
