@@ -56,22 +56,66 @@ struct Cli {
     /// Use the classic stdio interface instead of the Ratatui TUI
     #[arg(long)]
     no_tui: bool,
+
+    /// Hidden bardic rune — you found it, traveler (not shown in --help)
+    #[arg(long, hide = true)]
+    bard: bool,
 }
 
 #[derive(Subcommand)]
 enum CliCommand {
+    /// Show the software catalog
     Catalog {
+        /// Output in JSON format
         #[arg(long)]
         json: bool,
     },
+    /// Run system diagnostics and pre-flight checks
+    Doctor {
+        /// Output format (pretty or json)
+        #[arg(long, value_enum, default_value_t = installer_core::DoctorOutput::Pretty)]
+        format: installer_core::DoctorOutput,
+    },
+    /// Manage configuration
+    Config {
+        #[command(subcommand)]
+        action: ConfigAction,
+    },
+}
+
+#[derive(Subcommand)]
+enum ConfigAction {
+    /// Initialize default configuration file
+    Init,
+    /// Show current configuration
+    Show,
 }
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    if let Some(CliCommand::Catalog { json }) = cli.command {
-        let catalog = installer_core::catalog::curated_catalog();
-        return catalog::print_catalog(&catalog, json);
+    if cli.bard {
+        print_bard_easter_egg();
+        return Ok(());
+    }
+
+    match cli.command {
+        Some(CliCommand::Catalog { json }) => {
+            let catalog = installer_core::catalog::curated_catalog();
+            return catalog::print_catalog(&catalog, json);
+        }
+        Some(CliCommand::Doctor { format }) => {
+            let mut stdout = io::stdout();
+            return installer_core::run_doctor(format, &mut stdout);
+        }
+        Some(CliCommand::Config { action }) => {
+            let mut stdout = io::stdout();
+            return match action {
+                ConfigAction::Init => installer_core::init_config(&mut stdout),
+                ConfigAction::Show => installer_core::show_config(&mut stdout),
+            };
+        }
+        None => {}
     }
 
     let config_service = ConfigService::load()?;
@@ -152,6 +196,38 @@ fn main() -> Result<()> {
 
     let mut observer = ui_legacy::CliPhaseObserver::new();
     run_installer_with_ui(driver, options, &mut observer).context("installer failed")
+}
+
+fn print_bard_easter_egg() {
+    println!();
+    println!("╔══════════════════════════════════════════════════════════════╗");
+    println!("║   🍺  DRUNKEN DWARF BARD — SECRET RUNE DISCOVERED  🔥        ║");
+    println!("╚══════════════════════════════════════════════════════════════╝");
+    println!();
+    println!("  You found the hidden glyph, traveler. Well forged.");
+    println!();
+    println!("  ⚒   MYTHIC ASSEMBLY & SIGIL HEURISTICS — v1.0.0");
+    println!("      \"The Threshold Is Crossed.\"");
+    println!();
+    println!("  Race:   Drunken Dwarf");
+    println!("  Class:  Part-Time Bard, Full-Time Runesmith");
+    println!("  Home:   Forge Tavern, Neon District");
+    println!("  Addr:   127.0.0.1  (no place like home)");
+    println!();
+    println!("  ┌─────────────────────────────────────────────────────────┐");
+    println!("  │  \"May your builds be green,                             │");
+    println!("  │   Your tests be comprehensive,                          │");
+    println!("  │   Your documentation complete,                          │");
+    println!("  │   And your commits atomic.                              │");
+    println!("  │   Raise a tankard to the forge!\"                        │");
+    println!("  └─────────────────────────────────────────────────────────┘");
+    println!();
+    println!("  8 Sacred Laws: ABB · ABT · ABD · KCS · KISS · F>F · SVR · 1.0");
+    println!("  Forged on:     Raspberry Pi 4B (aarch64)");
+    println!("  Stack:         100% pure Rust · Ratatui TUI · clippy clean");
+    println!();
+    println!("                 🍺  Stay thirsty, keep smithing.  🔥");
+    println!();
 }
 
 fn parse_profile_level(s: &str) -> Result<ProfileLevel> {

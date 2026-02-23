@@ -48,11 +48,11 @@ mod zsh;
 use crate::{dry_run::DryRunLog, localization::Localization};
 
 pub use backend::PkgBackend;
-pub use config::{ConfigError, MashConfig};
+pub use config::{init_config, show_config, ConfigError, MashConfig};
 pub use context::{
     ConfigOverrides, ConfigService, PhaseContext, PlatformContext, UIContext, UserOptionsContext,
 };
-pub use doctor::DoctorOutput;
+pub use doctor::{run_doctor, DoctorOutput};
 pub use driver::{AptRepoConfig, DistroDriver, RepoKind, ServiceName};
 pub use error::{
     DriverInfo, ErrorSeverity, InstallationReport, InstallerError, InstallerRunError,
