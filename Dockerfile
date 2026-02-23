@@ -14,13 +14,16 @@ COPY installer-arch/Cargo.toml installer-arch/
 COPY installer-debian/Cargo.toml installer-debian/
 COPY installer-fedora/Cargo.toml installer-fedora/
 COPY wallpaper-downloader/Cargo.toml wallpaper-downloader/
+COPY xtask/Cargo.toml xtask/
 
 # Create placeholder source files so cargo can parse manifests without source trees.
 # These are replaced by the real COPY steps below.
 RUN mkdir -p installer-cli/src installer-core/src \
              installer-arch/src installer-debian/src \
              installer-fedora/src wallpaper-downloader/src \
+             xtask/src \
     && echo 'fn main() {}' > installer-cli/src/main.rs \
+    && echo 'fn main() {}' > xtask/src/main.rs \
     && touch installer-core/src/lib.rs \
              installer-arch/src/lib.rs \
              installer-debian/src/lib.rs \

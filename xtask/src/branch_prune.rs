@@ -28,7 +28,7 @@ fn get_branch_age_days(branch: &str) -> u64 {
 }
 
 fn prune_old_branches() {
-    println!("🗑️ Pruning branches older than 7 days...");
+    println!("Pruning branches older than 7 days...");
 
     let output = Command::new("git")
         .args(["branch", "--format=%(refname:short)"])
@@ -43,7 +43,7 @@ fn prune_old_branches() {
         .collect();
 
     if branches.is_empty() {
-        println!("  ✅ No branches to prune (only main and forge exist)");
+        println!("  No branches to prune (only main and forge exist)");
         return;
     }
 
@@ -51,17 +51,17 @@ fn prune_old_branches() {
     for branch in &branches {
         let age = get_branch_age_days(branch);
         if age > 7 {
-            println!("    🗑️  Pruning {} (age: {} days)", branch, age);
+            println!("    Pruning {} (age: {} days)", branch, age);
             let _ = Command::new("git").args(["branch", "-D", branch]).status();
         } else {
-            println!("    🔄  Keeping {} (age: {} days)", branch, age);
+            println!("    Keeping {} (age: {} days)", branch, age);
         }
     }
-    println!("✅ Branch pruning complete");
+    println!("Branch pruning complete");
 }
 
 fn check_remote_branches() {
-    println!("🌐 Checking remote branches...");
+    println!("Checking remote branches...");
 
     let output = Command::new("git")
         .args(["branch", "-r", "--format=%(refname:short)"])
@@ -72,11 +72,13 @@ fn check_remote_branches() {
     let branches: Vec<&str> = branches_str
         .lines()
         .map(|l| l.trim())
-        .filter(|&l| !l.is_empty() && l != "origin/main" && l != "origin/forge" && !l.contains("HEAD"))
+        .filter(|&l| {
+            !l.is_empty() && l != "origin/main" && l != "origin/forge" && !l.contains("HEAD")
+        })
         .collect();
 
     if branches.is_empty() {
-        println!("  ✅ No remote branches to check (only main and forge exist)");
+        println!("  No remote branches to check (only main and forge exist)");
         return;
     }
 
@@ -85,41 +87,46 @@ fn check_remote_branches() {
         let age = get_branch_age_days(branch);
         println!("    - {} (age: {} days)", branch, age);
     }
-    println!("✅ Remote branch check complete");
+    println!("Remote branch check complete");
 }
 
 fn show_branch_status() {
-    println!("🌿 Current Branch Status:");
-    println!("");
-
+    println!("Current Branch Status:");
+    println!();
     println!("  Local branches:");
     let _ = Command::new("git")
-        .args(["branch", "--format=    %(refname:short) %(committerdate:short)"])
+        .args([
+            "branch",
+            "--format=    %(refname:short) %(committerdate:short)",
+        ])
         .status();
-
-    println!("
-  Remote branches:");
+    println!("  Remote branches:");
     let _ = Command::new("git")
-        .args(["branch", "-r", "--format=    %(refname:short) %(committerdate:short)"])
+        .args([
+            "branch",
+            "-r",
+            "--format=    %(refname:short) %(committerdate:short)",
+        ])
         .status();
-    println!("");
+    println!();
 }
 
 fn show_policy() {
-    println!("📜 Branch Policy:");
-    println!("");
-    println!("  ✅ Protected branches: main, forge");
-    println!("  🗑️  Prune branches: older than 7 days");
-    println!("  💡 Recommendation: Use feature branches for work");
-    println!("  📝 Documentation: docs/forge-tavern/bard-quick-ref.md");
-    println!("");
+    println!("Branch Policy:");
+    println!();
+    println!("  Protected branches: main, forge");
+    println!("  Prune branches:     older than 7 days");
+    println!("  Recommendation:     use feature branches for work");
+    println!("  Documentation:      docs/forge-tavern/bard-quick-ref.md");
+    println!();
 }
 
-fn main() {
-    println!("🌱 Starting Branch Pruning...");
+pub fn run(_args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    println!("Starting Branch Pruning...");
     prune_old_branches();
     check_remote_branches();
     show_branch_status();
     show_policy();
-    println!("🎉 Branch Pruning Complete!");
+    println!("Branch Pruning Complete!");
+    Ok(())
 }

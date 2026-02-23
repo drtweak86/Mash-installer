@@ -42,13 +42,14 @@ fn collect_md_files(dir: &Path, files: &mut Vec<PathBuf>) {
     }
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let root = std::env::current_dir()?;
+/// Core check logic — returns true if all links are valid.
+/// Called by release_check::run() as well as directly via `cargo xtask check-docs`.
+pub fn check(root: &Path) -> bool {
     let docs_dir = root.join("docs");
 
     if !docs_dir.exists() {
         eprintln!("docs/ directory not found at {}", docs_dir.display());
-        std::process::exit(1);
+        return false;
     }
 
     let mut md_files = Vec::new();
@@ -72,7 +73,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             let target = md_path.parent().unwrap().join(link_path);
             if !target.exists() {
-                let rel = md_path.strip_prefix(&root).unwrap_or(md_path);
+                let rel = md_path.strip_prefix(root).unwrap_or(md_path);
                 missing.push((rel.to_path_buf(), link.to_string()));
             }
         }
@@ -80,12 +81,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if missing.is_empty() {
         println!("Documentation link check passed.");
-        Ok(())
+        true
     } else {
         println!("Broken documentation references detected:");
         for (source, target) in &missing {
             println!("  {} -> {}", source.display(), target);
         }
+        false
+    }
+}
+
+pub fn run(_args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    let root = crate::project_root();
+    if check(&root) {
+        Ok(())
+    } else {
         std::process::exit(1);
     }
 }

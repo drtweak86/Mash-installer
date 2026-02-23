@@ -1,4 +1,3 @@
-use std::env;
 use std::fs;
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -64,12 +63,16 @@ fn run_hardware_tests(log_path: &str) -> bool {
     }
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args: Vec<String> = env::args().collect();
-    let mode = args.get(1).map(String::as_str).unwrap_or("maelstrom");
+pub fn run(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+    let mode = args.first().map(String::as_str).unwrap_or("maelstrom");
+    let root = crate::project_root();
 
-    fs::create_dir_all(".logs")?;
-    let log_path = format!(".logs/test-{}-{}.log", mode, timestamp());
+    let logs_dir = root.join(".logs");
+    fs::create_dir_all(&logs_dir)?;
+    let log_path = logs_dir
+        .join(format!("test-{}-{}.log", mode, timestamp()))
+        .display()
+        .to_string();
 
     let success = match mode {
         "maelstrom" => {
@@ -109,9 +112,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if success {
         println!("\nTests passed. Log: {}", log_path);
+        Ok(())
     } else {
         eprintln!("\nTests failed. Log: {}", log_path);
         std::process::exit(1);
     }
-    Ok(())
 }

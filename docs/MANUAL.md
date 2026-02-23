@@ -185,6 +185,51 @@ If you encounter a **HALTED** status:
 
 ---
 
+## 🛠️ DEVELOPER WORKFLOW
+
+### Daily Tools (`cargo xtask`)
+
+All project tooling lives in the `xtask/` crate. Run with `cargo xtask <subcommand>`:
+
+| Subcommand       | Description                                      |
+|------------------|--------------------------------------------------|
+| `check-docs`     | Check for broken markdown links in `docs/`       |
+| `bump`           | Bump version: `cargo xtask bump <patch\|minor\|major>` |
+| `release-check`  | Pre-release gate: fmt + clippy + tests + docs    |
+| `hygiene`        | Move old scratch docs (>7 days) to `docs/legacy/`|
+| `branch-prune`   | Delete local branches older than 7 days          |
+| `test-infra`     | Run tests (maelstrom mode or fallback to cargo)  |
+| `test-theme`     | Verify theme resource files and module structure |
+
+### Release Workflow
+
+```bash
+# 1. Install once
+cargo install cargo-release
+
+# 2. Dry-run (no changes committed or tagged)
+cargo release patch
+
+# 3. Execute the release
+cargo release patch --execute
+```
+
+`cargo release` will:
+1. Run `cargo xtask release-check` (fmt + clippy + tests + doc links)
+2. Bump all workspace crate versions in sync
+3. Update version strings in `docs/MANUAL.md`
+4. Commit with `chore: bump version to X.Y.Z`
+5. Create and push `vX.Y.Z` tag → release pipeline auto-fires
+
+### Cron Tasks (auto-managed)
+
+| Cron binary               | Schedule         | What it does           |
+|---------------------------|------------------|------------------------|
+| `mash-doc-hygiene`        | Daily 03:00      | `cargo xtask hygiene`  |
+| `mash-branch-prune`       | Sunday 02:00     | `cargo xtask branch-prune` |
+
+---
+
 ## 🏗️ ARCHITECTURE NOTES
 
 - Binary: `mash-setup` (single statically-linked binary for aarch64 and x86_64)
