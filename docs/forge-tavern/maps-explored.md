@@ -47,9 +47,22 @@ f5d5134 docs: maps.md — record session 2026-02-23 CI unblocking work
 d9ded60 refactor: Shaft K/L forge hardening + wallpaper Rust + release v1.0.0 [MERGE]
 ```
 
-### Release
-- Tag: `v1.0.0` pushed 2026-02-23
-- GitHub Actions release pipeline: .deb, .rpm, binaries + SHA256 (auto on tag)
+### Release — FULLY PUBLISHED ✅
+- Tag: `v1.0.0` at commit `98737cb` (final main, after all CI fixes)
+- Two additional fix PRs for release.yml:
+  - PR #37: upload-artifact step was missing in build-release job
+  - PR #38: cp used plain `mash-setup` instead of `mash-setup-<target>`
+- Release pipeline run 22290320325: ALL jobs SUCCESS
+- Published: 2026-02-23T02:03:04Z
+- URL: https://github.com/drtweak86/Mash-installer/releases/tag/v1.0.0
+- Artifacts:
+  - mash-setup-x86_64-unknown-linux-gnu + .sha256
+  - mash-setup-aarch64-unknown-linux-gnu + .sha256
+  - installer-cli_1.0.0-1_amd64.deb
+  - installer-cli_1.0.0-1_arm64.deb
+  - installer-cli-1.0.0-1.x86_64.rpm
+  - installer-cli-1.0.0-1.aarch64.rpm
+  - PKGBUILD
 
 ---
 

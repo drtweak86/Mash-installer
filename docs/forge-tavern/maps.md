@@ -81,7 +81,7 @@ All previous shafts (A through J) are complete. See `maps-explored.md` for full 
 - [x] L4.4 Version consistency: all 6 crates bumped to 1.0.0
 - [x] L4.5 Merge to main — PR #35 merged 2026-02-23T01:29:16Z
 - [x] L4.7 `git tag v1.0.0 && git push --tags` — DONE 2026-02-23
-- [x] L4.8 GitHub Actions release pipeline fires → .deb, .rpm published ← auto on tag (in progress)
+- [x] L4.8 GitHub Actions release pipeline fires → .deb, .rpm published ✅ COMPLETE (2026-02-23T02:03:04Z)
 
 **Risk**: LOW | **Reward**: MAXIMUM (v1.0.0 shipped)
 
@@ -99,7 +99,7 @@ All previous shafts (A through J) are complete. See `maps-explored.md` for full 
 
 **CI**: ALL 10 checks GREEN
 **PR #35**: MERGED → main at `d9ded60` on 2026-02-23T01:29:16Z
-**Tag**: `v1.0.0` pushed at 2026-02-23 → release pipeline firing
+**Tag**: `v1.0.0` at `98737cb` — release FULLY PUBLISHED 2026-02-23T02:03:04Z
 
 ---
 
