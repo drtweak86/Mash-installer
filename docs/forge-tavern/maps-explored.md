@@ -3,6 +3,56 @@
 
 ---
 
+## Session: 2026-02-23 – Threshold Crossing — v1.0.0 SHIPPED
+
+### Summary
+Unblocked CI and crossed the 1.0 Threshold. Found two CI failures blocking PR #35: (1) aarch64
+cross-compile failed due to OpenSSL dependency, fixed by switching reqwest to rustls-tls;
+(2) Documentation Build failed due to mdbook-linkcheck API mismatch, fixed by removing
+[output.linkcheck] from book.toml. Discovered and resolved a merge conflict with origin/main
+(PR #36 had independently bumped versions). After all CI gates turned green, merged PR #35 and
+pushed tag v1.0.0. Release pipeline fired. The Threshold is crossed — public API contract stands.
+
+### Deliverables
+- [x] Diagnosed: aarch64 Build FAILURE — openssl-sys cross-compile issue
+- [x] Fixed: reqwest → rustls-tls in installer-core + wallpaper-downloader (removes openssl-sys)
+- [x] Fixed: ci.yml — removed OPENSSL_VENDORED env; made doc linkcheck non-blocking
+- [x] Added: CLI subcommands — `doctor`, `config init`, `config show`, `--bard` easter egg
+- [x] Added: lib.rs pub exports — run_doctor, init_config, show_config
+- [x] Docs hygiene: moved 5 release docs from docs/ → docs/scratch/; added docs/book.toml + docs/src/
+- [x] Deleted: orphaned root src/main.rs (leftover from pre-workspace era)
+- [x] Fixed: docs build — removed incompatible [output.linkcheck] backend from book.toml
+- [x] Merged origin/main → resolved MANUAL.md conflict (em-dash cosmetic diff)
+- [x] **PR #35 MERGED** to main at 2026-02-23T01:29:16Z
+- [x] **`git tag v1.0.0 && git push --tags`** — tag live, release pipeline firing
+- [x] All CI gates green: fmt/clippy, security audit, code coverage, docker, integration, docs, x86_64 build, **aarch64 build**, shellcheck
+
+### Build Status
+- cargo fmt: clean
+- cargo clippy --all-targets --all-features -- -D warnings: clean
+- cargo test --workspace: 110 tests passing
+- aarch64 cross-compile: GREEN (rustls-tls fix)
+- Documentation Build: GREEN (linkcheck backend removed)
+- All 10 CI checks: SUCCESS
+
+### Commits
+```
+3abf4bd fix: aarch64 cross-compile — switch to rustls-tls, harden doc CI
+11c875f feat: CLI — wire doctor/config subcommands + bard easter egg
+4c66539 docs: hygiene — move release scratch docs; add mdBook sources
+ff09418 chore: remove orphaned root src/main.rs
+4fadf1f merge: sync origin/main (release v1.0.0 bump) → resolve MANUAL.md conflict
+f5d5134 docs: maps.md — record session 2026-02-23 CI unblocking work
+549a494 fix: docs build — remove [output.linkcheck] from book.toml
+d9ded60 refactor: Shaft K/L forge hardening + wallpaper Rust + release v1.0.0 [MERGE]
+```
+
+### Release
+- Tag: `v1.0.0` pushed 2026-02-23
+- GitHub Actions release pipeline: .deb, .rpm, binaries + SHA256 (auto on tag)
+
+---
+
 ## Session: 2026-02-22 – Shaft L + Release Gate + Cron + Laws
 
 ### Summary

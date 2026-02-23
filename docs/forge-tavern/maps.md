@@ -79,44 +79,34 @@ All previous shafts (A through J) are complete. See `maps-explored.md` for full 
 - [x] L4.2 cargo audit: via CI (not installed locally on Pi)
 - [x] L4.3 shellcheck install.sh: clean (zero warnings)
 - [x] L4.4 Version consistency: all 6 crates bumped to 1.0.0
-- [ ] L4.5 Merge to main — awaiting CI green on PR #35
-- [ ] L4.7 `git tag v1.0.0 && git push --tags` ← after merge
-- [ ] L4.8 GitHub Actions release pipeline fires → .deb, .rpm published ← auto on tag
+- [x] L4.5 Merge to main — PR #35 merged 2026-02-23T01:29:16Z
+- [x] L4.7 `git tag v1.0.0 && git push --tags` — DONE 2026-02-23
+- [x] L4.8 GitHub Actions release pipeline fires → .deb, .rpm published ← auto on tag (in progress)
 
 **Risk**: LOW | **Reward**: MAXIMUM (v1.0.0 shipped)
 
 ---
 
-## ⏳ SESSION 2026-02-23 — CI UNBLOCKING + MERGE PREP (IN PROGRESS)
+## ✅ SESSION 2026-02-23 — THRESHOLD CROSSING — COMPLETE
 
-**Commits pushed this session** (branch: `work-shaftj-phase1`):
+**Commits this session** (branch `work-shaftj-phase1`, merged to main):
 - `3abf4bd` fix: aarch64 cross-compile — switch to rustls-tls, harden doc CI
 - `11c875f` feat: CLI — wire doctor/config subcommands + bard easter egg
 - `4c66539` docs: hygiene — move release scratch docs; add mdBook sources
 - `ff09418` chore: remove orphaned root src/main.rs
-- `4fadf1f` merge: sync origin/main (release v1.0.0 bump) → resolve MANUAL.md conflict
+- `4fadf1f` merge: sync origin/main → resolve MANUAL.md conflict
+- `549a494` fix: docs build — remove [output.linkcheck] from book.toml
 
-**Status** (2026-02-23):
-- PR #35: OPEN | MERGEABLE (conflict resolved) | CI ⏳ running
-- No v1.0.0 tag yet
-- Note: PR #36 (another session) already merged a version bump to main — absorbed into our merge commit
-
-**Next** (this session):
-- CI green on PR #35 → merge → `git tag v1.0.0 && git push --tags`
+**CI**: ALL 10 checks GREEN
+**PR #35**: MERGED → main at `d9ded60` on 2026-02-23T01:29:16Z
+**Tag**: `v1.0.0` pushed at 2026-02-23 → release pipeline firing
 
 ---
 
-## AWAITING MERGE → TAG → RELEASE
+## ✅ THE THRESHOLD IS CROSSED — v1.0.0 SHIPPED
 
 ```
-PR #35 CI ──► MERGE ──► git tag v1.0.0 ──► git push --tags ──► RELEASE PIPELINE
-```
-
-After merge completes, from main:
-```bash
-git checkout main && git pull origin main
-git tag v1.0.0
-git push --tags
+PR #35 CI ──► MERGE ──► git tag v1.0.0 ──► git push --tags ──► RELEASE PIPELINE ✅
 ```
 
 ---
