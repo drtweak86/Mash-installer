@@ -22,14 +22,21 @@ Up to 3 concurrent connections for efficient download.
 
 ## Retro BBC Category
 
-The `wallpaper-downloader` crate also supports a curated BBC-style retro wallpaper set
-(~6000 images) that does not require an API key:
+The `wallpaper-downloader` standalone binary downloads a curated BBC-style retro wallpaper
+set (~6000 images) across 8 categories (retro, games, anime, dc, marvel, judge_dredd,
+star_wars, cyberpunk):
 
 ```bash
-wallpaper-downloader
+wallpaper-downloader                      # download all categories
+wallpaper-downloader --category retro     # single category
+wallpaper-downloader --limit 500          # cap at 500 images
 ```
 
-This runs the standalone downloader binary (separate from the main installer).
+This binary is separate from the main installer. It reads `MASH_WALLHAVEN_KEY` for its
+Wallhaven API key — the same env var used by `mash-setup`. Output goes to
+`~/Pictures/RetroWallpapers/` (user-local, no sudo required).
+
+It includes SHA256 deduplication — re-running it skips already-downloaded images.
 
 ## Configuration
 

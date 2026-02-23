@@ -244,33 +244,24 @@ PR #35 CI ──► MERGE ──► git tag v1.0.0 ──► git push --tags ─
 
 ---
 
-## ⏳ SHAFT Q: WALLPAPER CONSOLIDATION — DESIGN PHASE FIRST
-> *Risk*: MEDIUM | *Reward*: MEDIUM (architecture cleanliness)
-> *Note*: Phase 1 is design-only. No code until design is approved.
+## ✅ SHAFT Q: WALLPAPER CONSOLIDATION — COMPLETE
+> *Risk*: LOW (was MEDIUM; scoped down after audit) | *Reward*: MEDIUM
+> *Branch*: `work-shaftq`
 
-**Objective**: Fold `wallpaper-downloader/` into a thin CLI that delegates to `installer-core/src/wallpaper/`. Currently two independent implementations.
+### PHASE 1: Architecture Design ✅ COMPLETE
+- [x] Q1.1 PhaseContext coupling audited — 6 shallow uses (record_action ×2, record_warning ×4)
+- [x] Q1.2 Evaluated 4 options: wallpaper-core sub-crate, thin-CLI, keep-separate, adapter
+- [x] Q1.3 Tools are complementary (different providers, output dirs, features) — not competing
+- [x] Q1.4 Design written to `docs/scratch/shaft-q-design.md`
+- [x] Q1.5 Option C approved: keep separate, fix env var mismatch
 
-**Current separation**:
-- `wallpaper-downloader/` — standalone async binary (retro BBC categories: ~6000 images)
-- `installer-core/src/wallpaper/` — phase-integrated API abstraction (Wallhaven/Pexels/Pixabay)
-- They do NOT share code; both are kept in the workspace
+### PHASE 2: Implementation ✅ COMPLETE
+- [x] Q2.1 `wallpaper-downloader/src/config.rs`: `WALLHAVEN_API_KEY` → `MASH_WALLHAVEN_KEY`
+- [x] Q2.2 `docs/src/features/wallpapers.md`: document unified env var + standalone binary
+- [x] Q2.3 Build: fmt clean | clippy clean | 114 tests green
+- [x] Q2.4 maps.md — Shaft Q complete
 
-**The question**: should they share code, or stay separate with a common CLI entry point?
-
-### PHASE 1: Architecture Design (NO CODE)
-- [ ] Q1.1 Audit PhaseContext coupling in installer-core/wallpaper — what prevents reuse?
-- [ ] Q1.2 Define target architecture: shared `wallpaper-core` sub-crate, or adapter pattern?
-- [ ] Q1.3 Determine if wallpaper-downloader's retro categories belong in installer-core or stay separate
-- [ ] Q1.4 Write design decision to `docs/scratch/shaft-q-design.md`
-- [ ] Q1.5 Get design approved before any implementation
-
-### PHASE 2: Implementation (post-design approval)
-- [ ] Q2.1 Extract shared types/traits to agreed boundary
-- [ ] Q2.2 Refactor wallpaper-downloader to thin CLI
-- [ ] Q2.3 Update tests
-- [ ] Q2.4 Verify both entry points still work
-
-**Risk**: MEDIUM | **Reward**: MEDIUM
+**Risk**: LOW | **Reward**: MEDIUM (env var now consistent across both tools)
 
 ---
 
