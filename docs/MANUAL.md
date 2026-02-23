@@ -185,6 +185,25 @@ If you encounter a **HALTED** status:
 
 ---
 
+## 📊 STATUS SUBCOMMAND
+
+Quick overview of your system state — instant, no network checks.
+
+```bash
+mash-setup status              # pretty output
+mash-setup status --format json  # JSON (CI-friendly)
+```
+
+Reports:
+- **Platform**: distro, architecture, Pi model (if applicable)
+- **Configuration**: path + state (loaded / missing / invalid)
+- **Wallpaper API keys**: PASS/WARN per provider (Wallhaven, Pexels, Pixabay)
+- **Pre-flight summary**: pass/warn/fail counts (fast checks only — no connectivity)
+
+Run `mash-setup doctor` for the full diagnostic report including network checks.
+
+---
+
 ## 🛠️ DEVELOPER WORKFLOW
 
 ### Daily Tools (`cargo xtask`)

@@ -36,6 +36,7 @@ mod signal;
 mod snapshots;
 mod software_tiers;
 mod staging;
+mod status;
 mod sudo;
 mod sudo_password;
 mod system;
@@ -77,6 +78,7 @@ pub use platform::{detect as detect_platform, PlatformInfo};
 pub use rollback::RollbackManager;
 pub use software_tiers::SoftwareTierPlan;
 pub use software_tiers::ThemePlan;
+pub use status::{run_status, StatusOutput};
 pub use system::SystemOps;
 pub use theme::{
     command_exists, ensure_i3_installed, ensure_kitty_installed, ensure_retro_theme_dependencies,

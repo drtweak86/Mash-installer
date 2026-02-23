@@ -70,6 +70,12 @@ enum CliCommand {
         #[arg(long)]
         json: bool,
     },
+    /// Show a quick status overview (platform, config, API keys, pre-flight)
+    Status {
+        /// Output format (pretty or json)
+        #[arg(long, value_enum, default_value_t = installer_core::StatusOutput::Pretty)]
+        format: installer_core::StatusOutput,
+    },
     /// Run system diagnostics and pre-flight checks
     Doctor {
         /// Output format (pretty or json)
@@ -103,6 +109,10 @@ fn main() -> Result<()> {
         Some(CliCommand::Catalog { json }) => {
             let catalog = installer_core::catalog::curated_catalog();
             return catalog::print_catalog(&catalog, json);
+        }
+        Some(CliCommand::Status { format }) => {
+            let mut stdout = io::stdout();
+            return installer_core::run_status(format, &mut stdout);
         }
         Some(CliCommand::Doctor { format }) => {
             let mut stdout = io::stdout();
