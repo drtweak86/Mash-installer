@@ -51,6 +51,34 @@ pub const BBS_MESSAGES: &[&str] = &[
     "🌺 Planting seeds of configuration in the soil of /etc",
     "🦔 Hedgehog mode: curling up all the dependencies",
     "🎷 Jazz hands? No, just cargo --features jazz",
+    // Forge Lore
+    "⚒️  The runesmith strikes the anvil — forging your config with fire and mead",
+    "🍺 Bard raises a flagon: 'To green builds and full dependency caches!'",
+    "🪨 Dwarven proverb: measure twice, compile once, ship never (jk — ship it)",
+    "🔥 The forge burns hot. Side effects gated through PhaseContext. Proceed.",
+    "⛏️  Tunneling through the dependency mountain one crate at a time",
+    // Rust idioms
+    "🦀 The borrow checker has reviewed your life choices. Approved — no clones needed.",
+    "📎 Lifetime annotations: because 'a is shorter than 'b, and that matters",
+    "🔒 No data races detected. The fearless concurrency gods smile upon you.",
+    "🧵 Spawning threads with reckless abandon — but safely, thanks to Send + Sync",
+    "📋 impl Display for YourProblems — now they print nicely",
+    "🌿 match arms: exhaustive, like a dwarf inspecting every crack in the mine",
+    // Dwarven wisdom
+    "🪓 'Strike while the forge is hot' — cargo build --release",
+    "🍖 Second breakfast: the most important meal before cargo test --workspace",
+    "🗿 Ancient dwarven wisdom: unwrap() is fine in scripts. Probably.",
+    // Network sorcery
+    "🌐 Three-way handshake complete. Your SYN-ACK was beautiful.",
+    "🔑 TLS handshake: exchanging cryptographic pleasantries at 256 bits",
+    "📡 Packet intercepted mid-flight. Don't worry, it's yours.",
+    "🌍 DNS resolved. The internet knows where your packages live.",
+    "🚦 Rate limiter bypassed — by waiting patiently. Works every time.",
+    // Package alchemy
+    "📜 Cargo.lock: the sacred scroll — never hand-edit, always commit",
+    "🔧 LTO engaged: 47 compilation units fused into one glowing artifact",
+    "💡 Incremental compilation: because rebuilding the universe every time gets old",
+    "⚗️  Linker alchemy: binding .o files into one sacred binary with rune and fire",
 ];
 
 /// Spawn the BBS cycler thread. It sends a new message every 4 seconds.
