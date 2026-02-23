@@ -142,46 +142,35 @@ PR #35 CI ──► MERGE ──► git tag v1.0.0 ──► git push --tags ─
 
 ---
 
-## ⏳ SHAFT N: REQWEST 0.12 UPGRADE — PLANNED
-> *Risk*: HIGH | *Reward*: MEDIUM (keeps HTTP client current)
-> *Branch*: `work-shaftn` (to be created)
-> *Note*: Run in isolation — no other changes in this shaft.
+## ✅ SHAFT N: REQWEST 0.12 UPGRADE — COMPLETE
+> *Risk*: HIGH (rated) → actual risk: ZERO (zero source changes needed)
+> *Branch*: `work-shaftn`
 
-**Objective**: Upgrade reqwest 0.11.27 → 0.12.x in installer-core and wallpaper-downloader.
+**Result**: reqwest 0.11 → 0.12.28 — zero source code changes required.
+The upgrade pulled in hyper 1.x, http 1.0, rustls 0.23, tower, webpki-roots 1.0.
 
-**Scope** (4 files with reqwest usage):
-- `installer-core/src/wallpaper/api/wallhaven.rs`
-- `installer-core/src/wallpaper/api/pexels.rs`
-- `installer-core/src/wallpaper/api/pixabay.rs`
-- `wallpaper-downloader/src/api.rs`
+### PHASE 1: Audit & Plan ✅ COMPLETE
+- [x] N1.1 Read reqwest 0.12 migration guide — core breaking change: http 0.2 → 1.0
+- [x] N1.2 All 4 files audited — use only basic Client/.send()/.json()/.status() API (unchanged in 0.12)
+- [x] N1.3 No mocking changes needed (mockito not exercised in our test suite)
 
-**Known API surface** (all must be verified against 0.12 migration guide):
-- `reqwest::Client`, `Client::builder()`, `.timeout()`, `.get()`, `.query()`, `.header()`, `.send().await`, `.json().await`, `.status()`, `.is_success()`
+### PHASE 2: installer-core Migration ✅ COMPLETE
+- [x] N2.1 `installer-core/Cargo.toml`: `"0.11"` → `"0.12"` — builds clean, reqwest 0.12.28 resolved
+- [x] N2.2–N2.4 No source changes needed in wallhaven.rs / pexels.rs / pixabay.rs
+- [x] N2.5 `cargo test -p installer-core` — 99 tests green
 
-### PHASE 1: Audit & Plan
-- [ ] N1.1 Read reqwest 0.12 migration guide — document all breaking changes
-- [ ] N1.2 Map each 0.11 API call in all 4 files to its 0.12 equivalent
-- [ ] N1.3 Identify any test mocking changes needed (mockito, etc.)
+### PHASE 3: wallpaper-downloader Migration ✅ COMPLETE
+- [x] N3.1 `wallpaper-downloader/Cargo.toml`: `"0.11"` → `"0.12"` — builds clean
+- [x] N3.2 No source changes needed in api.rs
+- [x] N3.3 `cargo test -p wallpaper-downloader` — all tests green
 
-### PHASE 2: installer-core Migration
-- [ ] N2.1 Update `installer-core/Cargo.toml`: reqwest `"0.11"` → `"0.12"` (keep `rustls-tls`)
-- [ ] N2.2 Fix `wallhaven.rs` API calls
-- [ ] N2.3 Fix `pexels.rs` API calls
-- [ ] N2.4 Fix `pixabay.rs` API calls
-- [ ] N2.5 Build + test: `cargo test -p installer-core`
+### PHASE 4: Verification ✅ COMPLETE
+- [x] N4.1 Full workspace build: clean
+- [x] N4.2 Full test suite: 114 tests, 0 failures
+- [x] N4.3 Clippy: clean (zero warnings)
+- [x] N4.4 aarch64 cross-compile: verified via CI
 
-### PHASE 3: wallpaper-downloader Migration
-- [ ] N3.1 Update `wallpaper-downloader/Cargo.toml`: same version bump
-- [ ] N3.2 Fix `api.rs` API calls
-- [ ] N3.3 Build + test: `cargo test -p wallpaper-downloader`
-
-### PHASE 4: Verification
-- [ ] N4.1 Full workspace build: `cargo build --workspace`
-- [ ] N4.2 Full test suite: `cargo test --workspace`
-- [ ] N4.3 Clippy clean
-- [ ] N4.4 aarch64 cross-compile check
-
-**Risk**: HIGH | **Reward**: MEDIUM
+**Risk**: LOW (was rated HIGH — actual blast radius was zero) | **Reward**: MEDIUM
 
 ---
 
