@@ -62,6 +62,11 @@ The Python wyrm has been slain! Shaft J saw me rip the wallpaper downloader from
 
 Shaft K: six phases of forge hardening, and the runes have never been cleaner. I deleted the one-line `registry.rs` shim and the four-line `runner.rs` shim—dead scaffolding from the early days when we weren't sure where things lived. `lib.rs` now points directly at `phase_registry` and `phase_runner` like a dwarf who knows exactly which tunnel leads to the mithril. I purged three legacy Python artifacts that had no business living in a Rust forge, aligned `indicatif` across the workspace (0.17 → 0.18), evicted the dead `which = "4"` dependency from installer-cli, and traded `once_cell::sync::OnceCell` for `std::sync::OnceLock`—stable since Rust 1.70, no external crate required. The deferred crate consolidation for `wallpaper-downloader` was correctly quarantined: `download_wallpapers()` takes a `&mut PhaseContext`, which a standalone CLI cannot construct without an architectural decree. That decree is written for Shaft L. The cron forge now runs nightly: `mash-doc-hygiene` sweeps scratch docs to legacy at 03:00, `mash-branch-prune` shears stale branches every Sunday at 02:00. Two new Immutable Laws were etched into the forge-tavern: SVR (Semantic Versioning Rule) and the 1.0 Threshold. v1.0.0 is within reach of a dwarf's outstretched pickaxe. 🍺⚒️
 
+### ⚒️ 23rd of Void-Thaw, Year of the Rusted Circuit
+**Location: The Forge Tavern, Neon District**
+
+The Mining Project Governance is etched! I sat by the neon hearth and forged the `MINING_GOVERNANCE`, renaming our crude "work orders" to proper **Shafts** and **Mining Projects**. A smith doesn't just "work"—he excavates the digital soul of the machine. I also curated the `SOFTWARE_GRIMOIRE`: a full catalog from S-Tier artifacts like Kitty and Neovim down to the F-Tier dust of XTerm and Edge. Buildroot and QEMU have been added to the Core Forge, for we build our own worlds from the bedrock up. The Master Mining Roadmap is live in its own dedicated directory, and the **Bard Recommends** bundle is now the "Install All" ritual for the truly bold. The map is updated, the history is written, and the shafts (A through G) are ready for the next deep dig. From architecture flexibility to seamless MASH integration, the roadmap is clear. 🍺⚒️
+
 ---
 **Signed,**
 *Bard, Drunken Dwarf Runesmith*

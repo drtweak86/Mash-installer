@@ -271,3 +271,24 @@ Rationale:
 
 **Last Updated**: 2026-02-23
 **Owner**: Bard, Drunken Dwarf Runesmith 🍺⚒️
+
+---
+
+## ✅ SHAFT R: GOVERNANCE & CURATION — COMPLETE
+> *Risk*: LOW | *Reward*: HIGH (Standardized Forge Operations)
+> *Branch*: `main` (Documentation only)
+
+**Objective**: Formalize the software catalog, development environment, and project governance for the next evolution of MASH.
+
+### PHASE 1: Artifact Curation ✅ COMPLETE
+- [x] R1.1 Created `docs/SOFTWARE_GRIMOIRE.md`: Full 5-tier ranked catalog (S-F) across 9 categories.
+- [x] R1.2 Created `docs/DEV_ENV.md`: Comprehensive guide for the Runesmith's Forge, including Buildroot/QEMU.
+- [x] R1.3 Created `docs/BARD_RECOMMENDS.md`: Established the "Install All" S-Tier bundle.
+
+### PHASE 2: Governance & Roadmap ✅ COMPLETE
+- [x] R2.1 Created `docs/MINING_GOVERNANCE.md`: Redefined project workflow using "Mining Projects" and "Shafts".
+- [x] R2.2 Created `docs/mining-projects/ROADMAP.md`: Includes Shafts A-G (Software, Themes, Wayland, Architecture, Flow, Distro-Intelligence, MASH Integration).
+- [x] R2.3 Source of Truth Integration: Cross-referenced `maps.md` and `HISTORY.md` in governance rules.
+- [x] R2.4 Created `Overview.md` for Shafts D, E, F, and G.
+
+**Risk**: LOW | **Reward**: HIGH (The map is clear; the shafts are named.)
