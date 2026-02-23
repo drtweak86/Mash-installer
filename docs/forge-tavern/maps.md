@@ -244,33 +244,24 @@ PR #35 CI ──► MERGE ──► git tag v1.0.0 ──► git push --tags ─
 
 ---
 
-## ⏳ SHAFT Q: WALLPAPER CONSOLIDATION — AWAITING DESIGN APPROVAL
-> *Risk*: MEDIUM | *Reward*: MEDIUM (architecture cleanliness)
+## ✅ SHAFT Q: WALLPAPER CONSOLIDATION — COMPLETE
+> *Risk*: LOW (was MEDIUM; scoped down after audit) | *Reward*: MEDIUM
 > *Branch*: `work-shaftq`
-> *Note*: Phase 1 complete. Design document written. Awaiting approval before Phase 2.
 
-### PHASE 1: Architecture Design ✅ COMPLETE (NO CODE WRITTEN)
-- [x] Q1.1 Audited PhaseContext coupling — `download_wallpapers()` takes `&mut PhaseContext<'_>`;
-      only 6 uses: `record_action()` (×2) + `record_warning()` (×4). Coupling is shallow but real.
-- [x] Q1.2 Evaluated 4 options: wallpaper-core sub-crate, thin-CLI, keep-separate, adapter pattern
-- [x] Q1.3 Tools serve different use cases — installer-core (3 providers, system dir, phase-integrated);
-      wallpaper-downloader (Wallhaven only, user-local, dedup, i3/GNOME integration)
+### PHASE 1: Architecture Design ✅ COMPLETE
+- [x] Q1.1 PhaseContext coupling audited — 6 shallow uses (record_action ×2, record_warning ×4)
+- [x] Q1.2 Evaluated 4 options: wallpaper-core sub-crate, thin-CLI, keep-separate, adapter
+- [x] Q1.3 Tools are complementary (different providers, output dirs, features) — not competing
 - [x] Q1.4 Design written to `docs/scratch/shaft-q-design.md`
-- [ ] Q1.5 **AWAITING APPROVAL** — recommendation: Option C (keep separate, fix env var mismatch)
+- [x] Q1.5 Option C approved: keep separate, fix env var mismatch
 
-### RECOMMENDATION: Option C — Keep Separate, Fix `WALLHAVEN_API_KEY` → `MASH_WALLHAVEN_KEY`
+### PHASE 2: Implementation ✅ COMPLETE
+- [x] Q2.1 `wallpaper-downloader/src/config.rs`: `WALLHAVEN_API_KEY` → `MASH_WALLHAVEN_KEY`
+- [x] Q2.2 `docs/src/features/wallpapers.md`: document unified env var + standalone binary
+- [x] Q2.3 Build: fmt clean | clippy clean | 114 tests green
+- [x] Q2.4 maps.md — Shaft Q complete
 
-**The verdict**: These are complementary tools, not competing implementations. The only
-real user-facing inconsistency is the env var name. Full consolidation would add risk
-for minimal benefit; KISS law wins.
-
-**Phase 2 scope (if approved)** — 1 file, 1 line:
-- [ ] Q2.1 `wallpaper-downloader/src/config.rs`: read `MASH_WALLHAVEN_KEY` (was `WALLHAVEN_API_KEY`)
-- [ ] Q2.2 Update wallpapers docs to note unified env var
-- [ ] Q2.3 Build + test
-- [ ] Q2.4 maps.md — Shaft Q complete
-
-**Risk**: VERY LOW (one env var rename) | **Reward**: MEDIUM (removes user-facing inconsistency)
+**Risk**: LOW | **Reward**: MEDIUM (env var now consistent across both tools)
 
 ---
 

@@ -46,7 +46,7 @@ impl Config {
 
         // Read API key from environment variable if not provided
         if config.api_key.is_none() {
-            if let Ok(api_key) = std::env::var("WALLHAVEN_API_KEY") {
+            if let Ok(api_key) = std::env::var("MASH_WALLHAVEN_KEY") {
                 config.api_key = Some(api_key);
             }
         }
