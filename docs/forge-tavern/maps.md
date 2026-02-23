@@ -113,29 +113,30 @@ PR #35 CI ──► MERGE ──► git tag v1.0.0 ──► git push --tags ─
 
 ---
 
-## ⏳ SHAFT M: TOOLING MODERNIZATION — PLANNED
+## ✅ SHAFT M: TOOLING MODERNIZATION — COMPLETE
 > *Risk*: LOW | *Reward*: HIGH (developer QoL)
-> *Branch*: `work-shaftm` (to be created)
+> *Branch*: `work-shaftm`
 
 **Objective**: Consolidate scripts/*.rs into a proper `xtask` crate, replace auto_bump.rs with cargo-release, configure Dependabot.
 
-### PHASE 1: xtask Scaffold
-- [ ] M1.1 Create `xtask/` crate in workspace root
-- [ ] M1.2 Add `xtask` to `[workspace].members` in root Cargo.toml
-- [ ] M1.3 Port each script as a subcommand: `cargo xtask check-docs | bump | hygiene | release | test-infra | test-theme | branch-prune`
-- [ ] M1.4 Update cron binaries (`~/.local/bin/`) to call `cargo xtask` instead of compiled scripts
-- [ ] M1.5 Delete `scripts/` directory (7 .rs files, 881 LOC consolidated)
+### PHASE 1: xtask Scaffold ✅ COMPLETE
+- [x] M1.1 Create `xtask/` crate in workspace root
+- [x] M1.2 Add `xtask` to `[workspace].members` in root Cargo.toml
+- [x] M1.3 Port each script as a subcommand: `cargo xtask check-docs | bump | hygiene | release-check | test-infra | test-theme | branch-prune`
+  - `release-check` calls `check_docs::check()` directly — no code duplication
+- [x] M1.4 Update cron binaries (`~/.local/bin/`) to shell scripts calling `cargo xtask`
+- [x] M1.5 Delete `scripts/` directory (7 .rs files consolidated; git tracked as renames)
 
-### PHASE 2: cargo-release Integration
-- [ ] M2.1 Add `release.toml` config at workspace root
-- [ ] M2.2 Configure: `pre-release-hook`, version tagging, changelog update
-- [ ] M2.3 Retire `scripts/auto_bump.rs` (replaced by cargo-release)
-- [ ] M2.4 Document new release workflow in MANUAL.md
+### PHASE 2: cargo-release Integration ✅ COMPLETE
+- [x] M2.1 Add `release.toml` config at workspace root
+- [x] M2.2 Configure: `pre-release-hook = ["cargo","xtask","release-check"]`, tag-name `v{{version}}`, shared-version workspace mode, MANUAL.md replacements
+- [x] M2.3 `auto_bump.rs` → `cargo xtask bump` (ported to xtask in M1, complementary to cargo-release)
+- [x] M2.4 Developer Workflow section added to MANUAL.md (xtask table + cargo release workflow)
 
-### PHASE 3: Dependabot
-- [ ] M3.1 Create `.github/dependabot.yml`
-- [ ] M3.2 Configure Cargo ecosystem (weekly, `deps/` label, auto-merge patch)
-- [ ] M3.3 Configure GitHub Actions ecosystem (monthly)
+### PHASE 3: Dependabot ✅ COMPLETE
+- [x] M3.1 Created `.github/dependabot.yml`
+- [x] M3.2 Cargo ecosystem: weekly Monday, `deps` label, patch updates grouped
+- [x] M3.3 GitHub Actions ecosystem: monthly
 
 **Risk**: LOW | **Reward**: HIGH
 
