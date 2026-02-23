@@ -5,7 +5,3 @@ language = "en"
 src = "src"
 
 [output.html]
-
-[output.linkcheck]
-follow-web-links = false
-warning-policy = "ignore"
