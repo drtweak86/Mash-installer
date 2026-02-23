@@ -132,22 +132,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install mdBook
+      - name: Install mdBook (prebuilt binary)
         run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          ~/.cargo/bin/rustup component add rust-src
-          ~/.cargo/bin/cargo install mdbook
-          ~/.cargo/bin/cargo install mdbook-linkcheck
+          curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.47/mdbook-v0.4.47-x86_64-unknown-linux-gnu.tar.gz \
+            | tar xz -C ~/.cargo/bin
 
       - name: Build documentation
         run: |
           cd docs
           mdbook build
-
-      - name: Check links
-        run: |
-          cd docs
-          mdbook-linkcheck 2>&1 || true
 
   build:
     name: Build (${{ matrix.target }})
