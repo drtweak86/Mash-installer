@@ -178,6 +178,61 @@ jobs:
             cargo build --release --target ${{ matrix.target }}
           fi
 
+  distro-build:
+    name: Build Binary for Distro Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build release binary
+        run: cargo build --release --bin mash-setup
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: mash-setup-distro-test
+          path: target/release/mash-setup
+          retention-days: 1
+
+  distro-test:
+    name: Distro Test (${{ matrix.distro }})
+    runs-on: ubuntu-latest
+    needs: [distro-build]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: ubuntu
+            image: ubuntu:24.04
+          - distro: fedora
+            image: fedora:40
+          - distro: archlinux
+            image: archlinux:latest
+    steps:
+      - name: Download binary
+        uses: actions/download-artifact@v4
+        with:
+          name: mash-setup-distro-test
+
+      - name: Make executable
+        run: chmod +x mash-setup
+
+      - name: Test --version (${{ matrix.distro }})
+        run: |
+          docker run --rm \
+            -v "$PWD/mash-setup:/usr/local/bin/mash-setup" \
+            "${{ matrix.image }}" \
+            mash-setup --version
+
+      - name: Test doctor (${{ matrix.distro }})
+        run: |
+          docker run --rm \
+            -v "$PWD/mash-setup:/usr/local/bin/mash-setup" \
+            "${{ matrix.image }}" \
+            sh -c "mash-setup doctor; true"
+
   shellcheck:
     name: ShellCheck
     runs-on: ubuntu-latest
