@@ -244,33 +244,33 @@ PR #35 CI ──► MERGE ──► git tag v1.0.0 ──► git push --tags ─
 
 ---
 
-## ⏳ SHAFT Q: WALLPAPER CONSOLIDATION — DESIGN PHASE FIRST
+## ⏳ SHAFT Q: WALLPAPER CONSOLIDATION — AWAITING DESIGN APPROVAL
 > *Risk*: MEDIUM | *Reward*: MEDIUM (architecture cleanliness)
-> *Note*: Phase 1 is design-only. No code until design is approved.
+> *Branch*: `work-shaftq`
+> *Note*: Phase 1 complete. Design document written. Awaiting approval before Phase 2.
 
-**Objective**: Fold `wallpaper-downloader/` into a thin CLI that delegates to `installer-core/src/wallpaper/`. Currently two independent implementations.
+### PHASE 1: Architecture Design ✅ COMPLETE (NO CODE WRITTEN)
+- [x] Q1.1 Audited PhaseContext coupling — `download_wallpapers()` takes `&mut PhaseContext<'_>`;
+      only 6 uses: `record_action()` (×2) + `record_warning()` (×4). Coupling is shallow but real.
+- [x] Q1.2 Evaluated 4 options: wallpaper-core sub-crate, thin-CLI, keep-separate, adapter pattern
+- [x] Q1.3 Tools serve different use cases — installer-core (3 providers, system dir, phase-integrated);
+      wallpaper-downloader (Wallhaven only, user-local, dedup, i3/GNOME integration)
+- [x] Q1.4 Design written to `docs/scratch/shaft-q-design.md`
+- [ ] Q1.5 **AWAITING APPROVAL** — recommendation: Option C (keep separate, fix env var mismatch)
 
-**Current separation**:
-- `wallpaper-downloader/` — standalone async binary (retro BBC categories: ~6000 images)
-- `installer-core/src/wallpaper/` — phase-integrated API abstraction (Wallhaven/Pexels/Pixabay)
-- They do NOT share code; both are kept in the workspace
+### RECOMMENDATION: Option C — Keep Separate, Fix `WALLHAVEN_API_KEY` → `MASH_WALLHAVEN_KEY`
 
-**The question**: should they share code, or stay separate with a common CLI entry point?
+**The verdict**: These are complementary tools, not competing implementations. The only
+real user-facing inconsistency is the env var name. Full consolidation would add risk
+for minimal benefit; KISS law wins.
 
-### PHASE 1: Architecture Design (NO CODE)
-- [ ] Q1.1 Audit PhaseContext coupling in installer-core/wallpaper — what prevents reuse?
-- [ ] Q1.2 Define target architecture: shared `wallpaper-core` sub-crate, or adapter pattern?
-- [ ] Q1.3 Determine if wallpaper-downloader's retro categories belong in installer-core or stay separate
-- [ ] Q1.4 Write design decision to `docs/scratch/shaft-q-design.md`
-- [ ] Q1.5 Get design approved before any implementation
+**Phase 2 scope (if approved)** — 1 file, 1 line:
+- [ ] Q2.1 `wallpaper-downloader/src/config.rs`: read `MASH_WALLHAVEN_KEY` (was `WALLHAVEN_API_KEY`)
+- [ ] Q2.2 Update wallpapers docs to note unified env var
+- [ ] Q2.3 Build + test
+- [ ] Q2.4 maps.md — Shaft Q complete
 
-### PHASE 2: Implementation (post-design approval)
-- [ ] Q2.1 Extract shared types/traits to agreed boundary
-- [ ] Q2.2 Refactor wallpaper-downloader to thin CLI
-- [ ] Q2.3 Update tests
-- [ ] Q2.4 Verify both entry points still work
-
-**Risk**: MEDIUM | **Reward**: MEDIUM
+**Risk**: VERY LOW (one env var rename) | **Reward**: MEDIUM (removes user-facing inconsistency)
 
 ---
 
