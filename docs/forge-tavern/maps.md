@@ -214,33 +214,31 @@ PR #35 CI ──► MERGE ──► git tag v1.0.0 ──► git push --tags ─
 
 ---
 
-## ⏳ SHAFT P: DOCUMENTATION — PLANNED
+## ✅ SHAFT P: DOCUMENTATION — COMPLETE
 > *Risk*: LOW | *Reward*: MEDIUM (improves discoverability)
-> *Branch*: `work-shaftp` (to be created)
+> *Branch*: `work-shaftp`
 
 **Objective**: Expand mdBook from a 20-line stub to a complete user manual; deploy to GitHub Pages.
 
-**Current state**: `docs/src/` has `SUMMARY.md` (1 entry) + `manual.md` (20 lines). Book builds but is nearly empty.
+### PHASE 1: Structure & Scaffold ✅ COMPLETE
+- [x] P1.1 Chapter tree: Introduction → Installation → Configuration → Features → Troubleshooting → Reference → Developer
+- [x] P1.2 Full `SUMMARY.md` — 7 sections, 28 chapters
+- [x] P1.3 All chapter files created under `docs/src/`
 
-### PHASE 1: Structure & Scaffold
-- [ ] P1.1 Design chapter tree: Installation → Configuration → Features → Troubleshooting → Reference
-- [ ] P1.2 Write full `SUMMARY.md` with nested chapter structure
-- [ ] P1.3 Create stub `.md` files for each chapter
+### PHASE 2: Content — Installation & Configuration ✅ COMPLETE
+- [x] P2.1 Installation: prerequisites, quick-start, profiles, first-run
+- [x] P2.2 Configuration: profiles, env-vars, config-file, api-keys
 
-### PHASE 2: Content — Installation & Configuration
-- [ ] P2.1 Installation chapter: prerequisites, one-liner, profile selection, first run
-- [ ] P2.2 Configuration chapter: `mash-config`, profiles (minimal/desktop/full), env vars, API keys
+### PHASE 3: Content — Features & Troubleshooting ✅ COMPLETE
+- [x] P3.1 Features: TUI, doctor, status, wallpapers, AI spirits, shell polish, Pi 4B tuning
+- [x] P3.2 Troubleshooting: common errors, dry-run, logs, Pi SD card sync
+- [x] P3.3 Reference: CLI flags, distros, architecture; Developer: workflow, xtask, release
 
-### PHASE 3: Content — Features & Troubleshooting
-- [ ] P3.1 Features chapter: TUI navigation, doctor mode, wallpapers, AI Spirits, eza aliases
-- [ ] P3.2 Troubleshooting chapter: common errors, dry-run mode, log files, Pi SD card sync
-- [ ] P3.3 Reference chapter: all CLI flags, subcommands (catalog, doctor, config, status)
-
-### PHASE 4: CI & Deployment
-- [ ] P4.1 Pin compatible mdBook + mdbook-linkcheck versions (resolve 0.7.7 API mismatch)
-- [ ] P4.2 Add GitHub Pages deploy workflow (`gh-pages` branch)
-- [ ] P4.3 Update `docs/book.toml` with correct [output.linkcheck] once versions aligned
-- [ ] P4.4 Add badge to README
+### PHASE 4: CI & Deployment ✅ COMPLETE
+- [x] P4.1 mdBook 0.4.47 pinned via prebuilt binary (removed slow `cargo install` + dropped mdbook-linkcheck)
+- [x] P4.2 `pages.yml` workflow: build + deploy to GitHub Pages on main push
+- [x] P4.3 `docs/book.toml`: site-url, git-repository-url, edit-url-template
+- [x] P4.4 README: GitHub Pages badge + updated docs links
 
 **Risk**: LOW | **Reward**: MEDIUM
 
