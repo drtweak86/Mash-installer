@@ -1,0 +1,7 @@
+[book]
+title = "MASH Installer"
+authors = ["Bard — Drunken Dwarf Runesmith"]
+language = "en"
+src = "src"
+
+[output.html]
