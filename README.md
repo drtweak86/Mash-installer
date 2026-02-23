@@ -1,5 +1,7 @@
 ![Banner of the bard](docs/assets/banner_final.png)
 
+[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://drtweak86.github.io/Mash-installer/)
+
 # 🛠️ MASH-installer
 > **Mythic Assembly & Sigil Heuristics** — A high-performance, Ratatui-powered Linux system provisioner forged in Rust.
 
@@ -49,10 +51,10 @@ shellcheck install.sh
 For comprehensive quality assurance details, including the CI/CD pipeline, code coverage requirements, Docker image builds, integration tests, nightly checks, and documentation validation, see [Mining Projects - Maps Explored](docs/scratch/maps-explored.md).
 
 ## 📜 Documentation
+- 📚 [User Manual](https://drtweak86.github.io/Mash-installer/) — Full documentation on GitHub Pages (mdBook)
+- 📖 [MANUAL.md](docs/MANUAL.md) — Offline user manual
 - 🍺 [Bard's BBS Profile](docs/forge-tavern/bard-bbs-profile.md) — The engineer's persona and rules of the forge.
-- 📖 [History & Journal](docs/HISTORY.md) — The chronicle of the installer's evolution.
-- 🗺️ [Mining Maps](docs/forge-tavern/maps-explored.md) — Current session work and future shafts.
-- 🛡️ [Sudo Technical Report](docs/SUDO_TECHNICAL_REPORT.md) — Technical details on TUI password handling.
+- 🗺️ [Mining Maps](docs/forge-tavern/maps.md) — Current session work and future shafts.
 
 ## ⚖️ License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

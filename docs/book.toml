@@ -5,3 +5,6 @@ language = "en"
 src = "src"
 
 [output.html]
+site-url = "/Mash-installer/"
+git-repository-url = "https://github.com/drtweak86/Mash-installer"
+edit-url-template = "https://github.com/drtweak86/Mash-installer/edit/main/docs/{path}"
