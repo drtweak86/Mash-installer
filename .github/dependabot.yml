@@ -1,0 +1,30 @@
+version: 2
+
+updates:
+  # Cargo dependencies — weekly, auto-merge patch bumps
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    labels:
+      - "deps"
+    open-pull-requests-limit: 10
+    groups:
+      patch-updates:
+        update-types:
+          - "patch"
+
+  # GitHub Actions — monthly
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      time: "06:00"
+      timezone: "UTC"
+    labels:
+      - "deps"
+      - "ci"
+    open-pull-requests-limit: 5
