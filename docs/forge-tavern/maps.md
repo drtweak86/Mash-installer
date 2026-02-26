@@ -7,31 +7,33 @@
 > *Branch*: `work-shaftj-overlord`
 > *Risk*: MEDIUM (mitigated with phased approach)
 > *Reward*: HIGH (long-term maintainability, performance, alignment)
-> *Status*: ✅ PLANNING COMPLETE | 🔨 EXECUTION PENDING
+> *Status*: ✅ PHASE 1 COMPLETE | 🔨 PHASE 2 PENDING
 
-### PHASE 1: OVERLORD CONFIG PROMOTION ✅ PLANNED
+### PHASE 1: OVERLORD CONFIG PROMOTION ✅ COMPLETE
 **Objective**: Promote BBC Acorn terminal configs from staging to production resources.
 
 #### 1.1 — Update `resources/shell/kitty.conf`
 - **File**: `resources/shell/kitty.conf`
 - **Change**: Replace with `docs/incoming-files/kitty.txt`
 - **Key**: `font_family JetBrainsMono Nerd Font`
-- **Verification**: `grep "font_family" resources/shell/kitty.conf` → `JetBrainsMono Nerd Font`
-- **Status**: ✅ PLANNED
+- **Verification**: `grep "font_family" resources/shell/kitty.conf` → `JetBrainsMono Nerd Font` ✅
+- **Status**: ✅ COMPLETE
+- **Commit**: [commit_hash]
 
 #### 1.2 — Update `resources/shell/starship.toml`
 - **File**: `resources/shell/starship.toml`
 - **Change**: Replace with `docs/incoming-files/starship.toml.txt`
 - **Key**: `[memory_usage]` module with 75% threshold
-- **Verification**: `grep "memory_usage" resources/shell/starship.toml` → present
-- **Status**: ✅ PLANNED
+- **Verification**: `grep "memory_usage" resources/shell/starship.toml` → present ✅
+- **Status**: ✅ COMPLETE
+- **Commit**: [commit_hash]
 
 #### 1.3 — Update `resources/shell/eza_aliases.sh`
 - **File**: `resources/shell/eza_aliases.sh`
-- **Change**: Replace with `docs/incoming-files/eza-aliases.sh`
+- **Change**: Already contains `alias goblin='cmatrix -a'` easter egg
 - **Key**: `alias goblin='cmatrix -a'` easter egg
-- **Verification**: `grep "goblin" resources/shell/eza_aliases.sh` → present
-- **Status**: ✅ PLANNED
+- **Verification**: `grep "goblin" resources/shell/eza_aliases.sh` → present ✅
+- **Status**: ✅ COMPLETE (no change needed)
 
 ### PHASE 2: ARCH DETECTION OPTIMIZATION ✅ PLANNED
 **Objective**: Skip 15-second ArchDetected banner when exactly one driver matches.
@@ -160,7 +162,7 @@
 
 ---
 
-**Status**: ✅ PLANNING COMPLETE | 🔨 EXECUTION PENDING
+**Status**: ✅ PHASE 1 COMPLETE | 🔨 PHASE 2 PENDING
 **Owner**: Bard, Drunken Dwarf Runesmith 🍺⚒️
 **Last Updated**: 2026-02-24
-**Next Review**: 2026-02-25 (Phase 1 kickoff)
+**Next Review**: 2026-02-24 (Phase 2 kickoff)
