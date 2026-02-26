@@ -166,3 +166,14 @@
 **Owner**: Bard, Drunken Dwarf Runesmith 🍺⚒️
 **Last Updated**: 2026-02-24
 **Next Review**: 2026-02-24 (Phase 2 kickoff)
+
+### DEPENDENCY RESTORATION (Post-Phase 1)
+**Issue**: Build failures after merging claude/release-v1.0.0-2s3pa branch
+**Root Cause**: Missing dependencies required by wallpaper module
+**Resolution**: Added missing dependencies to installer-core/Cargo.toml:
+- reqwest 0.12 (JSON + rustls-tls)
+- num_cpus 1
+- tokio 1.0 (full features)
+- async-trait 0.1
+- thiserror 1.0
+**Verification**: ✅ cargo build --workspace | ✅ cargo test --workspace
