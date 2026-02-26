@@ -48,7 +48,7 @@ cargo test --all --all-features
 shellcheck install.sh
 ```
 
-For comprehensive quality assurance details, including the CI/CD pipeline, code coverage requirements, Docker image builds, integration tests, nightly checks, and documentation validation, see [Mining Projects - Maps Explored](docs/scratch/maps-explored.md).
+For comprehensive quality assurance details, including the CI/CD pipeline, code coverage requirements, Docker image builds, integration tests, nightly checks, and documentation validation, see [Mining Projects - Maps Explored](docs/forge-tavern/maps-explored.md).
 
 ## 📜 Documentation
 - 📚 [User Manual](https://drtweak86.github.io/Mash-installer/) — Full documentation on GitHub Pages (mdBook)

@@ -34,6 +34,11 @@ fn collect_md_files(dir: &Path, files: &mut Vec<PathBuf>) {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_dir() {
+                // Skip scratch/ and legacy/ — temporary/archived files are not subject to link checks
+                let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+                if name == "scratch" || name == "legacy" {
+                    continue;
+                }
                 collect_md_files(&path, files);
             } else if path.extension().map(|e| e == "md").unwrap_or(false) {
                 files.push(path);
