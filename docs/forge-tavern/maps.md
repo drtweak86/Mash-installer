@@ -103,24 +103,25 @@
 - **Test**: `kitty +list-fonts | grep JetBrains` → correct font
 - **Status**: ⏳ PENDING (runtime test — requires live install)
 
-### PHASE 5: FINAL COMMIT & PR ⏳ PENDING
+### PHASE 5: FINAL COMMIT & PR 🔨 IN PROGRESS
 **Objective**: Commit and merge the changes.
 
 #### 5.1 — Commit Changes
-- **Message**: `feat: overlord protocols — kitty/starship/eza configs + arch skip + jetbrains font`
-- **Status**: ⏳ PENDING
+- **Commit**: `af41104` — `feat: overlord phase 2+3 — arch auto-detect skip + JetBrainsMono Nerd Font`
+- **Status**: ✅ COMPLETE — 2026-02-26
 
 #### 5.2 — Open PR
-- **Branch**: `work-shaftj-overlord` → `main`
-- **Status**: ⏳ PENDING
+- **Branch**: `work-shaftj-overlord-p2p3` → `main`
+- **PR**: [#63](https://github.com/drtweak86/Mash-installer/pull/63)
+- **Status**: ✅ OPEN — 2026-02-26
 
 #### 5.3 — Wait for CI Green
-- **Checks**: fmt, clippy, test, audit, build
-- **Status**: ⏳ PENDING
+- **Checks**: fmt, clippy, test, audit, build, distro matrix, aarch64
+- **Status**: ⏳ PENDING (CI running)
 
 #### 5.4 — Merge
-- **Action**: Merge PR to main
-- **Status**: ⏳ PENDING
+- **Action**: Merge PR #63 to main
+- **Status**: ⏳ PENDING (awaiting CI)
 
 ---
 
