@@ -18,7 +18,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"]
 dirs = "5"
 nix = { version = "0.29", features = ["fs"] }
 signal-hook = "0.3"
-which = "7"
+which = "8"
 tempfile = "3"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 num_cpus = "1"
