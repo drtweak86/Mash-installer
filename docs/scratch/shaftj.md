@@ -1,550 +1,317 @@
-# 🗺️ SHAFT J: WALLPAPER DOWNLOADER RUST CONVERSION
+# ⚔️ SHAFT J: The Overlord Protocols
+> **Strategic Mining Plan**
+> *"The Forge does not adorn itself with runes it cannot read. Every glyph deployed must be backed by steel."* — Bard 🍺
 
-## 🎭 By the Bard, Drunken Dwarf Runesmith
-*Mythic Assembly & Sigil Heuristics*
-*Forge Tavern, Neon District*
+## 📜 Project Summary
 
----
-
-## 🏺 SHAFT OVERVIEW
-
-**Objective**: Convert the Python wallpaper downloader to Rust, eliminating Python dependencies and aligning with the project's Rust vision.
-
-**Status**: ✅ PLANNING COMPLETE | 🔨 EXECUTION PENDING
-
-**Timeline**: 7 days (2024-02-23 to 2024-02-29)
-
-**Risk Level**: MEDIUM (mitigated with phased approach)
-
-**Reward Level**: HIGH (long-term maintainability, performance, alignment)
-
-**Dependencies**: None
+Shaft J folds two incoming files into the installer — the **Pi Overlord terminal stack** (Kitty config, Starship config, eza aliases, software tiers ledger) — and corrects two core logic flaws in the installer itself: the **15-second architecture detection wait** (improvement 1) and the **Nerd Font source** (improvement 3). All three work together: the overlord configs require JetBrainsMono Nerd Font, and the user should not wait 15 seconds before reaching the install flow.
 
 ---
 
-## 📜 DETAILED PLAN
+## 🗂️ Incoming Files Being Integrated
 
-### Phase 1: Analysis and Preparation (Day 1)
-
-#### 1.1 Analyze Current Python Implementation
-**Files to Touch**:
-- `docs/incoming-files/wallpaper_downloader_final.py`
-- `docs/incoming-files/wallpaper_downloader_README.md`
-
-**Changes to Make**:
-- Document current functionality
-- Identify all API endpoints
-- Map Python libraries to Rust equivalents
-- Document error handling patterns
-- Document configuration options
-
-**Sub-steps**:
-1. **1.1.1**: Create functionality matrix
-   - List all functions and their purposes
-   - Document input/output patterns
-   - Note error handling approaches
-   
-2. **1.1.2**: Map Python libraries to Rust
-   - `requests` → `reqwest`
-   - `json` → `serde_json`
-   - `argparse` → `clap` or `structopt`
-   - `os.path` → `std::path`
-   - `shutil` → `std::fs`
-   
-3. **1.1.3**: Document API endpoints
-   - List all HTTP endpoints used
-   - Document authentication if any
-   - Note rate limiting behavior
-
-#### 1.2 Set Up Rust Project Structure
-**Files to Create**:
-- `wallpaper-downloader/Cargo.toml`
-- `wallpaper-downloader/src/main.rs`
-- `wallpaper-downloader/src/lib.rs`
-- `wallpaper-downloader/src/config.rs`
-- `wallpaper-downloader/src/api.rs`
-- `wallpaper-downloader/src/download.rs`
-- `wallpaper-downloader/src/error.rs`
-
-**Changes to Make**:
-- Create new workspace member
-- Set up dependencies
-- Configure build settings
-- Set up basic project structure
-
-**Sub-steps**:
-1. **1.2.1**: Create workspace member
-   - Add to root `Cargo.toml`
-   - Create `wallpaper-downloader` directory
-   
-2. **1.2.2**: Set up dependencies
-   - `reqwest` for HTTP requests
-   - `tokio` for async runtime
-   - `serde`, `serde_json` for JSON handling
-   - `clap` or `structopt` for CLI parsing
-   - `anyhow` or `thiserror` for error handling
-   - `log` and `env_logger` for logging
-   
-3. **1.2.3**: Configure build settings
-   - Set up release profile
-   - Configure target platforms
-   - Set up feature flags if needed
+| Incoming File | What It Is | Deploy Target |
+|---|---|---|
+| `docs/incoming-files/kitty.txt` | BBC Acorn Kitty terminal config | `resources/shell/kitty.conf` |
+| `docs/incoming-files/starship.toml.txt` | Goblin Starship prompt config | `resources/shell/starship.toml` |
+| `docs/incoming-files/eza-aliases.sh` | Goblin mega eza + git alias set | `resources/shell/eza_aliases.sh` |
+| `docs/incoming-files/software_tiers.md` | S-tier/A-tier software ledger | Reference only — already reflected in `installer-cli/src/software_catalog.rs` |
 
 ---
 
-### Phase 2: Core Implementation (Days 2-4)
-
-#### 2.1 Implement Configuration Handling
-**Files to Touch**:
-- `wallpaper-downloader/src/config.rs`
-
-**Changes to Make**:
-- Parse command-line arguments
-- Handle configuration files if any
-- Validate inputs
-- Provide sensible defaults
-
-**Sub-steps**:
-1. **2.1.1**: Define configuration struct
-   ```rust
-   #[derive(Debug, Clone, clap::Parser)]
-   pub struct Config {
-       /// Category of wallpapers
-       #[clap(long, default_value = "retro")]
-       pub category: String,
-       
-       /// Number of wallpapers to download
-       #[clap(long, default_value_t = 10)]
-       pub limit: usize,
-       
-       /// Output directory
-       #[clap(long, default_value = "./wallpapers")]
-       pub output_dir: PathBuf,
-       
-       /// First boot mode
-       #[clap(long)]
-       pub first_boot: bool,
-   }
-   ```
-
-2. **2.1.2**: Implement validation logic
-   - Validate category names
-   - Validate output directory
-   - Check filesystem permissions
-
-3. **2.1.3**: Add error handling
-   - Define configuration errors
-   - Provide helpful error messages
-
-#### 2.2 Implement API Client
-**Files to Touch**:
-- `wallpaper-downloader/src/api.rs`
-- `wallpaper-downloader/src/error.rs`
-
-**Changes to Make**:
-- Create HTTP client
-- Implement API endpoints
-- Handle authentication if needed
-- Implement rate limiting
-- Add retry logic
-
-**Sub-steps**:
-1. **2.2.1**: Define API error types
-   ```rust
-   #[derive(Debug, thiserror::Error)]
-   pub enum ApiError {
-       #[error("HTTP error: {0}")]
-       Http(#[from] reqwest::Error),
-       
-       #[error("API error: {0}")]
-       Api(String),
-       
-       #[error("Rate limited")]
-       RateLimited,
-   }
-   ```
-
-2. **2.2.2**: Implement API client struct
-   ```rust
-   pub struct ApiClient {
-       client: reqwest::Client,
-       base_url: String,
-   }
-   
-   impl ApiClient {
-       pub fn new(base_url: &str) -> Self {
-           Self {
-               client: reqwest::Client::new(),
-               base_url: base_url.to_string(),
-           }
-       }
-       
-       pub async fn search(&self, query: &str, limit: usize) -> Result<Vec<Wallpaper>, ApiError> {
-           // Implementation
-       }
-   }
-   ```
-
-3. **2.2.3**: Implement endpoint methods
-   - Search wallpapers
-   - Get wallpaper details
-   - Download wallpaper
-   - Handle pagination
-
-#### 2.3 Implement Download Logic
-**Files to Touch**:
-- `wallpaper-downloader/src/download.rs`
-
-**Changes to Make**:
-- Download files from URLs
-- Handle file naming
-- Create output directory
-- Handle file conflicts
-- Add progress reporting
-
-**Sub-steps**:
-1. **2.3.1**: Implement download function
-   ```rust
-   pub async fn download_wallpaper(
-       &self,
-       url: &str,
-       output_path: &Path,
-   ) -> Result<(), DownloadError> {
-       let response = self.client.get(url).send().await?;
-       let bytes = response.bytes().await?;
-       
-       if let Some(parent) = output_path.parent() {
-           tokio::fs::create_dir_all(parent).await?;
-       }
-       
-       tokio::fs::write(output_path, bytes).await?;
-       Ok(())
-   }
-   ```
-
-2. **2.3.2**: Add progress reporting
-   - Use `indicatif` crate for progress bars
-   - Report download speed
-   - Show estimated time remaining
-
-3. **2.3.3**: Handle file conflicts
-   - Check for existing files
-   - Implement overwrite confirmation
-   - Add unique naming if needed
-
-#### 2.4 Implement Main Application Logic
-**Files to Touch**:
-- `wallpaper-downloader/src/main.rs`
-- `wallpaper-downloader/src/lib.rs`
-
-**Changes to Make**:
-- Parse command-line arguments
-- Initialize components
-- Orchestrate the workflow
-- Handle errors gracefully
-- Add logging
-
-**Sub-steps**:
-1. **2.4.1**: Implement main function
-   ```rust
-   #[tokio::main]
-   async fn main() -> Result<(), Box<dyn std::error::Error>> {
-       let config = Config::parse();
-       
-       env_logger::init();
-       log::info!("Starting wallpaper downloader");
-       
-       let api = ApiClient::new("https://api.wallhaven.cc");
-       let downloader = Downloader::new(config.output_dir.clone());
-       
-       let wallpapers = api.search(&config.category, config.limit).await?;
-       
-       for wallpaper in wallpapers {
-           let output_path = downloader.download(&wallpaper).await?;
-           log::info!("Downloaded: {}", output_path.display());
-       }
-       
-       Ok(())
-   }
-   ```
-
-2. **2.4.2**: Implement library functions
-   - Export public API
-   - Create reusable components
-   - Add documentation
-
-3. **2.4.3**: Add comprehensive error handling
-   - Convert errors to user-friendly messages
-   - Add recovery suggestions
-   - Log detailed error information
+## 🛠️ Technical Plan
 
 ---
 
-### Phase 3: Testing (Day 5)
+### 1. Promote the Overlord Configs into `resources/shell/`
 
-#### 3.1 Unit Tests
-**Files to Create**:
-- `wallpaper-downloader/tests/config_test.rs`
-- `wallpaper-downloader/tests/api_test.rs`
-- `wallpaper-downloader/tests/download_test.rs`
+#### Why These Files Need to Change
 
-**Changes to Make**:
-- Test configuration parsing
-- Test API client methods
-- Test download logic
-- Test error handling
+`installer-core/src/zsh.rs` uses `include_str!` to embed three config files at compile time:
 
-**Sub-steps**:
-1. **3.1.1**: Test configuration
-   - Test default values
-   - Test custom values
-   - Test validation
-   
-2. **3.1.2**: Test API client
-   - Mock HTTP requests
-   - Test error handling
-   - Test rate limiting
-   
-3. **3.1.3**: Test download logic
-   - Test file creation
-   - Test directory creation
-   - Test error cases
-
-#### 3.2 Integration Tests
-**Files to Create**:
-- `wallpaper-downloader/tests/integration_test.rs`
-
-**Changes to Make**:
-- Test full workflow
-- Test with real API (mocked)
-- Test error scenarios
-- Test edge cases
-
-**Sub-steps**:
-1. **3.2.1**: Test happy path
-   - Search and download wallpapers
-   - Verify files are created
-   
-2. **3.2.2**: Test error scenarios
-   - Network failures
-   - Invalid inputs
-   - Permission errors
-   
-3. **3.2.3**: Test edge cases
-   - Empty results
-   - Large downloads
-   - Special characters in filenames
-
-#### 3.3 End-to-End Tests
-**Files to Create**:
-- `wallpaper-downloader/tests/e2e_test.rs`
-
-**Changes to Make**:
-- Test CLI interface
-- Test all command-line options
-- Test output format
-- Test logging
-
-**Sub-steps**:
-1. **3.3.1**: Test CLI parsing
-   - Test all flags
-   - Test help output
-   - Test version output
-   
-2. **3.3.2**: Test full workflow
-   - Run with various options
-   - Verify output
-   - Verify files
-
----
-
-### Phase 4: Integration (Day 6)
-
-#### 4.1 Integrate with Main Project
-**Files to Touch**:
-- `installer-core/src/software_tiers.rs`
-- `installer-core/src/catalog/mod.rs`
-- `installer-cli/src/catalog.rs`
-
-**Changes to Make**:
-- Add wallpaper downloader to software catalog
-- Update installation logic
-- Add configuration options
-- Update documentation
-
-**Sub-steps**:
-1. **4.1.1**: Add to software catalog
-   ```rust
-   pub enum SoftwareTier {
-       // ... existing tiers
-       WallpaperDownloader {
-           category: String,
-           limit: usize,
-           first_boot: bool,
-       },
-   }
-   ```
-
-2. **4.1.2**: Update installation logic
-   - Add wallpaper downloader phase
-   - Handle dependencies
-   - Add configuration options
-   
-3. **4.1.3**: Update documentation
-   - Add to user manual
-   - Update configuration reference
-   - Add troubleshooting section
-
-#### 4.2 Update Installation Scripts
-**Files to Touch**:
-- `install.sh`
-
-**Changes to Make**:
-- Update to use Rust version
-- Remove Python dependencies
-- Add Rust version check
-- Update error handling
-
-**Sub-steps**:
-1. **4.2.1**: Update dependency installation
-   - Remove Python and pip
-   - Add Rust toolchain check
-   
-2. **4.2.2**: Update installation logic
-   - Build wallpaper downloader
-   - Install binary
-   - Set up configuration
-
-3. **4.2.3**: Update error handling
-   - Add Rust-specific checks
-   - Update error messages
-
----
-
-### Phase 5: Documentation (Day 7)
-
-#### 5.1 Update User Documentation
-**Files to Touch**:
-- `docs/MANUAL.md`
-- `docs/incoming-files/README.md`
-
-**Changes to Make**:
-- Add Rust version usage
-- Update configuration examples
-- Add troubleshooting
-- Update FAQ
-
-**Sub-steps**:
-1. **5.1.1**: Add usage instructions
-   - Command-line options
-   - Configuration examples
-   - Output format
-   
-2. **5.1.2**: Add troubleshooting
-   - Common errors
-   - Solutions
-   - Debugging tips
-   
-3. **5.1.3**: Update FAQ
-   - Add Rust-specific questions
-   - Update existing answers
-
-#### 5.2 Update Developer Documentation
-**Files to Touch**:
-- `docs/mining-projects/shaftj.md` (this file)
-- `docs/HISTORY.md`
-
-**Changes to Make**:
-- Add implementation details
-- Document design decisions
-- Add migration guide
-- Update contribution guidelines
-
-**Sub-steps**:
-1. **5.2.1**: Add implementation notes
-   - Architecture decisions
-   - Performance considerations
-   - Security considerations
-   
-2. **5.2.2**: Document migration path
-   - From Python to Rust
-   - Backward compatibility
-   - Rollback procedure
-   
-3. **5.2.3**: Update contribution guidelines
-   - Testing requirements
-   - Code style
-   - Review process
-
----
-
-## 📊 RISK MITIGATION
-
-### Risk 1: API Changes
-**Mitigation**:
-- Implement adaptive API client
-- Add version detection
-- Provide fallback behavior
-- Monitor API changes
-
-### Risk 2: Performance Issues
-**Mitigation**:
-- Profile before and after
-- Add benchmarks
-- Optimize critical paths
-- Monitor real-world usage
-
-### Risk 3: User Resistance
-**Mitigation**:
-- Provide clear migration guide
-- Offer fallback to Python version
-- Highlight benefits
-- Gather feedback
-
-### Risk 4: Testing Gaps
-**Mitigation**:
-- Comprehensive test coverage
-- Integration testing
-- User acceptance testing
-- Monitor production usage
-
----
-
-## 🔮 BARD'S WISDOM
-
-> "The path to Rust is clear, but the journey must be safe."
-> "Test as you build, or regret it later."
-> "Documentation is the map that guides the next miner."
-> "If it's not tested, it's not done."
-> "The forge demands safety, the tavern demands wisdom."
-
----
-
-## 🍻 TAVERN VERDICT
-
-The tavern has spoken. The plan is clear:
-
-```bash
-🍺 SAFE, PHASED, DOCUMENTED RUST CONVERSION 🔥
+```
+// zsh.rs lines 21–23
+const STARSHIP_CONFIG: &str = include_str!("../../resources/shell/starship.toml");
+const KITTY_CONFIG:    &str = include_str!("../../resources/shell/kitty.conf");
+const EZA_ALIASES_SCRIPT: &str = include_str!("../../resources/shell/eza_aliases.sh");
 ```
 
-**Risk**: MEDIUM (mitigated)
-**Reward**: HIGH
-**Net Value**: ✅ EXCELLENT
+The current files in `resources/shell/` are placeholder versions. The incoming files from `docs/incoming-files/` are the Bard-curated final editions. Promoting them updates the compile-time embed with no Rust code change required.
+
+#### 1.1 — Update `resources/shell/kitty.conf`
+
+**File:** `resources/shell/kitty.conf`
+**Why:** Current file is a placeholder. The incoming `kitty.txt` is the canonical BBC Acorn-themed Kitty config with correct JetBrainsMono Nerd Font reference.
+
+**Exact change:** Replace the entire contents of `resources/shell/kitty.conf` with the content of `docs/incoming-files/kitty.txt`.
+
+Key fields in the incoming version:
+```
+font_family      JetBrainsMono Nerd Font   ← drives the fonts.rs requirement (see §3)
+background       #000000                    ← BBC Acorn black
+foreground       #FFFFFF                    ← BBC Acorn white
+cursor           #FF5555                    ← BBC Acorn red cursor
+```
+
+**Verification after change:** `grep "font_family" resources/shell/kitty.conf` must return `JetBrainsMono Nerd Font`.
+
+#### 1.2 — Update `resources/shell/starship.toml`
+
+**File:** `resources/shell/starship.toml`
+**Why:** Current file is a placeholder. The incoming `starship.toml.txt` is the Goblin Starship config with Rust, Git, memory, and time modules correctly wired.
+
+**Exact change:** Replace the entire contents of `resources/shell/starship.toml` with the content of `docs/incoming-files/starship.toml.txt`.
+
+Key additions in the incoming version:
+- `$memory_usage` module with 75% threshold
+- `$time` module always shown
+- `$cmd_duration` for slow-command tracking
+- Proper `$rust`, `$git_branch`, `$git_status` modules
+
+**Verification after change:** `grep "memory_usage" resources/shell/starship.toml` must return the `[memory_usage]` block.
+
+#### 1.3 — Update `resources/shell/eza_aliases.sh`
+
+**File:** `resources/shell/eza_aliases.sh`
+**Why:** Current file is a placeholder. The incoming `eza-aliases.sh` is the Goblin mega alias set, including eza variants, git shortcuts, system ops, and the `goblin`, `cheat`, and `weather` easter eggs.
+
+**Exact change:** Replace the entire contents of `resources/shell/eza_aliases.sh` with the content of `docs/incoming-files/eza-aliases.sh`.
+
+Key additions in the incoming version:
+```bash
+alias lsg='eza -lah --git --icons'       # git-aware listing
+alias lss='eza -lah --sort=size --icons' # sort by size
+alias clean='sudo pacman -Rns $(pacman -Qdtq)'  # clean orphans
+alias edit='helix'                        # editor alias
+alias goblin='cmatrix -a'                 # easter egg
+```
+
+**Note:** The `clean` alias provides pacman orphan removal. This is a shell-level clean op, not a phase-level one. The clean and polish phases in `phase_registry.rs` are separate (see Shaft K §1).
+
+**Verification after change:** `grep "goblin" resources/shell/eza_aliases.sh` must return `alias goblin='cmatrix -a'`.
 
 ---
 
-*Signed*,
-Bard, Drunken Dwarf Runesmith
-Mythic Assembly & Sigil Heuristics
-Forge Tavern, Neon District
+### 2. Fix Arch Detection Skip (Improvement 1)
 
-**Shaft Status**: ✅ PLANNING COMPLETE
-**Execution Status**: 🔨 PENDING
-**Last Updated**: 2024-02-22
-**Version**: 1.0
-**Alignment**: Pragmatic Zen
+#### Why This Needs to Change
+
+**File:** `installer-cli/src/tui/app.rs`
+
+The `run()` function (line 919) currently:
+1. Reads `std::env::consts::ARCH`
+2. Calls `app.handle_auto_arch(arch)` unconditionally
+3. `handle_auto_arch()` sets `screen = Screen::ArchDetected` and starts a 15-second timer
+4. `tick()` (called every 250ms in the event loop) advances to `Screen::DistroSelect` after 15 seconds
+
+This means **every launch wastes 15 seconds on the ArchDetected banner**, even when the arch is correctly identified and only one driver matches the platform.
+
+The user can press Enter to skip but the default flow forces a wait.
+
+#### 2.1 — Modify `run()` to Detect Single-Driver Match
+
+**File:** `installer-cli/src/tui/app.rs`
+
+**Location:** Lines 938–940 (the detection block):
+```rust
+// KISS: Internal detection is the source of truth
+let arch = std::env::consts::ARCH.to_string();
+app.handle_auto_arch(arch);
+```
+
+**Change to:**
+```rust
+// Detect arch and check if exactly one driver matches the platform.
+// If so, skip the ArchDetected banner (no 15-second wait) and go
+// directly to DistroSelect with the matched driver pre-selected.
+let arch = std::env::consts::ARCH.to_string();
+
+let single_match = installer_core::detect_platform()
+    .ok()
+    .and_then(|plat| {
+        let matched: Vec<usize> = app
+            .drivers
+            .iter()
+            .enumerate()
+            .filter(|(_, d)| d.matches(&plat))
+            .map(|(i, _)| i)
+            .collect();
+        if matched.len() == 1 { Some(matched[0]) } else { None }
+    });
+
+if let Some(idx) = single_match {
+    // Exactly one driver matches — skip the arch banner, pre-select the driver,
+    // advance directly to DistroSelect.
+    app.selected_driver_idx = idx;
+    app.menu_cursor = idx;
+    app.screen = Screen::DistroSelect;
+    app.bbs_msg = format!(
+        "STATION_01: ARCH_SIGIL_{} AUTO-CONFIRMED. DRIVER PRE-SELECTED.",
+        arch.to_uppercase()
+    );
+} else {
+    // Multiple or zero drivers match — show the ArchDetected banner as usual.
+    app.handle_auto_arch(arch);
+}
+```
+
+**What this requires:**
+- `installer_core::detect_platform()` must be re-exported from `installer-core/src/lib.rs`. Check current re-exports:
+  - **File:** `installer-core/src/lib.rs`
+  - **Verify:** `pub use platform::detect as detect_platform;` is already present (used in `orchestrator.rs` via `use crate::platform::detect as detect_platform;`)
+  - If not already public in lib.rs, add: `pub use platform::detect as detect_platform;`
+
+**Import required in `app.rs`:** `detect_platform` is already imported at the top via `use installer_core::{...}` — add it to that import list if not present.
+
+#### 2.2 — Keep `handle_auto_arch()` Unchanged
+
+`handle_auto_arch()` (lines 274–278) remains as-is. It is still used in the fallback case (multiple/zero matches). No change needed there.
+
+#### 2.3 — Keep `tick()` Unchanged
+
+The 15-second timer in `tick()` remains intact. It only fires when `arch_timer` is `Some(...)`, which only happens when `handle_auto_arch()` is called. In the single-match case, `arch_timer` stays `None`, so `tick()` never starts the countdown.
+
+**Verification:** Launch the binary on a system with only one compiled-in driver. The ArchDetected screen must not appear. Launch on a multi-driver binary — ArchDetected must appear and auto-advance after 15 seconds or on Enter.
 
 ---
 
-**The plan is drawn. The shaft is ready. The journey begins.** ⛏️🔥
+### 3. Fix Nerd Font Source to JetBrainsMono via Git Releases (Improvement 3)
+
+#### Why This Needs to Change
+
+**File:** `installer-core/src/fonts.rs`
+
+Current state (lines 23–27):
+```rust
+fn install_terminess_nerd_font(ctx: &mut PhaseContext) -> Result<()> {
+    let font_dir = ...;
+    let target_font = font_dir.join("TerminessNerdFont-Regular.ttf");
+    ...
+    let version = "v3.2.1";
+    let font_name = "Terminus.zip";
+```
+
+Two problems:
+1. The kitty config (now promoted to `resources/shell/kitty.conf`) specifies `font_family JetBrainsMono Nerd Font`. Terminus is a different font. If Terminus is installed but JetBrainsMono is not, Kitty will silently fall back to a system default.
+2. Version is hardcoded to `v3.2.1` and must be manually bumped with each Nerd Fonts release.
+
+#### 3.1 — Change the Font Name Constant and Target File
+
+**File:** `installer-core/src/fonts.rs`
+
+**Change 1:** Rename the function for clarity:
+
+```rust
+// OLD:
+fn install_terminess_nerd_font(ctx: &mut PhaseContext) -> Result<()> {
+
+// NEW:
+fn install_jetbrains_nerd_font(ctx: &mut PhaseContext) -> Result<()> {
+```
+
+**Change 2:** Update the target font path and the download parameters:
+
+```rust
+// OLD:
+let target_font = font_dir.join("TerminessNerdFont-Regular.ttf");
+...
+let version = "v3.2.1";
+let font_name = "Terminus.zip";
+
+// NEW:
+let target_font = font_dir.join("JetBrainsMonoNerdFont-Regular.ttf");
+...
+const NERD_FONT_VERSION: &str = "v3.3.0";
+let font_name = "JetBrainsMono.zip";
+let url = format!(
+    "https://github.com/ryanoasis/nerd-fonts/releases/download/{}/{}",
+    NERD_FONT_VERSION, font_name
+);
+```
+
+Move `NERD_FONT_VERSION` to a module-level constant at the top of `fonts.rs` (after the `use` block):
+
+```rust
+// Nerd Fonts release to download from https://github.com/ryanoasis/nerd-fonts
+// Bump this constant when a new Nerd Fonts release is tested and confirmed.
+const NERD_FONT_VERSION: &str = "v3.3.0";
+```
+
+**Change 3:** Update the `install_phase()` call:
+
+```rust
+// OLD:
+install_terminess_nerd_font(ctx)?;
+
+// NEW:
+install_jetbrains_nerd_font(ctx)?;
+```
+
+**Change 4:** Update the `run_or_record()` description string:
+
+```rust
+// OLD:
+Some("Downloading from GitHub Nerd Fonts release".into()),
+
+// NEW:
+Some(format!("Downloading JetBrainsMono from github.com/ryanoasis/nerd-fonts @ {}", NERD_FONT_VERSION)),
+```
+
+#### 3.2 — Keep Terminus Base Packages
+
+The call to `package_manager::ensure_packages` for `fonts-terminus`, `fonts-noto-color-emoji`, `xfonts-terminus` remains. These are system packages, not Nerd Font variants. They are independent of the JetBrainsMono download.
+
+#### 3.3 — File Filter for Zip Extraction
+
+The current extraction loop filters for `.ttf`:
+```rust
+if path.extension().and_then(|s| s.to_str()) == Some("ttf") {
+```
+
+JetBrainsMono.zip contains both `.ttf` and `.otf` files. The filter is correct — we only want `.ttf`. No change needed.
+
+**Verification after change:** After install, `ls ~/.local/share/fonts/ | grep JetBrains` must return `JetBrainsMonoNerdFont-Regular.ttf` (and variants). Running `kitty` must use the correct font without fallback warnings.
+
+---
+
+## 🏗️ File Touch Summary
+
+| File | Section | Nature of Change |
+|---|---|---|
+| `resources/shell/kitty.conf` | §1.1 | Full replacement with BBC Acorn config |
+| `resources/shell/starship.toml` | §1.2 | Full replacement with Goblin Starship config |
+| `resources/shell/eza_aliases.sh` | §1.3 | Full replacement with Goblin mega aliases |
+| `installer-cli/src/tui/app.rs` | §2.1 | Replace 3-line arch detection block with 20-line single-match logic |
+| `installer-core/src/fonts.rs` | §3.1 | Add `NERD_FONT_VERSION` const; rename fn; change font name and target file |
+| `installer-core/src/lib.rs` | §2.1 | Verify `detect_platform` is re-exported; add if missing |
+
+---
+
+## ⚠️ Risks & Mitigations
+
+| Risk | Mitigation |
+|---|---|
+| `detect_platform()` fails early in `run()` before terminal is ready | Wrap in `.ok().and_then(...)` — on `Err`, fall through to `handle_auto_arch()` as before |
+| JetBrainsMono.zip URL changes between Nerd Fonts releases | `NERD_FONT_VERSION` is a single constant to bump; document in CHANGELOG |
+| `detect_platform()` call in `run()` adds startup latency | `detect_platform()` reads `/etc/os-release` and `/proc` — sub-millisecond; acceptable |
+| Existing Terminus font users lose their font | Terminus base packages still installed via `ensure_packages`; only the Nerd Font variant changes |
+| `include_str!` compile-time embed fails if resource file missing | Files are promoted in-place — no new paths introduced; existing build path unchanged |
+
+---
+
+## ⚙️ Test Checklist
+
+- [ ] `cargo build --workspace` passes after resource file updates
+- [ ] `cargo test --workspace` passes — especially `phase_runner` and `driver_harness` tests
+- [ ] `cargo clippy --all-targets -- -D warnings` clean
+- [ ] TUI launched on single-driver binary: ArchDetected screen does NOT appear
+- [ ] TUI launched on multi-driver binary: ArchDetected screen DOES appear, auto-advances at 15s or on Enter
+- [ ] `install_phase` for fonts: `JetBrainsMonoNerdFont-Regular.ttf` present after dry-run log; URL is correct
+- [ ] Kitty launched after install: `font_family` resolves to JetBrainsMono (check `kitty +list-fonts | grep JetBrains`)
+- [ ] Starship prompt shows memory module when RAM > 75%
+- [ ] `source ~/.eza_aliases` in zsh: `ls` invokes eza, `goblin` invokes cmatrix
+
+---
+
+**Status**: Planned ⏳
+**Owner**: Bard
