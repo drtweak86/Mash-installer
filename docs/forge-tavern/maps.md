@@ -3,292 +3,164 @@
 
 ---
 
-## ✅ SHAFT J: WALLPAPER DOWNLOADER RUST CONVERSION — COMPLETE
+## ✅ SHAFT J: The Overlord Protocols — ACTIVE
+> *Branch*: `work-shaftj-overlord`
+> *Risk*: MEDIUM (mitigated with phased approach)
+> *Reward*: HIGH (long-term maintainability, performance, alignment)
+> *Status*: ✅ PLANNING COMPLETE | 🔨 EXECUTION PENDING
 
-All previous shafts (A through J) are complete. See `maps-explored.md` for full history.
+### PHASE 1: OVERLORD CONFIG PROMOTION ✅ PLANNED
+**Objective**: Promote BBC Acorn terminal configs from staging to production resources.
 
----
+#### 1.1 — Update `resources/shell/kitty.conf`
+- **File**: `resources/shell/kitty.conf`
+- **Change**: Replace with `docs/incoming-files/kitty.txt`
+- **Key**: `font_family JetBrainsMono Nerd Font`
+- **Verification**: `grep "font_family" resources/shell/kitty.conf` → `JetBrainsMono Nerd Font`
+- **Status**: ✅ PLANNED
 
-## ✅ SHAFT K: FORGE HARDENING — COMPLETE
-> *Branch*: `work-shaftj-phase1`
-> *PR*: [#35](https://github.com/drtweak86/Mash-installer/pull/35) — awaiting CI green + merge
+#### 1.2 — Update `resources/shell/starship.toml`
+- **File**: `resources/shell/starship.toml`
+- **Change**: Replace with `docs/incoming-files/starship.toml.txt`
+- **Key**: `[memory_usage]` module with 75% threshold
+- **Verification**: `grep "memory_usage" resources/shell/starship.toml` → present
+- **Status**: ✅ PLANNED
 
-### PHASE 1: BASELINE COMMIT ✅ COMPLETE — Checkpoint α
-- [x] K1.1 Run build trinity: fmt clean | clippy clean | 107 tests passing
-- [x] K1.2 Staged and committed 49 files (commit f89d203)
-- [x] K1.3 PR #35 opened on `work-shaftj-phase1` → CI → merge
+#### 1.3 — Update `resources/shell/eza_aliases.sh`
+- **File**: `resources/shell/eza_aliases.sh`
+- **Change**: Replace with `docs/incoming-files/eza-aliases.sh`
+- **Key**: `alias goblin='cmatrix -a'` easter egg
+- **Verification**: `grep "goblin" resources/shell/eza_aliases.sh` → present
+- **Status**: ✅ PLANNED
 
-### PHASE 2: LEGACY ARTIFACT PURGE ✅ COMPLETE — Checkpoint β
-- [x] K2.1 Deleted `resources/themes/retro-bbc/wallpaper_downloader_final.py`
-- [x] K2.2 Deleted `docs/incoming-files/wallpaper_downloader_final.py`
-- [x] K2.3 Deleted `docs/incoming-files/eza-aliases.sh` (staging duplicate)
-- [x] K2.4 `resources/shell/eza_aliases.sh` confirmed kept as resource data file
+### PHASE 2: ARCH DETECTION OPTIMIZATION ✅ PLANNED
+**Objective**: Skip 15-second ArchDetected banner when exactly one driver matches.
 
-### PHASE 3: THIN SHIM ELIMINATION ✅ COMPLETE — Checkpoint γ
-- [x] K3.1 Deleted `installer-core/src/registry.rs` (was 1-line re-export)
-- [x] K3.2 Updated `lib.rs`: `pub use phase_registry::PhaseRegistry`
-- [x] K3.3 Deleted `installer-core/src/runner.rs` (was 4-line re-export)
-- [x] K3.4 Updated `lib.rs`: `pub use phase_runner::{Phase, PhaseRunner, ...}`
-- [x] K3.5 Build check: green
+#### 2.1 — Modify `run()` to Detect Single-Driver Match
+- **File**: `installer-cli/src/tui/app.rs` (lines 938–940)
+- **Change**: Replace 3-line block with 20-line single-match logic
+- **Requires**: `installer_core::detect_platform()` re-exported in lib.rs
+- **Verification**: Single-driver binary → no ArchDetected screen
+- **Status**: ✅ PLANNED
 
-### PHASE 4: CRATE CONSOLIDATION ✅ COMPLETE — Checkpoint δ
-- [x] K4.1.d Bumped wallpaper-downloader version to 1.0.0 (workspace aligned)
-  - NOTE: Full thin-CLI fold deferred post-v1.0.0 (PhaseContext coupling architectural decision)
-- [x] K4.2 Deleted `.github/workflows/rust.yml` (subsumed by ci.yml)
+#### 2.2 — Keep `handle_auto_arch()` Unchanged
+- **File**: `installer-cli/src/tui/app.rs` (lines 274–278)
+- **Change**: None (used in fallback case)
+- **Status**: ✅ PLANNED
 
-### PHASE 5: DEPENDENCY HYGIENE ✅ COMPLETE — Checkpoint ε
-- [x] K5.1 Aligned `indicatif`: core 0.17 → 0.18 (matches installer-cli)
-- [x] K5.2 Removed dead `which = "4"` from installer-cli
-- [x] K5.3 `once_cell` → `std::sync::OnceLock` — COMPLETE (sudo_password.rs; dep removed)
-- [x] K5.4 Toolchain — CONFIRMED current (1.93.1 IS stable tip)
-- [x] K5.5 Build: fmt clean | clippy clean | build green
+#### 2.3 — Keep `tick()` Unchanged
+- **File**: `installer-cli/src/tui/app.rs`
+- **Change**: None (timer only fires when `arch_timer` is `Some`)
+- **Status**: ✅ PLANNED
 
-### PHASE 6: SHAFT K COMMIT ✅ COMPLETE — Checkpoint ζ
-- [x] K6.1 Commits: f89d203 | 3a7b7e0 | e4430b2 | dfbfe16 | d73bec3
-- [x] K6.2 PR #35 opened `work-shaftj-phase1` → main
+### PHASE 3: NERD FONT UPGRADE ✅ PLANNED
+**Objective**: Switch from Terminus to JetBrainsMono Nerd Font.
 
-**Risk**: LOW | **Reward**: HIGH
+#### 3.1 — Change the Font Name Constant and Target File
+- **File**: `installer-core/src/fonts.rs`
+- **Changes**:
+  - Rename: `install_terminess_nerd_font` → `install_jetbrains_nerd_font`
+  - Add: `const NERD_FONT_VERSION: &str = "v3.3.0";`
+  - Update: `target_font` → `JetBrainsMonoNerdFont-Regular.ttf`
+  - Update: `font_name` → `JetBrainsMono.zip`
+  - Update: URL format string to include version
+- **Verification**: `ls ~/.local/share/fonts/ | grep JetBrains` → `.ttf` files present
+- **Status**: ✅ PLANNED
 
----
+#### 3.2 — Keep Terminus Base Packages
+- **File**: `installer-core/src/fonts.rs`
+- **Change**: None (system packages remain)
+- **Status**: ✅ PLANNED
 
-## ✅ SHAFT L: FINAL RELEASE CLEARANCE — COMPLETE (pending PR merge + tag)
-> *PR*: #35 (includes all Shaft L commits)
-> *Next action*: CI green → merge → `git tag v1.0.0 && git push --tags`
+#### 3.3 — Keep File Filter for Zip Extraction
+- **File**: `installer-core/src/fonts.rs`
+- **Change**: None (`.ttf` filter is correct)
+- **Status**: ✅ PLANNED
 
-**Objective**: Code quality pass + UX improvements + docs + release gate → v1.0.0 tag.
+### PHASE 4: VERIFICATION & TESTING ⏳ PENDING
+**Objective**: Ensure all changes work correctly.
 
-### PHASE 1: CODE QUALITY ✅ COMPLETE
-- [x] L1.1 verify.rs: changed `#[allow(dead_code)] mod` → `pub mod` (exposed as public API)
-- [x] L1.2 ai_agents.rs: confirmed wired in phase_registry.rs:129; added module doc comment
-- [x] L1.3 once_cell → OnceLock — DONE in K5.3
-- [x] L1.4 software_tiers boundary: doc comments added to both core (data+install) and cli (UI)
+#### 4.1 — Build Verification
+- **Command**: `cargo build --workspace`
+- **Status**: ⏳ PENDING
 
-### PHASE 2: UX IMPROVEMENTS ✅ COMPLETE
-- [x] L2.1 WallpaperConfig::with_env_keys() — reads MASH_WALLHAVEN_KEY, MASH_PEXELS_KEY, MASH_PIXABAY_KEY
-- [x] L2.2 Doctor mode: "Wallpaper API keys" section — PASS/WARN per key + setup URLs
-- [x] L2.3 include_str!() eza_aliases.sh — CONFIRMED already done in zsh.rs:23
+#### 4.2 — Test Verification
+- **Command**: `cargo test --workspace`
+- **Status**: ⏳ PENDING
 
-### PHASE 3: DOCUMENTATION ✅ COMPLETE
-- [x] L3.1 HISTORY.md: bardic entry for Shaft J (wallpaper Rust conversion)
-- [x] L3.2 HISTORY.md: bardic entry for Shaft K (forge hardening, cron, laws)
-- [x] L3.3 MANUAL.md: full refresh (TUI, wallpapers, Pi tuning, doctor, API keys, AI Spirits)
-- [x] L3.4 check_docs.rs: 4 broken links fixed in QA_SUMMARY.md — passes clean
+#### 4.3 — Clippy Verification
+- **Command**: `cargo clippy --all-targets -- -D warnings`
+- **Status**: ⏳ PENDING
 
-### PHASE 4: FINAL RELEASE GATE ✅ COMPLETE (local)
-- [x] L4.1 release_checklist.rs: fmt clean | clippy clean | 110 tests passing | docs clean
-- [x] L4.2 cargo audit: via CI (not installed locally on Pi)
-- [x] L4.3 shellcheck install.sh: clean (zero warnings)
-- [x] L4.4 Version consistency: all 6 crates bumped to 1.0.0
-- [x] L4.5 Merge to main — PR #35 merged 2026-02-23T01:29:16Z
-- [x] L4.7 `git tag v1.0.0 && git push --tags` — DONE 2026-02-23
-- [x] L4.8 GitHub Actions release pipeline fires → .deb, .rpm published ✅ COMPLETE (2026-02-23T02:03:04Z)
+#### 4.4 — TUI Verification
+- **Test**: Single-driver binary → no ArchDetected screen
+- **Status**: ⏳ PENDING
 
-**Risk**: LOW | **Reward**: MAXIMUM (v1.0.0 shipped)
+#### 4.5 — Font Verification
+- **Test**: `kitty +list-fonts | grep JetBrains` → correct font
+- **Status**: ⏳ PENDING
 
----
+### PHASE 5: FINAL COMMIT & PR ⏳ PENDING
+**Objective**: Commit and merge the changes.
 
-## ✅ SESSION 2026-02-23 — THRESHOLD CROSSING — COMPLETE
+#### 5.1 — Commit Changes
+- **Message**: `feat: overlord protocols — kitty/starship/eza configs + arch skip + jetbrains font`
+- **Status**: ⏳ PENDING
 
-**Commits this session** (branch `work-shaftj-phase1`, merged to main):
-- `3abf4bd` fix: aarch64 cross-compile — switch to rustls-tls, harden doc CI
-- `11c875f` feat: CLI — wire doctor/config subcommands + bard easter egg
-- `4c66539` docs: hygiene — move release scratch docs; add mdBook sources
-- `ff09418` chore: remove orphaned root src/main.rs
-- `4fadf1f` merge: sync origin/main → resolve MANUAL.md conflict
-- `549a494` fix: docs build — remove [output.linkcheck] from book.toml
+#### 5.2 — Open PR
+- **Branch**: `work-shaftj-overlord` → `main`
+- **Status**: ⏳ PENDING
 
-**CI**: ALL 10 checks GREEN
-**PR #35**: MERGED → main at `d9ded60` on 2026-02-23T01:29:16Z
-**Tag**: `v1.0.0` at `98737cb` — release FULLY PUBLISHED 2026-02-23T02:03:04Z
+#### 5.3 — Wait for CI Green
+- **Checks**: fmt, clippy, test, audit, build
+- **Status**: ⏳ PENDING
 
----
-
-## ✅ THE THRESHOLD IS CROSSED — v1.0.0 SHIPPED
-
-```
-PR #35 CI ──► MERGE ──► git tag v1.0.0 ──► git push --tags ──► RELEASE PIPELINE ✅
-```
-
----
-
----
-
-## ✅ SHAFT M: TOOLING MODERNIZATION — COMPLETE
-> *Risk*: LOW | *Reward*: HIGH (developer QoL)
-> *Branch*: `work-shaftm`
-
-**Objective**: Consolidate scripts/*.rs into a proper `xtask` crate, replace auto_bump.rs with cargo-release, configure Dependabot.
-
-### PHASE 1: xtask Scaffold ✅ COMPLETE
-- [x] M1.1 Create `xtask/` crate in workspace root
-- [x] M1.2 Add `xtask` to `[workspace].members` in root Cargo.toml
-- [x] M1.3 Port each script as a subcommand: `cargo xtask check-docs | bump | hygiene | release-check | test-infra | test-theme | branch-prune`
-  - `release-check` calls `check_docs::check()` directly — no code duplication
-- [x] M1.4 Update cron binaries (`~/.local/bin/`) to shell scripts calling `cargo xtask`
-- [x] M1.5 Delete `scripts/` directory (7 .rs files consolidated; git tracked as renames)
-
-### PHASE 2: cargo-release Integration ✅ COMPLETE
-- [x] M2.1 Add `release.toml` config at workspace root
-- [x] M2.2 Configure: `pre-release-hook = ["cargo","xtask","release-check"]`, tag-name `v{{version}}`, shared-version workspace mode, MANUAL.md replacements
-- [x] M2.3 `auto_bump.rs` → `cargo xtask bump` (ported to xtask in M1, complementary to cargo-release)
-- [x] M2.4 Developer Workflow section added to MANUAL.md (xtask table + cargo release workflow)
-
-### PHASE 3: Dependabot ✅ COMPLETE
-- [x] M3.1 Created `.github/dependabot.yml`
-- [x] M3.2 Cargo ecosystem: weekly Monday, `deps` label, patch updates grouped
-- [x] M3.3 GitHub Actions ecosystem: monthly
-
-**Risk**: LOW | **Reward**: HIGH
+#### 5.4 — Merge
+- **Action**: Merge PR to main
+- **Status**: ⏳ PENDING
 
 ---
 
-## ✅ SHAFT N: REQWEST 0.12 UPGRADE — COMPLETE
-> *Risk*: HIGH (rated) → actual risk: ZERO (zero source changes needed)
-> *Branch*: `work-shaftn`
+## 🏗️ FILE TOUCH SUMMARY
 
-**Result**: reqwest 0.11 → 0.12.28 — zero source code changes required.
-The upgrade pulled in hyper 1.x, http 1.0, rustls 0.23, tower, webpki-roots 1.0.
-
-### PHASE 1: Audit & Plan ✅ COMPLETE
-- [x] N1.1 Read reqwest 0.12 migration guide — core breaking change: http 0.2 → 1.0
-- [x] N1.2 All 4 files audited — use only basic Client/.send()/.json()/.status() API (unchanged in 0.12)
-- [x] N1.3 No mocking changes needed (mockito not exercised in our test suite)
-
-### PHASE 2: installer-core Migration ✅ COMPLETE
-- [x] N2.1 `installer-core/Cargo.toml`: `"0.11"` → `"0.12"` — builds clean, reqwest 0.12.28 resolved
-- [x] N2.2–N2.4 No source changes needed in wallhaven.rs / pexels.rs / pixabay.rs
-- [x] N2.5 `cargo test -p installer-core` — 99 tests green
-
-### PHASE 3: wallpaper-downloader Migration ✅ COMPLETE
-- [x] N3.1 `wallpaper-downloader/Cargo.toml`: `"0.11"` → `"0.12"` — builds clean
-- [x] N3.2 No source changes needed in api.rs
-- [x] N3.3 `cargo test -p wallpaper-downloader` — all tests green
-
-### PHASE 4: Verification ✅ COMPLETE
-- [x] N4.1 Full workspace build: clean
-- [x] N4.2 Full test suite: 114 tests, 0 failures
-- [x] N4.3 Clippy: clean (zero warnings)
-- [x] N4.4 aarch64 cross-compile: verified via CI
-
-**Risk**: LOW (was rated HIGH — actual blast radius was zero) | **Reward**: MEDIUM
+| File | Section | Nature of Change |
+|---|---|---|
+| `resources/shell/kitty.conf` | §1.1 | Full replacement with BBC Acorn config |
+| `resources/shell/starship.toml` | §1.2 | Full replacement with Goblin Starship config |
+| `resources/shell/eza_aliases.sh` | §1.3 | Full replacement with Goblin mega aliases |
+| `installer-cli/src/tui/app.rs` | §2.1 | Replace 3-line arch detection block with 20-line single-match logic |
+| `installer-core/src/fonts.rs` | §3.1 | Add `NERD_FONT_VERSION` const; rename fn; change font name and target file |
+| `installer-core/src/lib.rs` | §2.1 | Verify `detect_platform` is re-exported; add if missing |
 
 ---
 
-## ✅ SHAFT O: UX & FEATURE EXPANSION — COMPLETE
-> *Risk*: LOW–MEDIUM | *Reward*: HIGH (user-visible)
-> *Branch*: `work-shafto`
+## ⚠️ RISKS & MITIGATIONS
 
-**Objective**: BBS message bank expansion + mash-setup status subcommand + multi-distro CI matrix.
-
-### PHASE 1: BBS Message Bank Expansion ✅ COMPLETE — 45 → 68 messages
-- [x] O1.1 Reviewed existing 45 messages for tone/themes
-- [x] O1.2 Drafted 23 new messages (Forge Lore, Rust idioms, Dwarven wisdom, Network sorcery, Package alchemy)
-- [x] O1.3 Added messages — no duplicates, even distribution
-
-### PHASE 2: mash-setup status Subcommand ✅ COMPLETE
-- [x] O2.1 `StatusReport` model: PlatformStatus + ConfigStatus + WallpaperKeyStatus + PreflightSummary
-- [x] O2.2 `run_status()` in `installer-core/src/status.rs`
-  - Fast preflight: tools, memory, CPU, package manager, OS (no network — instant response)
-- [x] O2.3 `mash-setup status [--format pretty|json]` wired in installer-cli
-- [x] O2.4 4 tests: sections present, JSON valid, 3 providers, preflight count invariant
-- [x] O2.5 Status subcommand section added to MANUAL.md
-
-### PHASE 3: Multi-Distro Parallel CI Matrix ✅ COMPLETE
-- [x] O3.1 `distro-build` job: builds x86_64 binary + uploads artifact
-- [x] O3.2 `distro-test` matrix: ubuntu:24.04, fedora:40, archlinux:latest — `--version` test
-- [x] O3.3 `mash-setup doctor` in each container (`fail-fast: false`)
-- [x] O3.4 Parallelized: 3 distro-test jobs run simultaneously after distro-build
-
-**Risk**: LOW–MEDIUM | **Reward**: HIGH
+| Risk | Mitigation |
+|---|---|
+| `detect_platform()` fails early in `run()` before terminal is ready | Wrap in `.ok().and_then(...)` — on `Err`, fall through to `handle_auto_arch()` as before |
+| JetBrainsMono.zip URL changes between Nerd Fonts releases | `NERD_FONT_VERSION` is a single constant to bump; document in CHANGELOG |
+| `detect_platform()` call in `run()` adds startup latency | `detect_platform()` reads `/etc/os-release` and `/proc` — sub-millisecond; acceptable |
+| Existing Terminus font users lose their font | Terminus base packages still installed via `ensure_packages`; only the Nerd Font variant changes |
+| `include_str!` compile-time embed fails if resource file missing | Files are promoted in-place — no new paths introduced; existing build path unchanged |
 
 ---
 
-## ✅ SHAFT P: DOCUMENTATION — COMPLETE
-> *Risk*: LOW | *Reward*: MEDIUM (improves discoverability)
-> *Branch*: `work-shaftp`
+## ⚙️ TEST CHECKLIST
 
-**Objective**: Expand mdBook from a 20-line stub to a complete user manual; deploy to GitHub Pages.
-
-### PHASE 1: Structure & Scaffold ✅ COMPLETE
-- [x] P1.1 Chapter tree: Introduction → Installation → Configuration → Features → Troubleshooting → Reference → Developer
-- [x] P1.2 Full `SUMMARY.md` — 7 sections, 28 chapters
-- [x] P1.3 All chapter files created under `docs/src/`
-
-### PHASE 2: Content — Installation & Configuration ✅ COMPLETE
-- [x] P2.1 Installation: prerequisites, quick-start, profiles, first-run
-- [x] P2.2 Configuration: profiles, env-vars, config-file, api-keys
-
-### PHASE 3: Content — Features & Troubleshooting ✅ COMPLETE
-- [x] P3.1 Features: TUI, doctor, status, wallpapers, AI spirits, shell polish, Pi 4B tuning
-- [x] P3.2 Troubleshooting: common errors, dry-run, logs, Pi SD card sync
-- [x] P3.3 Reference: CLI flags, distros, architecture; Developer: workflow, xtask, release
-
-### PHASE 4: CI & Deployment ✅ COMPLETE
-- [x] P4.1 mdBook 0.4.47 pinned via prebuilt binary (removed slow `cargo install` + dropped mdbook-linkcheck)
-- [x] P4.2 `pages.yml` workflow: build + deploy to GitHub Pages on main push
-- [x] P4.3 `docs/book.toml`: site-url, git-repository-url, edit-url-template
-- [x] P4.4 README: GitHub Pages badge + updated docs links
-
-**Risk**: LOW | **Reward**: MEDIUM
+- [ ] `cargo build --workspace` passes after resource file updates
+- [ ] `cargo test --workspace` passes — especially `phase_runner` and `driver_harness` tests
+- [ ] `cargo clippy --all-targets -- -D warnings` clean
+- [ ] TUI launched on single-driver binary: ArchDetected screen does NOT appear
+- [ ] TUI launched on multi-driver binary: ArchDetected screen DOES appear, auto-advances at 15s or on Enter
+- [ ] `install_phase` for fonts: `JetBrainsMonoNerdFont-Regular.ttf` present after dry-run log; URL is correct
+- [ ] Kitty launched after install: `font_family` resolves to JetBrainsMono (check `kitty +list-fonts | grep JetBrains`)
+- [ ] Starship prompt shows memory module when RAM > 75%
+- [ ] `source ~/.eza_aliases` in zsh: `ls` invokes eza, `goblin` invokes cmatrix
 
 ---
 
-## ✅ SHAFT Q: WALLPAPER CONSOLIDATION — COMPLETE
-> *Risk*: LOW (was MEDIUM; scoped down after audit) | *Reward*: MEDIUM
-> *Branch*: `work-shaftq`
-
-### PHASE 1: Architecture Design ✅ COMPLETE
-- [x] Q1.1 PhaseContext coupling audited — 6 shallow uses (record_action ×2, record_warning ×4)
-- [x] Q1.2 Evaluated 4 options: wallpaper-core sub-crate, thin-CLI, keep-separate, adapter
-- [x] Q1.3 Tools are complementary (different providers, output dirs, features) — not competing
-- [x] Q1.4 Design written to `docs/scratch/shaft-q-design.md`
-- [x] Q1.5 Option C approved: keep separate, fix env var mismatch
-
-### PHASE 2: Implementation ✅ COMPLETE
-- [x] Q2.1 `wallpaper-downloader/src/config.rs`: `WALLHAVEN_API_KEY` → `MASH_WALLHAVEN_KEY`
-- [x] Q2.2 `docs/src/features/wallpapers.md`: document unified env var + standalone binary
-- [x] Q2.3 Build: fmt clean | clippy clean | 114 tests green
-- [x] Q2.4 maps.md — Shaft Q complete
-
-**Risk**: LOW | **Reward**: MEDIUM (env var now consistent across both tools)
-
----
-
-## RECOMMENDED ORDER
-
-```
-M (Tooling) → O (UX) → P (Docs) → Q (Design) → N (reqwest 0.12)
-```
-
-Rationale:
-- M first — better tools make all subsequent work easier
-- O next — user-visible wins + low risk
-- P after O — docs reflect the features from O
-- Q design — architecture decision with no blast radius
-- N last — HIGH RISK isolated upgrade, do it when forge is calm
-
----
-
-**Last Updated**: 2026-02-23
+**Status**: ✅ PLANNING COMPLETE | 🔨 EXECUTION PENDING
 **Owner**: Bard, Drunken Dwarf Runesmith 🍺⚒️
-
----
-
-## ✅ SHAFT R: GOVERNANCE & CURATION — COMPLETE
-> *Risk*: LOW | *Reward*: HIGH (Standardized Forge Operations)
-> *Branch*: `main` (Documentation only)
-
-**Objective**: Formalize the software catalog, development environment, and project governance for the next evolution of MASH.
-
-### PHASE 1: Artifact Curation ✅ COMPLETE
-- [x] R1.1 Created `docs/SOFTWARE_GRIMOIRE.md`: Full 5-tier ranked catalog (S-F) across 9 categories.
-- [x] R1.2 Created `docs/DEV_ENV.md`: Comprehensive guide for the Runesmith's Forge, including Buildroot/QEMU.
-- [x] R1.3 Created `docs/BARD_RECOMMENDS.md`: Established the "Install All" S-Tier bundle.
-
-### PHASE 2: Governance & Roadmap ✅ COMPLETE
-- [x] R2.1 Created `docs/MINING_GOVERNANCE.md`: Redefined project workflow using "Mining Projects" and "Shafts".
-- [x] R2.2 Created `docs/mining-projects/ROADMAP.md`: Includes Shafts A-G (Software, Themes, Wayland, Architecture, Flow, Distro-Intelligence, MASH Integration).
-- [x] R2.3 Source of Truth Integration: Cross-referenced `maps.md` and `HISTORY.md` in governance rules.
-- [x] R2.4 Created `Overview.md` for Shafts D, E, F, and G.
-
-**Risk**: LOW | **Reward**: HIGH (The map is clear; the shafts are named.)
+**Last Updated**: 2026-02-24
+**Next Review**: 2026-02-25 (Phase 1 kickoff)
