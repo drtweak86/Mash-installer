@@ -35,72 +35,73 @@
 - **Verification**: `grep "goblin" resources/shell/eza_aliases.sh` → present ✅
 - **Status**: ✅ COMPLETE (no change needed)
 
-### PHASE 2: ARCH DETECTION OPTIMIZATION ✅ PLANNED
+### PHASE 2: ARCH DETECTION OPTIMIZATION ✅ COMPLETE
 **Objective**: Skip 15-second ArchDetected banner when exactly one driver matches.
 
 #### 2.1 — Modify `run()` to Detect Single-Driver Match
-- **File**: `installer-cli/src/tui/app.rs` (lines 938–940)
-- **Change**: Replace 3-line block with 20-line single-match logic
-- **Requires**: `installer_core::detect_platform()` re-exported in lib.rs
-- **Verification**: Single-driver binary → no ArchDetected screen
-- **Status**: ✅ PLANNED
+- **File**: `installer-cli/src/tui/app.rs` (lines 938–967)
+- **Change**: Replaced 3-line block with 27-line single-match logic using `detect_platform()` + `driver.matches()`
+- **Requires**: `installer_core::detect_platform()` re-exported in lib.rs ✅ (was already present)
+- **Verification**: fmt clean | clippy clean | 114 tests green ✅
+- **Status**: ✅ COMPLETE — 2026-02-26
 
 #### 2.2 — Keep `handle_auto_arch()` Unchanged
 - **File**: `installer-cli/src/tui/app.rs` (lines 274–278)
 - **Change**: None (used in fallback case)
-- **Status**: ✅ PLANNED
+- **Status**: ✅ CONFIRMED UNCHANGED
 
 #### 2.3 — Keep `tick()` Unchanged
 - **File**: `installer-cli/src/tui/app.rs`
 - **Change**: None (timer only fires when `arch_timer` is `Some`)
-- **Status**: ✅ PLANNED
+- **Status**: ✅ CONFIRMED UNCHANGED
 
-### PHASE 3: NERD FONT UPGRADE ✅ PLANNED
+### PHASE 3: NERD FONT UPGRADE ✅ COMPLETE
 **Objective**: Switch from Terminus to JetBrainsMono Nerd Font.
 
 #### 3.1 — Change the Font Name Constant and Target File
 - **File**: `installer-core/src/fonts.rs`
 - **Changes**:
-  - Rename: `install_terminess_nerd_font` → `install_jetbrains_nerd_font`
-  - Add: `const NERD_FONT_VERSION: &str = "v3.3.0";`
-  - Update: `target_font` → `JetBrainsMonoNerdFont-Regular.ttf`
-  - Update: `font_name` → `JetBrainsMono.zip`
-  - Update: URL format string to include version
-- **Verification**: `ls ~/.local/share/fonts/ | grep JetBrains` → `.ttf` files present
-- **Status**: ✅ PLANNED
+  - Renamed: `install_terminess_nerd_font` → `install_jetbrains_nerd_font` ✅
+  - Added: `const NERD_FONT_VERSION: &str = "v3.3.0";` ✅
+  - Updated: `target_font` → `JetBrainsMonoNerdFont-Regular.ttf` ✅
+  - Updated: `font_name` → `JetBrainsMono.zip` ✅
+  - Updated: URL uses `NERD_FONT_VERSION` constant ✅
+- Also updated: `installer-cli/src/tui/menus.rs:564` font recommendation line ✅
+- **Verification**: fmt clean | clippy clean | 114 tests green ✅ 2026-02-26
+- **Status**: ✅ COMPLETE — 2026-02-26
 
 #### 3.2 — Keep Terminus Base Packages
 - **File**: `installer-core/src/fonts.rs`
 - **Change**: None (system packages remain)
-- **Status**: ✅ PLANNED
+- **Status**: ✅ CONFIRMED UNCHANGED
 
 #### 3.3 — Keep File Filter for Zip Extraction
 - **File**: `installer-core/src/fonts.rs`
 - **Change**: None (`.ttf` filter is correct)
-- **Status**: ✅ PLANNED
+- **Status**: ✅ CONFIRMED UNCHANGED
 
 ### PHASE 4: VERIFICATION & TESTING ⏳ PENDING
 **Objective**: Ensure all changes work correctly.
 
 #### 4.1 — Build Verification
 - **Command**: `cargo build --workspace`
-- **Status**: ⏳ PENDING
+- **Status**: ✅ COMPLETE — clean 2026-02-26
 
 #### 4.2 — Test Verification
 - **Command**: `cargo test --workspace`
-- **Status**: ⏳ PENDING
+- **Status**: ✅ COMPLETE — 114/114 green 2026-02-26
 
 #### 4.3 — Clippy Verification
 - **Command**: `cargo clippy --all-targets -- -D warnings`
-- **Status**: ⏳ PENDING
+- **Status**: ✅ COMPLETE — zero warnings 2026-02-26
 
 #### 4.4 — TUI Verification
 - **Test**: Single-driver binary → no ArchDetected screen
-- **Status**: ⏳ PENDING
+- **Status**: ⏳ PENDING (runtime test — requires live binary)
 
 #### 4.5 — Font Verification
 - **Test**: `kitty +list-fonts | grep JetBrains` → correct font
-- **Status**: ⏳ PENDING
+- **Status**: ⏳ PENDING (runtime test — requires live install)
 
 ### PHASE 5: FINAL COMMIT & PR ⏳ PENDING
 **Objective**: Commit and merge the changes.
@@ -150,9 +151,9 @@
 
 ## ⚙️ TEST CHECKLIST
 
-- [ ] `cargo build --workspace` passes after resource file updates
-- [ ] `cargo test --workspace` passes — especially `phase_runner` and `driver_harness` tests
-- [ ] `cargo clippy --all-targets -- -D warnings` clean
+- [x] `cargo build --workspace` passes after resource file updates ✅ 2026-02-26
+- [x] `cargo test --workspace` passes — especially `phase_runner` and `driver_harness` tests ✅ 114/114 green
+- [x] `cargo clippy --all-targets -- -D warnings` clean ✅ 2026-02-26
 - [ ] TUI launched on single-driver binary: ArchDetected screen does NOT appear
 - [ ] TUI launched on multi-driver binary: ArchDetected screen DOES appear, auto-advances at 15s or on Enter
 - [ ] `install_phase` for fonts: `JetBrainsMonoNerdFont-Regular.ttf` present after dry-run log; URL is correct
@@ -162,10 +163,10 @@
 
 ---
 
-**Status**: ✅ PHASE 1 COMPLETE | 🔨 PHASE 2 PENDING
+**Status**: ✅ PHASE 1 COMPLETE | ✅ PHASE 2 COMPLETE | ✅ PHASE 3 COMPLETE | ✅ PHASE 4 (code gates) COMPLETE | 🔨 PHASE 5 PENDING
 **Owner**: Bard, Drunken Dwarf Runesmith 🍺⚒️
-**Last Updated**: 2026-02-24
-**Next Review**: 2026-02-24 (Phase 2 kickoff)
+**Last Updated**: 2026-02-26
+**Next Review**: 2026-02-26 (Phase 5 — commit & PR)
 
 ### DEPENDENCY RESTORATION (Post-Phase 1)
 **Issue**: Build failures after merging claude/release-v1.0.0-2s3pa branch

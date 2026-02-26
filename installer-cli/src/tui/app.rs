@@ -12,8 +12,8 @@ use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
 use installer_core::{
-    DistroDriver, InstallOptions, InstallationReport, PhaseEvent, ProfileLevel, SoftwareTierPlan,
-    ThemePlan,
+    detect_platform, DistroDriver, InstallOptions, InstallationReport, PhaseEvent, ProfileLevel,
+    SoftwareTierPlan, ThemePlan,
 };
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
@@ -935,9 +935,36 @@ pub fn run(
     app.dry_run = dry_run;
     app.continue_on_error = continue_on_error;
 
-    // KISS: Internal detection is the source of truth
-    let arch = std::env::consts::ARCH.to_string();
-    app.handle_auto_arch(arch);
+    // If exactly one driver matches the detected platform, auto-select it and skip
+    // the 15-second ArchDetected banner. On error or ambiguous match, fall through
+    // to handle_auto_arch() so the user can confirm manually.
+    match detect_platform().ok().and_then(|info| {
+        let matches: Vec<usize> = app
+            .drivers
+            .iter()
+            .enumerate()
+            .filter_map(|(i, d)| if d.matches(&info) { Some(i) } else { None })
+            .collect();
+        if matches.len() == 1 {
+            Some((matches[0], info.arch))
+        } else {
+            None
+        }
+    }) {
+        Some((idx, arch)) => {
+            app.selected_driver_idx = idx;
+            app.screen = Screen::DistroSelect;
+            app.bbs_msg = format!(
+                "STATION_01: ARCH_SIGIL_{} — {} auto-selected.",
+                arch.to_uppercase(),
+                app.drivers[idx].name()
+            );
+        }
+        None => {
+            let arch = std::env::consts::ARCH.to_string();
+            app.handle_auto_arch(arch);
+        }
+    }
 
     let tick_rate = Duration::from_millis(250);
     let mut last_tick = Instant::now();

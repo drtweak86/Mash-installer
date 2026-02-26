@@ -561,7 +561,9 @@ pub fn draw_font_prep(f: &mut Frame, area: Rect, _app: &TuiApp) {
             theme::title_style(),
         )),
         Line::from(""),
-        Line::from("This station recommends Nerd Fonts (Terminess) for optimal glyph rendering."),
+        Line::from(
+            "This station recommends Nerd Fonts (JetBrainsMono) for optimal glyph rendering.",
+        ),
         Line::from("If emojis or runes are not rendering, this is required."),
         Line::from(""),
         Line::from(vec![
