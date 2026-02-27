@@ -619,16 +619,17 @@ pub fn draw_font_select(f: &mut Frame, area: Rect, app: &TuiApp) {
 
     // Get fonts grouped by category from installer-core
     let fonts_by_category = installer_core::fonts_all::get_fonts_by_category();
-    
+
     let mut items: Vec<ListItem> = Vec::new();
-    
+
     // Add category headers and fonts
     for (category, fonts) in fonts_by_category {
         // Add category header
-        items.push(ListItem::new(Line::from(vec![
-            Span::styled(format!("━━ {} ━━", category.to_uppercase()), theme::title_style()),
-        ])));
-        
+        items.push(ListItem::new(Line::from(vec![Span::styled(
+            format!("━━ {} ━━", category.to_uppercase()),
+            theme::title_style(),
+        )])));
+
         // Add fonts in this category
         for font in fonts.iter() {
             let global_index = items.len(); // Calculate global index for selection
@@ -650,10 +651,7 @@ pub fn draw_font_select(f: &mut Frame, area: Rect, app: &TuiApp) {
     f.render_widget(list, chunks[1]);
 
     let prompt = Paragraph::new(vec![Line::from(vec![
-        Span::styled(
-            "ENTER:SELECT  COMMAND > ",
-            theme::success_style(),
-        ),
+        Span::styled("ENTER:SELECT  COMMAND > ", theme::success_style()),
         Span::styled(
             "_",
             theme::success_style().add_modifier(Modifier::SLOW_BLINK),

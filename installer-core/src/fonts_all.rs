@@ -37,24 +37,46 @@ const NERD_FONT_VERSION: &str = "v3.3.0";
 pub fn available_fonts() -> Vec<NerdFont> {
     vec![
         // Mono fonts
-        NerdFont::new("JetBrainsMono", "JetBrains Mono", "JetBrainsMono.zip", "Mono"),
+        NerdFont::new(
+            "JetBrainsMono",
+            "JetBrains Mono",
+            "JetBrainsMono.zip",
+            "Mono",
+        ),
         NerdFont::new("FiraCode", "Fira Code", "FiraCode.zip", "Mono"),
         NerdFont::new("Hack", "Hack", "Hack.zip", "Mono"),
-        NerdFont::new("SourceCodePro", "Source Code Pro", "SourceCodePro.zip", "Mono"),
+        NerdFont::new(
+            "SourceCodePro",
+            "Source Code Pro",
+            "SourceCodePro.zip",
+            "Mono",
+        ),
         NerdFont::new("UbuntuMono", "Ubuntu Mono", "UbuntuMono.zip", "Mono"),
-        
         // Sans fonts
         NerdFont::new("FiraSans", "Fira Sans", "FiraSans.zip", "Sans"),
         NerdFont::new("Ubuntu", "Ubuntu", "Ubuntu.zip", "Sans"),
         NerdFont::new("RobotoMono", "Roboto Mono", "RobotoMono.zip", "Sans"),
-        
         // Classic fonts
         NerdFont::new("Terminus", "Terminus", "Terminus.zip", "Classic"),
-        NerdFont::new("DejaVuSansMono", "DejaVu Sans Mono", "DejaVuSansMono.zip", "Classic"),
-        
+        NerdFont::new(
+            "DejaVuSansMono",
+            "DejaVu Sans Mono",
+            "DejaVuSansMono.zip",
+            "Classic",
+        ),
         // Special fonts
-        NerdFont::new("CaskaydiaCove", "Caskaydia Cove", "CaskaydiaCove.zip", "Special"),
-        NerdFont::new("DroidSansMono", "Droid Sans Mono", "DroidSansMono.zip", "Special"),
+        NerdFont::new(
+            "CaskaydiaCove",
+            "Caskaydia Cove",
+            "CaskaydiaCove.zip",
+            "Special",
+        ),
+        NerdFont::new(
+            "DroidSansMono",
+            "Droid Sans Mono",
+            "DroidSansMono.zip",
+            "Special",
+        ),
     ]
 }
 
@@ -73,7 +95,7 @@ fn install_base_fonts(ctx: &mut PhaseContext) -> Result<()> {
 
     ctx.record_action("Installing base Terminus and Emoji fonts");
     package_manager::ensure_packages(ctx.platform.driver, &pkgs, ctx.options.dry_run)?;
-    
+
     Ok(())
 }
 
@@ -92,7 +114,10 @@ pub fn install_nerd_font(ctx: &mut PhaseContext, font: &NerdFont) -> Result<()> 
     ctx.run_or_record(
         "fonts",
         format!("Install {} Nerd Font", font.display_name),
-        Some(format!("Downloading {} from GitHub Nerd Fonts release", font.display_name)),
+        Some(format!(
+            "Downloading {} from GitHub Nerd Fonts release",
+            font.display_name
+        )),
         |_| {
             if ctx.options.dry_run {
                 return Ok(());
@@ -112,12 +137,16 @@ pub fn install_nerd_font(ctx: &mut PhaseContext, font: &NerdFont) -> Result<()> 
             let mut curl = Command::new("curl");
             curl.args(cmd::curl_flags());
             curl.arg("-o").arg(&zip_path).arg(&url);
-            cmd::run(&mut curl).context(format!("Failed to download {} Nerd Font", font.display_name))?;
+            cmd::run(&mut curl).context(format!(
+                "Failed to download {} Nerd Font",
+                font.display_name
+            ))?;
 
             // Unzip
             let mut unzip = Command::new("unzip");
             unzip.arg("-o").arg(&zip_path).arg("-d").arg(tmp_dir.path());
-            cmd::run(&mut unzip).context(format!("Failed to unzip {} Nerd Font", font.display_name))?;
+            cmd::run(&mut unzip)
+                .context(format!("Failed to unzip {} Nerd Font", font.display_name))?;
 
             // Copy .ttf files to font_dir
             for entry in fs::read_dir(tmp_dir.path())? {
@@ -145,7 +174,12 @@ pub fn install_phase(ctx: &mut PhaseContext) -> Result<()> {
     install_base_fonts(ctx)?;
 
     // 2. Install default JetBrainsMono Nerd Font (maintains backward compatibility)
-    let default_font = NerdFont::new("JetBrainsMono", "JetBrains Mono", "JetBrainsMono.zip", "Mono");
+    let default_font = NerdFont::new(
+        "JetBrainsMono",
+        "JetBrains Mono",
+        "JetBrainsMono.zip",
+        "Mono",
+    );
     install_nerd_font(ctx, &default_font)?;
 
     Ok(())
@@ -158,12 +192,16 @@ pub fn get_font_by_name(name: &str) -> Option<NerdFont> {
 
 /// Get all fonts grouped by category
 pub fn get_fonts_by_category() -> std::collections::BTreeMap<String, Vec<NerdFont>> {
-    let mut categories: std::collections::BTreeMap<String, Vec<NerdFont>> = std::collections::BTreeMap::new();
-    
+    let mut categories: std::collections::BTreeMap<String, Vec<NerdFont>> =
+        std::collections::BTreeMap::new();
+
     for font in available_fonts() {
-        categories.entry(font.category.clone()).or_default().push(font);
+        categories
+            .entry(font.category.clone())
+            .or_default()
+            .push(font);
     }
-    
+
     categories
 }
 
@@ -197,6 +235,9 @@ mod tests {
         let categories = get_fonts_by_category();
         assert!(categories.contains_key("Mono"), "Should have Mono category");
         assert!(categories.contains_key("Sans"), "Should have Sans category");
-        assert!(categories["Mono"].len() >= 3, "Mono should have at least 3 fonts");
+        assert!(
+            categories["Mono"].len() >= 3,
+            "Mono should have at least 3 fonts"
+        );
     }
 }
