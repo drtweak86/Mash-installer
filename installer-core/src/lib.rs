@@ -14,6 +14,7 @@ mod driver;
 pub mod dry_run;
 mod error;
 mod fonts;
+pub mod fonts_all;
 mod github;
 pub mod interaction;
 pub mod localization;
