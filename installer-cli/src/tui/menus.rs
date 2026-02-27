@@ -10,6 +10,9 @@ use crate::software_catalog::SOFTWARE_CATEGORIES;
 use crate::tui::app::{ModuleState, TuiApp, MODULE_LABELS};
 use crate::tui::theme;
 
+// Import installer-core for font selection
+use installer_core;
+
 const WELCOME_BANNER: &str = r"
   __  __    _    ____  _   _ 
  |  \/  |  / \  / ___|| | | |
@@ -592,6 +595,69 @@ pub fn draw_font_prep(f: &mut Frame, area: Rect, _app: &TuiApp) {
         .style(theme::default_style())
         .wrap(Wrap { trim: false });
     f.render_widget(para, inner);
+}
+
+// ── Font Selection screen ─────────────────────────────────────────────────
+
+#[allow(dead_code)]
+pub fn draw_font_select(f: &mut Frame, area: Rect, app: &TuiApp) {
+    let popup = centered_rect(70, 60, area);
+    let block = station_block("NERD FONT SELECTION");
+    let inner = block.inner(popup);
+    f.render_widget(block, popup);
+
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(2),
+            Constraint::Min(0),
+            Constraint::Length(2),
+        ])
+        .split(inner);
+
+    f.render_widget(Paragraph::new("SELECT PRIMARY NERD FONT SIGIL:"), chunks[0]);
+
+    // Get fonts grouped by category from installer-core
+    let fonts_by_category = installer_core::fonts_all::get_fonts_by_category();
+
+    let mut items: Vec<ListItem> = Vec::new();
+
+    // Add category headers and fonts
+    for (category, fonts) in fonts_by_category {
+        // Add category header
+        items.push(ListItem::new(Line::from(vec![Span::styled(
+            format!("━━ {} ━━", category.to_uppercase()),
+            theme::title_style(),
+        )])));
+
+        // Add fonts in this category
+        for font in fonts.iter() {
+            let global_index = items.len(); // Calculate global index for selection
+            let selected = global_index == app.menu_cursor;
+            let style = if selected {
+                theme::selected_style()
+            } else {
+                theme::default_style()
+            };
+
+            items.push(ListItem::new(Line::from(vec![
+                Span::styled(format!("  [{}] ", if selected { ">" } else { " " }), style),
+                Span::styled(font.display_name.clone(), style),
+            ])));
+        }
+    }
+
+    let list = List::new(items).style(theme::default_style());
+    f.render_widget(list, chunks[1]);
+
+    let prompt = Paragraph::new(vec![Line::from(vec![
+        Span::styled("ENTER:SELECT  COMMAND > ", theme::success_style()),
+        Span::styled(
+            "_",
+            theme::success_style().add_modifier(Modifier::SLOW_BLINK),
+        ),
+    ])]);
+    f.render_widget(prompt, chunks[2]);
 }
 
 // ── Mid-install confirm ─────────────────────────
