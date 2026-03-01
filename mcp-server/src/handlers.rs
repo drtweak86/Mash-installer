@@ -1,16 +1,12 @@
 //! HTTP handlers
 
-use axum::{
-    body::Bytes,
-    extract::State,
-    http::HeaderMap,
-    Json,
-};
+use axum::{Json, body::Bytes, extract::State, http::HeaderMap};
 use chrono::Utc;
 
 use crate::{
+    AppState, ServerError,
     models::{ProcessedEvent, WebhookHeaders, WebhookPayload},
-    validate_webhook_signature, AppState, ServerError,
+    validate_webhook_signature,
 };
 
 /// Health check endpoint
@@ -33,11 +29,7 @@ pub async fn github_webhook(
     // Validate signature if secret is configured
     if !state.config.github_webhook_secret.is_empty() {
         if let Some(signature) = &webhook_headers.signature {
-            validate_webhook_signature(
-                &state.config.github_webhook_secret,
-                signature,
-                &body,
-            )?;
+            validate_webhook_signature(&state.config.github_webhook_secret, signature, &body)?;
         } else {
             return Err(ServerError::Validation(
                 "Missing GitHub signature header".to_string(),
@@ -46,8 +38,8 @@ pub async fn github_webhook(
     }
 
     // Parse payload
-    let payload: WebhookPayload = serde_json::from_slice(&body)
-        .map_err(|e| ServerError::Validation(e.to_string()))?;
+    let payload: WebhookPayload =
+        serde_json::from_slice(&body).map_err(|e| ServerError::Validation(e.to_string()))?;
 
     // Process the event
     let processed_event = process_webhook_event(webhook_headers.event, payload)?;
@@ -74,7 +66,7 @@ pub async fn list_events(
     State(state): State<AppState>,
 ) -> Result<Json<serde_json::Value>, ServerError> {
     let history = state.event_history.lock().await;
-    
+
     let events: Result<Vec<ProcessedEvent>, _> = history
         .iter()
         .map(|event_str| serde_json::from_str(event_str))
@@ -93,18 +85,14 @@ pub async fn list_events(
 fn extract_webhook_headers(headers: &HeaderMap) -> Result<WebhookHeaders, ServerError> {
     let event = headers
         .get("X-GitHub-Event")
-        .ok_or_else(|| {
-            ServerError::Validation("Missing X-GitHub-Event header".to_string())
-        })?
+        .ok_or_else(|| ServerError::Validation("Missing X-GitHub-Event header".to_string()))?
         .to_str()
         .map_err(|e| ServerError::Validation(e.to_string()))?
         .to_string();
 
     let delivery = headers
         .get("X-GitHub-Delivery")
-        .ok_or_else(|| {
-            ServerError::Validation("Missing X-GitHub-Delivery header".to_string())
-        })?
+        .ok_or_else(|| ServerError::Validation("Missing X-GitHub-Delivery header".to_string()))?
         .to_str()
         .map_err(|e| ServerError::Validation(e.to_string()))?
         .to_string();

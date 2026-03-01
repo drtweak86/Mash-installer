@@ -1,9 +1,12 @@
 //! Desktop Environment Support
-//! 
+//!
 //! Cross-distro desktop environment installation with X11/Wayland support
 //! and Raspberry Pi compatibility warnings.
 
-use crate::{driver::DistroDriver, error::{InstallerError, ErrorSeverity, InstallerStateSnapshot}};
+use crate::{
+    driver::DistroDriver,
+    error::{ErrorSeverity, InstallerError, InstallerStateSnapshot},
+};
 use anyhow::Result;
 use std::collections::HashMap;
 
@@ -125,7 +128,10 @@ pub struct DesktopSelection {
 
 impl DesktopSelection {
     pub fn new(environment: DesktopEnvironment, protocol: DisplayProtocol) -> Self {
-        Self { environment, protocol }
+        Self {
+            environment,
+            protocol,
+        }
     }
 
     /// Validate the selection - ensure protocol is compatible with DE
@@ -144,7 +150,10 @@ impl DesktopSelection {
         if !self.environment.supports_wayland() && self.protocol == DisplayProtocol::Wayland {
             return Err(InstallerError::new(
                 "desktop_environment_validation",
-                format!("{} does not support Wayland", self.environment.display_name()),
+                format!(
+                    "{} does not support Wayland",
+                    self.environment.display_name()
+                ),
                 ErrorSeverity::Fatal,
                 anyhow::anyhow!("Wayland not supported by selected DE"),
                 InstallerStateSnapshot::default(),
@@ -159,6 +168,12 @@ impl DesktopSelection {
 /// Package mappings for desktop environments across different distros
 pub struct DesktopPackages {
     packages: HashMap<DesktopEnvironment, Vec<&'static str>>,
+}
+
+impl Default for DesktopPackages {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl DesktopPackages {
@@ -177,8 +192,14 @@ impl DesktopPackages {
         packages.insert(DesktopEnvironment::Xfce, vec!["xfce4", "xfce4-goodies"]);
         packages.insert(DesktopEnvironment::Lxqt, vec!["lxqt", "sddm"]);
         packages.insert(DesktopEnvironment::Mate, vec!["ubuntu-mate-desktop"]);
-        packages.insert(DesktopEnvironment::Cinnamon, vec!["cinnamon-desktop-environment"]);
-        packages.insert(DesktopEnvironment::Budgie, vec!["budgie-desktop", "lightdm"]);
+        packages.insert(
+            DesktopEnvironment::Cinnamon,
+            vec!["cinnamon-desktop-environment"],
+        );
+        packages.insert(
+            DesktopEnvironment::Budgie,
+            vec!["budgie-desktop", "lightdm"],
+        );
         packages.insert(
             DesktopEnvironment::Enlightenment,
             vec!["enlightenment", "lightdm"],
@@ -191,10 +212,7 @@ impl DesktopPackages {
 
     /// Get packages for a specific desktop environment
     pub fn get_packages(&self, de: DesktopEnvironment) -> Vec<&'static str> {
-        self.packages
-            .get(&de)
-            .cloned()
-            .unwrap_or_default()
+        self.packages.get(&de).cloned().unwrap_or_default()
     }
 
     /// Get packages translated for a specific distro driver
@@ -257,8 +275,8 @@ pub fn get_pi_recommendations(is_pi: bool) -> Vec<DesktopEnvironment> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::testing::MockDriver;
+    use super::*;
 
     #[test]
     fn test_de_display_names() {
@@ -293,16 +311,11 @@ mod tests {
 
     #[test]
     fn test_selection_validation() {
-        let selection = DesktopSelection::new(
-            DesktopEnvironment::None,
-            DisplayProtocol::Wayland,
-        );
+        let selection = DesktopSelection::new(DesktopEnvironment::None, DisplayProtocol::Wayland);
         assert!(selection.validate().is_err());
 
-        let valid_selection = DesktopSelection::new(
-            DesktopEnvironment::Gnome,
-            DisplayProtocol::Wayland,
-        );
+        let valid_selection =
+            DesktopSelection::new(DesktopEnvironment::Gnome, DisplayProtocol::Wayland);
         assert!(valid_selection.validate().is_ok());
     }
 
@@ -342,10 +355,7 @@ mod testing {
 
         fn is_package_installed(&self, package: &str) -> bool {
             // Mock some packages as installed
-            matches!(
-                package,
-                "gnome" | "kde-plasma-desktop" | "xfce4" | "lxqt"
-            )
+            matches!(package, "gnome" | "kde-plasma-desktop" | "xfce4" | "lxqt")
         }
     }
 }

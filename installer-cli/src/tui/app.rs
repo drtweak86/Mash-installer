@@ -727,7 +727,7 @@ impl TuiApp {
 
     fn select_desktop_environment(&mut self) {
         use installer_core::desktop_environments::DesktopEnvironment;
-        
+
         let de = match self.menu_cursor {
             0 => DesktopEnvironment::Gnome,
             1 => DesktopEnvironment::Kde,
@@ -741,7 +741,7 @@ impl TuiApp {
             9 => DesktopEnvironment::None,
             _ => DesktopEnvironment::None,
         };
-        
+
         self.desktop_environment = Some(de);
         self.screen = Screen::ProtocolSelect;
         self.menu_cursor = 0; // Default to Auto
@@ -749,20 +749,18 @@ impl TuiApp {
 
     fn select_display_protocol(&mut self) {
         use installer_core::desktop_environments::DisplayProtocol;
-        
+
         let protocol = match self.menu_cursor {
             0 => DisplayProtocol::Auto,
             1 => DisplayProtocol::X11,
             2 => DisplayProtocol::Wayland,
             _ => DisplayProtocol::Auto,
         };
-        
+
         self.display_protocol = protocol;
         self.screen = Screen::DeConfirm;
         self.menu_cursor = 0;
     }
-
-
 
     fn handle_software_key(&mut self, code: KeyCode) {
         let category = match SOFTWARE_CATEGORIES.get(self.software_category_idx) {
@@ -1138,7 +1136,8 @@ impl TuiApp {
                 Screen::Installing => "Installation in Progress",
                 Screen::Done => "Installation Complete",
                 Screen::Error => "Error Encountered",
-            }.to_string();
+            }
+            .to_string();
         }
     }
 
@@ -1175,7 +1174,7 @@ impl TuiApp {
             self.navigate_back();
             return;
         }
-        
+
         // Fallback to original hardcoded navigation with cursor positioning
         match self.screen {
             Screen::DistroSelect => self.screen = Screen::Welcome,
@@ -1193,18 +1192,23 @@ impl TuiApp {
             }
             Screen::ProtocolSelect => {
                 self.screen = Screen::DeSelect;
-                self.menu_cursor = self.desktop_environment.map(|de| match de {
-                    installer_core::desktop_environments::DesktopEnvironment::Gnome => 0,
-                    installer_core::desktop_environments::DesktopEnvironment::Kde => 1,
-                    installer_core::desktop_environments::DesktopEnvironment::Xfce => 2,
-                    installer_core::desktop_environments::DesktopEnvironment::Lxqt => 3,
-                    installer_core::desktop_environments::DesktopEnvironment::Mate => 4,
-                    installer_core::desktop_environments::DesktopEnvironment::Cinnamon => 5,
-                    installer_core::desktop_environments::DesktopEnvironment::Budgie => 6,
-                    installer_core::desktop_environments::DesktopEnvironment::Enlightenment => 7,
-                    installer_core::desktop_environments::DesktopEnvironment::Lxde => 8,
-                    installer_core::desktop_environments::DesktopEnvironment::None => 9,
-                }).unwrap_or(0);
+                self.menu_cursor = self
+                    .desktop_environment
+                    .map(|de| match de {
+                        installer_core::desktop_environments::DesktopEnvironment::Gnome => 0,
+                        installer_core::desktop_environments::DesktopEnvironment::Kde => 1,
+                        installer_core::desktop_environments::DesktopEnvironment::Xfce => 2,
+                        installer_core::desktop_environments::DesktopEnvironment::Lxqt => 3,
+                        installer_core::desktop_environments::DesktopEnvironment::Mate => 4,
+                        installer_core::desktop_environments::DesktopEnvironment::Cinnamon => 5,
+                        installer_core::desktop_environments::DesktopEnvironment::Budgie => 6,
+                        installer_core::desktop_environments::DesktopEnvironment::Enlightenment => {
+                            7
+                        }
+                        installer_core::desktop_environments::DesktopEnvironment::Lxde => 8,
+                        installer_core::desktop_environments::DesktopEnvironment::None => 9,
+                    })
+                    .unwrap_or(0);
             }
             Screen::DeConfirm => {
                 // When confirmed, advance to ThemeSelect
@@ -1243,11 +1247,15 @@ impl TuiApp {
             Screen::Password => {
                 // No-op for password screen
             }
-            Screen::Installing | Screen::Done | Screen::Error | Screen::Welcome | Screen::ArchDetected => {
+            Screen::Installing
+            | Screen::Done
+            | Screen::Error
+            | Screen::Welcome
+            | Screen::ArchDetected => {
                 // No-op for terminal screens
             }
         }
-        
+
         // Update navigation context for the new screen
         self.navigation_context = match self.screen {
             Screen::Welcome => "Welcome to MASH Installer",
@@ -1267,7 +1275,8 @@ impl TuiApp {
             Screen::Installing => "Installation in Progress",
             Screen::Done => "Installation Complete",
             Screen::Error => "Error Encountered",
-        }.to_string();
+        }
+        .to_string();
     }
 
     /// Update long process confirmation state (call this in tick())

@@ -9,11 +9,11 @@ use crate::wallpaper::{download_wallpapers, HarvestConfig, WallpaperConfig};
 /// Create a basic logger for wallpaper operations
 fn create_wallpaper_logger() -> slog::Logger {
     use slog::{Drain, Logger};
-    
+
     let decorator = slog_term::TermDecorator::new().build();
     let drain = slog_term::FullFormat::new(decorator).build().fuse();
     let drain = slog_async::Async::new(drain).build().fuse();
-    
+
     Logger::root(drain, slog::o!("module" => "wallpaper"))
 }
 
@@ -35,13 +35,13 @@ pub fn install_phase(ctx: &mut PhaseContext<'_>) -> Result<()> {
 
     // First, try the harvest method (no API keys required)
     ctx.record_action("🌾  Attempting wallpaper harvest (no API keys required)...");
-    
+
     let harvest_config = HarvestConfig::default();
     let logger = create_wallpaper_logger();
     let harvester = WallpaperHarvester::new(harvest_config, logger)?;
-    
+
     let harvest_result = rt.block_on(harvester.run(ctx));
-    
+
     match harvest_result {
         Ok(_) => {
             ctx.record_action("🎉  Wallpaper harvest completed successfully!");
@@ -49,7 +49,7 @@ pub fn install_phase(ctx: &mut PhaseContext<'_>) -> Result<()> {
         Err(e) => {
             ctx.record_warning(format!("⚠️  Wallpaper harvest failed: {}", e));
             ctx.record_action("🔄  Falling back to traditional API-based download...");
-            
+
             // Fall back to traditional download if harvest fails
             if !has_api_keys {
                 ctx.record_warning("🔑  No API keys configured for wallpaper sources.");
@@ -62,7 +62,8 @@ pub fn install_phase(ctx: &mut PhaseContext<'_>) -> Result<()> {
             }
 
             // Traditional download
-            let stats = rt.block_on(async { download_wallpapers(&config, &RealSystem, ctx).await })?;
+            let stats =
+                rt.block_on(async { download_wallpapers(&config, &RealSystem, ctx).await })?;
 
             ctx.record_action(format!(
                 "📊  Download complete: {} success, {} failed",

@@ -49,7 +49,6 @@ fn centered_rect(width_pct: u16, height_pct: u16, area: Rect) -> Rect {
             Constraint::Percentage((100 - width_pct) / 2),
         ])
         .split(vchunks[1])[1]
-
 }
 
 /// Draw navigation info at the bottom of the screen
@@ -79,11 +78,17 @@ fn draw_navigation_info(f: &mut Frame, area: Rect, app: &TuiApp) {
 
     // Center: Current context
     let context_text = Span::styled(app.get_navigation_context(), theme::default_style());
-    f.render_widget(Paragraph::new(context_text).alignment(Alignment::Center), nav_chunks[1]);
+    f.render_widget(
+        Paragraph::new(context_text).alignment(Alignment::Center),
+        nav_chunks[1],
+    );
 
     // Right: Help
     let help_text = Span::styled("[HELP: F1]", theme::warning_style());
-    f.render_widget(Paragraph::new(help_text).alignment(Alignment::Right), nav_chunks[2]);
+    f.render_widget(
+        Paragraph::new(help_text).alignment(Alignment::Right),
+        nav_chunks[2],
+    );
 }
 
 fn station_block<'a>(title: &'a str) -> Block<'a> {
@@ -162,7 +167,7 @@ pub fn draw_welcome(f: &mut Frame, area: Rect, app: &TuiApp) {
     ))
     .alignment(Alignment::Right);
     f.render_widget(footer, chunks[3]);
-    
+
     // Draw navigation info at the bottom
     draw_navigation_info(f, area, app);
 }
@@ -828,10 +833,7 @@ pub fn draw_protocol_select(f: &mut Frame, area: Rect, app: &TuiApp) {
         ])
         .split(inner);
 
-    f.render_widget(
-        Paragraph::new("SELECT DISPLAY PROTOCOL:"),
-        chunks[0],
-    );
+    f.render_widget(Paragraph::new("SELECT DISPLAY PROTOCOL:"), chunks[0]);
 
     let protocols = [
         DisplayProtocol::Auto,
@@ -914,7 +916,10 @@ pub fn draw_de_confirm(f: &mut Frame, area: Rect, app: &TuiApp) {
     f.render_widget(info, chunks[1]);
 
     let prompt = Paragraph::new(vec![Line::from(vec![
-        Span::styled("ENTER:CONFIRM  ESC:CANCEL  COMMAND > ", theme::success_style()),
+        Span::styled(
+            "ENTER:CONFIRM  ESC:CANCEL  COMMAND > ",
+            theme::success_style(),
+        ),
         Span::styled(
             "_",
             theme::success_style().add_modifier(Modifier::SLOW_BLINK),

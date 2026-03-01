@@ -4,7 +4,7 @@
 //! from environment variables or command line arguments.
 
 use clap::Parser;
-use mcp_server::{start_server, ServerConfig};
+use mcp_server::{ServerConfig, start_server};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]

@@ -10,8 +10,8 @@
 //! - Integration with AI agents and development tools
 
 use axum::{
-    routing::{get, post},
     Router,
+    routing::{get, post},
 };
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
@@ -58,10 +58,7 @@ pub async fn start_server(config: ServerConfig) -> Result<(), ServerError> {
         .await
         .map_err(|e| ServerError::Startup(e.to_string()))?;
 
-    tracing::info!(
-        "Starting GitHub MCP server on {}",
-        config.bind_address
-    );
+    tracing::info!("Starting GitHub MCP server on {}", config.bind_address);
 
     axum::serve(listener, app)
         .await
@@ -86,8 +83,8 @@ pub fn validate_webhook_signature(
         ));
     }
 
-    let signature = hex::decode(&signature[7..])
-        .map_err(|e| ServerError::Validation(e.to_string()))?;
+    let signature =
+        hex::decode(&signature[7..]).map_err(|e| ServerError::Validation(e.to_string()))?;
 
     let mut mac = HmacSha256::new_from_slice(secret.as_bytes())
         .map_err(|e| ServerError::Validation(e.to_string()))?;

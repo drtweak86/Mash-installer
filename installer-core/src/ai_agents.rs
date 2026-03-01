@@ -205,9 +205,10 @@ fn install_github_mcp_server(ctx: &mut PhaseContext) -> Result<()> {
             let mut install_cmd = Command::new("sudo");
             install_cmd.args([
                 "install",
-                "-m", "755",
+                "-m",
+                "755",
                 "target/release/mcp-server",
-                "/usr/local/bin/mcp-server"
+                "/usr/local/bin/mcp-server",
             ]);
             cmd::run(&mut install_cmd)?;
 

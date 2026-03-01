@@ -7,13 +7,13 @@ use serde::{Deserialize, Serialize};
 pub struct ServerConfig {
     /// Bind address for the server (e.g., "0.0.0.0:3000")
     pub bind_address: String,
-    
+
     /// GitHub webhook secret for signature validation
     pub github_webhook_secret: String,
-    
+
     /// Maximum number of events to keep in history
     pub max_event_history: usize,
-    
+
     /// Enable verbose logging
     pub verbose: bool,
 }

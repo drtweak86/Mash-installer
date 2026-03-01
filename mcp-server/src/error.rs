@@ -1,24 +1,24 @@
 //! Error types
 
+use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use serde::Serialize;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ServerError {
     #[error("Startup error: {0}")]
     Startup(String),
-    
+
     #[error("Runtime error: {0}")]
     Runtime(String),
-    
+
     #[error("Validation error: {0}")]
     Validation(String),
-    
+
     #[error("Configuration error: {0}")]
     Configuration(String),
-    
+
     #[error("GitHub API error: {0}")]
     GitHubApi(String),
 }

@@ -76,7 +76,7 @@ pub fn draw(f: &mut Frame, app: &TuiApp) {
 
 pub fn draw_installing(f: &mut Frame, app: &TuiApp) {
     let area = f.area();
-    
+
     // Get main area (excluding info box)
     let (main_area, _info_area) = info_box::get_main_area_with_info_box(area);
 
@@ -289,7 +289,7 @@ fn draw_terminal_buffer(f: &mut Frame, area: Rect, app: &TuiApp) {
 
 pub fn draw_summary(f: &mut Frame, app: &TuiApp, is_error: bool) {
     let area = f.area();
-    
+
     // Get main area (excluding info box)
     let (main_area, _info_area) = info_box::get_main_area_with_info_box(area);
 

@@ -15,12 +15,12 @@ use std::sync::{Arc, RwLock};
 use std::time::{Duration, SystemTime};
 
 use anyhow::{Context, Result};
+use futures_util::stream::StreamExt;
 use reqwest::Client;
 use rusqlite::{Connection, OptionalExtension};
+use tokio::io::AsyncWriteExt;
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
-use tokio::io::AsyncWriteExt;
-use futures_util::stream::StreamExt;
 
 use crate::context::PhaseContext;
 
@@ -61,7 +61,7 @@ impl Default for HarvestConfig {
             retry_max: 3,
             retry_delay: Duration::from_secs(2),
             rate_limit: Duration::from_secs_f32(1.0),
-            chunk_size: 65536, // 64 KB
+            chunk_size: 65536,        // 64 KB
             fingerprint_bytes: 65536, // 64 KB for SHA-256
         }
     }
@@ -99,10 +99,12 @@ impl StateDB {
                 value TEXT
             );
             CREATE INDEX IF NOT EXISTS idx_urls_status ON urls(status);
-            "
+            ",
         )?;
 
-        Ok(Self { conn: RwLock::new(conn) })
+        Ok(Self {
+            conn: RwLock::new(conn),
+        })
     }
 
     // URL helpers
@@ -110,13 +112,13 @@ impl StateDB {
         let mut conn = self.conn.write().unwrap();
         let tx = conn.transaction()?;
         let mut stmt = tx.prepare("INSERT OR IGNORE INTO urls (url) VALUES (?1)")?;
-        
+
         let mut count = 0;
         for url in urls {
             stmt.execute([url])?;
             count += 1;
         }
-        
+
         stmt.finalize()?;
         tx.commit()?;
         Ok(count)
@@ -160,14 +162,15 @@ impl StateDB {
 
     pub fn pending_urls(&self) -> Result<Vec<String>> {
         let conn = self.conn.read().unwrap();
-        let mut stmt = conn.prepare("SELECT url FROM urls WHERE status='pending' ORDER BY added_at")?;
+        let mut stmt =
+            conn.prepare("SELECT url FROM urls WHERE status='pending' ORDER BY added_at")?;
         let rows = stmt.query_map([], |row| row.get(0))?;
-        
+
         let mut urls = Vec::new();
         for row in rows {
             urls.push(row?);
         }
-        
+
         Ok(urls)
     }
 
@@ -177,13 +180,13 @@ impl StateDB {
         let rows = stmt.query_map([], |row| {
             Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
         })?;
-        
+
         let mut counts = std::collections::HashMap::new();
         for row in rows {
             let (status, count) = row?;
             counts.insert(status, count);
         }
-        
+
         Ok(counts)
     }
 
@@ -227,15 +230,15 @@ impl StateDB {
     pub fn get_meta(&self, key: &str) -> Result<Option<String>> {
         let conn = self.conn.read().unwrap();
         Ok(conn
-            .query_row("SELECT value FROM meta WHERE key=?1", [key], |row| row.get(0))
+            .query_row("SELECT value FROM meta WHERE key=?1", [key], |row| {
+                row.get(0)
+            })
             .optional()?)
     }
 
     pub fn reset(&self) -> Result<()> {
         let conn = self.conn.write().unwrap();
-        conn.execute_batch(
-            "DELETE FROM urls; DELETE FROM hashes; DELETE FROM meta;"
-        )?;
+        conn.execute_batch("DELETE FROM urls; DELETE FROM hashes; DELETE FROM meta;")?;
         Ok(())
     }
 }
@@ -279,7 +282,7 @@ impl ImageInfo {
                 break;
             }
             let marker = data.get(i + 1).copied()?;
-            
+
             // SOF markers: C0-C3, C5-C7, C9-CB, CD-CF
             if (0xC0..=0xC3).contains(&marker)
                 || (0xC5..=0xC7).contains(&marker)
@@ -292,7 +295,7 @@ impl ImageInfo {
                     return Some((w, h));
                 }
             }
-            
+
             let seg_len = u16::from_be_bytes(data[i + 2..i + 4].try_into().ok()?) as usize;
             i = i.saturating_add(2 + seg_len);
         }
@@ -304,7 +307,7 @@ impl ImageInfo {
             return None;
         }
         let fmt = data.get(12..16)?;
-        
+
         if fmt == b"VP8 " {
             // Lossy
             let w = u16::from_le_bytes(data[26..28].try_into().ok()?) as u32 & 0x3FFF;
@@ -422,8 +425,10 @@ impl Downloader {
             if metadata.len() > self.config.min_size_kb * 1024 {
                 let fp = self._fingerprint(&tmp)?;
                 if !self.db.has_hash(&fp)? {
-                    self.db.add_hash(&fp, dest.file_name().unwrap().to_str().unwrap())?;
-                    self.db.mark_done(&url, dest.file_name().unwrap().to_str().unwrap())?;
+                    self.db
+                        .add_hash(&fp, dest.file_name().unwrap().to_str().unwrap())?;
+                    self.db
+                        .mark_done(&url, dest.file_name().unwrap().to_str().unwrap())?;
                     return Ok(true);
                 }
                 std::fs::remove_file(&tmp)?;
@@ -435,7 +440,7 @@ impl Downloader {
         // Download with retries
         for attempt in 1..=self.config.retry_max {
             let result = self._download_attempt(&url, &tmp).await;
-            
+
             match result {
                 Ok(saved) => {
                     if saved {
@@ -446,7 +451,10 @@ impl Downloader {
                 }
                 Err(e) => {
                     if attempt < self.config.retry_max {
-                        tokio::time::sleep(self.config.retry_delay * 2u32.pow((attempt - 1) as u32)).await;
+                        tokio::time::sleep(
+                            self.config.retry_delay * 2u32.pow((attempt - 1) as u32),
+                        )
+                        .await;
                     } else {
                         self.db.mark_failed(&url)?;
                         return Err(e);
@@ -460,7 +468,7 @@ impl Downloader {
 
     async fn _download_attempt(&self, url: &str, tmp_path: &Path) -> Result<bool> {
         let response = self.client.get(url).send().await?;
-        
+
         // Content-Length check
         if let Some(content_length) = response.content_length() {
             let cl_kb = content_length / 1024;
@@ -479,7 +487,7 @@ impl Downloader {
         let mut stream = response.bytes_stream();
         let mut header_bytes = Vec::new();
         let mut total_bytes = 0u64;
-        
+
         while let Some(chunk) = stream.next().await {
             if self.stop_flag.load(Ordering::SeqCst) {
                 tokio::fs::remove_file(tmp_path).await.ok();
@@ -489,12 +497,12 @@ impl Downloader {
             let chunk: bytes::Bytes = chunk?;
             file.write_all(&chunk).await?;
             total_bytes += chunk.len() as u64;
-            
+
             // Capture header for validation
             if header_bytes.len() < 512 && total_bytes <= 512 {
                 header_bytes.extend_from_slice(&chunk);
             }
-            
+
             // Size limit check
             if total_bytes > self.config.max_size_mb * 1024 * 1024 {
                 break;
@@ -507,7 +515,7 @@ impl Downloader {
         // Validate downloaded file
         let metadata = tokio::fs::metadata(tmp_path).await?;
         let size_kb = metadata.len() / 1024;
-        
+
         if size_kb < self.config.min_size_kb {
             tokio::fs::remove_file(tmp_path).await?;
             self.db.mark_skip(url)?;
@@ -542,8 +550,10 @@ impl Downloader {
         // Commit
         tokio::fs::rename(tmp_path, tmp_path.with_extension("")).await?;
         let final_dest = tmp_path.with_extension("");
-        self.db.add_hash(&fp, final_dest.file_name().unwrap().to_str().unwrap())?;
-        self.db.mark_done(url, final_dest.file_name().unwrap().to_str().unwrap())?;
+        self.db
+            .add_hash(&fp, final_dest.file_name().unwrap().to_str().unwrap())?;
+        self.db
+            .mark_done(url, final_dest.file_name().unwrap().to_str().unwrap())?;
 
         Ok(true)
     }
@@ -580,15 +590,15 @@ impl SourceManager {
         let elapsed = SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .as_secs_f64() -
-            *last;
-        
+            .as_secs_f64()
+            - *last;
+
         if elapsed < self.config.rate_limit.as_secs_f64() {
             std::thread::sleep(Duration::from_secs_f64(
-                self.config.rate_limit.as_secs_f64() - elapsed
+                self.config.rate_limit.as_secs_f64() - elapsed,
             ));
         }
-        
+
         *last = SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
@@ -597,48 +607,85 @@ impl SourceManager {
 
     pub async fn get_urls(&self) -> Result<Vec<String>> {
         let mut urls = Vec::new();
-        
+
         // Wallhaven queries
         let wallhaven_queries = vec![
-            "mass effect character", "cyberpunk 2077 character art",
-            "halo spartan", "destiny hunter warlock titan",
-            "metroid samus aran", "dead space isaac clarke",
-            "doom slayer", "doom eternal",
-            "half life gordon freeman", "bioshock big daddy",
-            "alien isolation xenomorph", "system shock shodan",
-            "prey 2017 typhon", "outriders character",
-            "returnal selene", "control alan wake",
-            "akira kaneda tetsuo", "ghost in the shell motoko",
-            "berserk guts griffith", "neon genesis evangelion unit01",
-            "cowboy bebop spike", "trigun vash stampede",
-            "fullmetal alchemist edward", "attack on titan eren levi",
-            "one punch man saitama", "demon slayer tanjiro",
-            "jojo bizarre adventure", "vinland saga thorfinn",
-            "berserker fate", "madoka magica",
-            "chainsaw man denji", "hunter x hunter killua gon",
-            "batman dark knight", "batman arkham knight",
-            "batman comic art", "batman beyond",
-            "batman versus joker", "batman hush",
-            "joker dc comics art", "joker joaquin phoenix",
-            "joker heath ledger", "joker batman villain",
-            "harley quinn comics", "harley quinn suicide squad",
-            "harley quinn animated", "harley quinn birds of prey",
-            "punisher frank castle", "punisher skull marvel",
-            "punisher comic art", "punisher netflix",
-            "deadpool comic art", "deadpool marvel",
-            "deadpool wolverine", "deadpool mercenary",
-            "star wars darth vader", "star wars mandalorian",
-            "star wars clone trooper", "star wars sith lord",
-            "star wars boba fett", "star wars stormtrooper",
-            "star wars kylo ren", "star wars darth maul",
-            "judge dredd helmet", "judge dredd mega city",
-            "dredd 2012 karl urban", "judge dredd comic",
-            "lobo dc comics", "lobo main man",
-            "frank miller sin city", "frank miller batman",
-            "frank miller 300 spartan", "frank miller daredevil",
-            "sin city noir art", "miller comic noir",
+            "mass effect character",
+            "cyberpunk 2077 character art",
+            "halo spartan",
+            "destiny hunter warlock titan",
+            "metroid samus aran",
+            "dead space isaac clarke",
+            "doom slayer",
+            "doom eternal",
+            "half life gordon freeman",
+            "bioshock big daddy",
+            "alien isolation xenomorph",
+            "system shock shodan",
+            "prey 2017 typhon",
+            "outriders character",
+            "returnal selene",
+            "control alan wake",
+            "akira kaneda tetsuo",
+            "ghost in the shell motoko",
+            "berserk guts griffith",
+            "neon genesis evangelion unit01",
+            "cowboy bebop spike",
+            "trigun vash stampede",
+            "fullmetal alchemist edward",
+            "attack on titan eren levi",
+            "one punch man saitama",
+            "demon slayer tanjiro",
+            "jojo bizarre adventure",
+            "vinland saga thorfinn",
+            "berserker fate",
+            "madoka magica",
+            "chainsaw man denji",
+            "hunter x hunter killua gon",
+            "batman dark knight",
+            "batman arkham knight",
+            "batman comic art",
+            "batman beyond",
+            "batman versus joker",
+            "batman hush",
+            "joker dc comics art",
+            "joker joaquin phoenix",
+            "joker heath ledger",
+            "joker batman villain",
+            "harley quinn comics",
+            "harley quinn suicide squad",
+            "harley quinn animated",
+            "harley quinn birds of prey",
+            "punisher frank castle",
+            "punisher skull marvel",
+            "punisher comic art",
+            "punisher netflix",
+            "deadpool comic art",
+            "deadpool marvel",
+            "deadpool wolverine",
+            "deadpool mercenary",
+            "star wars darth vader",
+            "star wars mandalorian",
+            "star wars clone trooper",
+            "star wars sith lord",
+            "star wars boba fett",
+            "star wars stormtrooper",
+            "star wars kylo ren",
+            "star wars darth maul",
+            "judge dredd helmet",
+            "judge dredd mega city",
+            "dredd 2012 karl urban",
+            "judge dredd comic",
+            "lobo dc comics",
+            "lobo main man",
+            "frank miller sin city",
+            "frank miller batman",
+            "frank miller 300 spartan",
+            "frank miller daredevil",
+            "sin city noir art",
+            "miller comic noir",
         ];
-        
+
         for query in wallhaven_queries {
             self._throttle();
             let params = [
@@ -648,12 +695,17 @@ impl SourceManager {
                 ("sorting", "relevance"),
                 ("order", "desc"),
                 ("page", "1"),
-                ("atleast", &format!("{}x{}", self.config.min_width, self.config.min_height)),
+                (
+                    "atleast",
+                    &format!("{}x{}", self.config.min_width, self.config.min_height),
+                ),
             ];
-            
-            let url = format!("https://wallhaven.cc/api/v1/search?{}", 
-                serde_urlencoded::to_string(params)?);
-            
+
+            let url = format!(
+                "https://wallhaven.cc/api/v1/search?{}",
+                serde_urlencoded::to_string(params)?
+            );
+
             let response = reqwest::get(&url).await?;
             if response.status().is_success() {
                 let json: serde_json::Value = response.json().await?;
@@ -668,7 +720,7 @@ impl SourceManager {
                 }
             }
         }
-        
+
         Ok(urls)
     }
 }
@@ -687,10 +739,10 @@ impl WallpaperHarvester {
     pub fn new(config: HarvestConfig, log: slog::Logger) -> Result<Self> {
         let state_dir = config.dest.join(".state");
         std::fs::create_dir_all(&state_dir)?;
-        
+
         let db = Arc::new(StateDB::new(&state_dir.join("state.db"))?);
         let downloader = Arc::new(Downloader::new(config.clone(), db.clone()));
-        
+
         Ok(Self {
             config,
             db,
@@ -702,47 +754,47 @@ impl WallpaperHarvester {
 
     pub async fn run(&self, ctx: &mut PhaseContext<'_>) -> Result<()> {
         ctx.record_action("🌐  Starting wallpaper harvest operation...");
-        
+
         // Get URLs from sources
-        let source_manager = SourceManager::new(
-            self.config.clone(),
-            self.db.clone(),
-            self.log.clone()
-        );
-        
+        let source_manager =
+            SourceManager::new(self.config.clone(), self.db.clone(), self.log.clone());
+
         let urls = source_manager.get_urls().await?;
         ctx.record_action(format!("🔍  Found {} potential wallpaper URLs", urls.len()));
-        
+
         // Add URLs to database
         self.db.add_urls(&urls)?;
-        
+
         // Process URLs concurrently
         let semaphore = Arc::new(Semaphore::new(self.config.workers));
         let mut join_set = JoinSet::new();
-        
+
         let pending_urls = self.db.pending_urls()?;
-        ctx.record_action(format!("📋  Processing {} pending URLs", pending_urls.len()));
-        
+        ctx.record_action(format!(
+            "📋  Processing {} pending URLs",
+            pending_urls.len()
+        ));
+
         for url in pending_urls {
             if self.stop_flag.load(Ordering::SeqCst) {
                 break;
             }
-            
+
             let permit = semaphore.clone().acquire_owned().await?;
             let downloader = self.downloader.clone();
             let url_clone = url.clone();
-            
+
             join_set.spawn(async move {
                 let _permit = permit; // Hold permit for duration
                 let result = downloader.download(url_clone).await;
                 result
             });
         }
-        
+
         // Wait for all downloads to complete
         let mut success_count = 0;
         let mut fail_count = 0;
-        
+
         while let Some(result) = join_set.join_next().await {
             match result {
                 Ok(Ok(saved)) => {
@@ -760,13 +812,13 @@ impl WallpaperHarvester {
                 }
             }
         }
-        
+
         let unique_count = self.db.hash_count()?;
         ctx.record_action(format!(
             "📊  Harvest complete: {} unique wallpapers, {} success, {} failed",
             unique_count, success_count, fail_count
         ));
-        
+
         Ok(())
     }
 

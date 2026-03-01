@@ -61,10 +61,9 @@ pub fn draw_long_process_confirm(f: &mut ratatui::Frame, area: Rect, app: &TuiAp
     }
 
     let popup = centered_rect(70, 20, area);
-    
+
     // Draw background overlay
-    let overlay = Block::default()
-        .style(theme::dim_style());
+    let overlay = Block::default().style(theme::dim_style());
     f.render_widget(overlay, area);
 
     let block = Block::default()
@@ -76,7 +75,7 @@ pub fn draw_long_process_confirm(f: &mut ratatui::Frame, area: Rect, app: &TuiAp
             theme::title_style(),
         ))
         .style(theme::default_style());
-    
+
     let inner = block.inner(popup);
     f.render_widget(block, popup);
 
@@ -84,19 +83,17 @@ pub fn draw_long_process_confirm(f: &mut ratatui::Frame, area: Rect, app: &TuiAp
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3),   // Header
-            Constraint::Min(0),      // Content
-            Constraint::Length(3),   // Footer
+            Constraint::Length(3), // Header
+            Constraint::Min(0),    // Content
+            Constraint::Length(3), // Footer
         ])
         .split(inner);
 
     // Header - Operation name
-    let header_text = Text::from(vec![
-        Line::from(vec![
-            Span::styled("OPERATION: ", theme::accent_style()),
-            Span::styled(&state.operation_name, theme::success_style()),
-        ]),
-    ]);
+    let header_text = Text::from(vec![Line::from(vec![
+        Span::styled("OPERATION: ", theme::accent_style()),
+        Span::styled(&state.operation_name, theme::success_style()),
+    ])]);
     let header_para = Paragraph::new(header_text)
         .style(theme::default_style())
         .alignment(Alignment::Center);
@@ -110,9 +107,10 @@ pub fn draw_long_process_confirm(f: &mut ratatui::Frame, area: Rect, app: &TuiAp
             "THIS OPERATION WILL TAKE APPROXIMATELY:",
             theme::accent_style(),
         )),
-        Line::from(vec![
-            Span::styled(format!("{} minutes", duration_minutes), theme::warning_style()),
-        ]),
+        Line::from(vec![Span::styled(
+            format!("{} minutes", duration_minutes),
+            theme::warning_style(),
+        )]),
         Line::from(""),
         Line::from(Span::styled(
             "PLEASE ENSURE YOU HAVE SUFFICIENT TIME BEFORE PROCEEDING.",
@@ -145,15 +143,13 @@ pub fn draw_long_process_confirm(f: &mut ratatui::Frame, area: Rect, app: &TuiAp
             ]),
         ]
     } else {
-        vec![
-            Line::from(vec![
-                Span::styled("PRESS ", theme::dim_style()),
-                Span::styled("ENTER", theme::accent_style()),
-                Span::styled(" TO PROCEED OR ", theme::dim_style()),
-                Span::styled("ESC", theme::accent_style()),
-                Span::styled(" TO CANCEL", theme::dim_style()),
-            ]),
-        ]
+        vec![Line::from(vec![
+            Span::styled("PRESS ", theme::dim_style()),
+            Span::styled("ENTER", theme::accent_style()),
+            Span::styled(" TO PROCEED OR ", theme::dim_style()),
+            Span::styled("ESC", theme::accent_style()),
+            Span::styled(" TO CANCEL", theme::dim_style()),
+        ])]
     };
 
     let footer_text = Text::from(footer_lines);

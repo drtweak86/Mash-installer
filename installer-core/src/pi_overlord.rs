@@ -4,9 +4,9 @@
 //! that provides package name mappings and installation capabilities for multiple
 //! Linux distributions.
 
-use std::collections::HashMap;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 use crate::context::PhaseContext;
 use crate::driver::DistroDriver;
@@ -42,6 +42,12 @@ pub struct PackageMapping {
     pub debian: Vec<&'static str>,
     pub arch: Vec<&'static str>,
     pub description: &'static str,
+}
+
+impl Default for PackageMapping {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl PackageMapping {
@@ -99,34 +105,111 @@ impl Default for PiOverlordPackages {
             PackageCategory::CoreTools,
             PackageMapping::new()
                 .fedora(&[
-                    "btop", "htop", "nvtop", "iotop", "powertop",
-                    "lm_sensors", "smartmontools", "usbutils", "pciutils",
-                    "lsof", "strace", "tcpdump", "bind-utils",
-                    "ncdu", "tree", "ripgrep", "fd-find", "bat", "fzf", "eza",
-                    "wget", "curl", "aria2", "rsync",
-                    "tmux", "screen",
-                    "zstd", "unzip", "p7zip", "p7zip-plugins",
-                    "which", "util-linux-user", "pv", "jq",
+                    "btop",
+                    "htop",
+                    "nvtop",
+                    "iotop",
+                    "powertop",
+                    "lm_sensors",
+                    "smartmontools",
+                    "usbutils",
+                    "pciutils",
+                    "lsof",
+                    "strace",
+                    "tcpdump",
+                    "bind-utils",
+                    "ncdu",
+                    "tree",
+                    "ripgrep",
+                    "fd-find",
+                    "bat",
+                    "fzf",
+                    "eza",
+                    "wget",
+                    "curl",
+                    "aria2",
+                    "rsync",
+                    "tmux",
+                    "screen",
+                    "zstd",
+                    "unzip",
+                    "p7zip",
+                    "p7zip-plugins",
+                    "which",
+                    "util-linux-user",
+                    "pv",
+                    "jq",
                 ])
                 .debian(&[
-                    "btop", "htop", "nvtop", "iotop", "powertop",
-                    "lm-sensors", "smartmontools", "usbutils", "pciutils",
-                    "lsof", "strace", "tcpdump", "dnsutils",
-                    "ncdu", "tree", "ripgrep", "fd-find", "bat", "fzf", "eza",
-                    "wget", "curl", "aria2", "rsync",
-                    "tmux", "screen",
-                    "zstd", "unzip", "p7zip", "p7zip-full",
-                    "which", "util-linux", "pv", "jq",
+                    "btop",
+                    "htop",
+                    "nvtop",
+                    "iotop",
+                    "powertop",
+                    "lm-sensors",
+                    "smartmontools",
+                    "usbutils",
+                    "pciutils",
+                    "lsof",
+                    "strace",
+                    "tcpdump",
+                    "dnsutils",
+                    "ncdu",
+                    "tree",
+                    "ripgrep",
+                    "fd-find",
+                    "bat",
+                    "fzf",
+                    "eza",
+                    "wget",
+                    "curl",
+                    "aria2",
+                    "rsync",
+                    "tmux",
+                    "screen",
+                    "zstd",
+                    "unzip",
+                    "p7zip",
+                    "p7zip-full",
+                    "which",
+                    "util-linux",
+                    "pv",
+                    "jq",
                 ])
                 .arch(&[
-                    "btop", "htop", "nvtop", "iotop", "powertop",
-                    "lm_sensors", "smartmontools", "usbutils", "pciutils",
-                    "lsof", "strace", "tcpdump", "bind",
-                    "ncdu", "tree", "ripgrep", "fd", "bat", "fzf", "eza",
-                    "wget", "curl", "aria2", "rsync",
-                    "tmux", "screen",
-                    "zstd", "unzip", "p7zip",
-                    "which", "util-linux", "pv", "jq",
+                    "btop",
+                    "htop",
+                    "nvtop",
+                    "iotop",
+                    "powertop",
+                    "lm_sensors",
+                    "smartmontools",
+                    "usbutils",
+                    "pciutils",
+                    "lsof",
+                    "strace",
+                    "tcpdump",
+                    "bind",
+                    "ncdu",
+                    "tree",
+                    "ripgrep",
+                    "fd",
+                    "bat",
+                    "fzf",
+                    "eza",
+                    "wget",
+                    "curl",
+                    "aria2",
+                    "rsync",
+                    "tmux",
+                    "screen",
+                    "zstd",
+                    "unzip",
+                    "p7zip",
+                    "which",
+                    "util-linux",
+                    "pv",
+                    "jq",
                 ])
                 .desc("Core CLI tools and utilities"),
         );
@@ -137,30 +220,80 @@ impl Default for PiOverlordPackages {
             PackageMapping::new()
                 .fedora(&[
                     "sddm",
-                    "xorg-x11-server-Xorg", "xorg-x11-xinit", "xorg-x11-utils",
-                    "plasma-workspace", "plasma-desktop", "kwin",
-                    "kdeplasma-addons", "plasma-nm", "plasma-pa",
-                    "kscreen", "powerdevil", "bluedevil",
-                    "kate", "dolphin", "ark", "spectacle", "gwenview", "okular", "kcalc",
-                    "playerctl", "xdg-utils", "xdg-user-dirs", "network-manager-applet",
+                    "xorg-x11-server-Xorg",
+                    "xorg-x11-xinit",
+                    "xorg-x11-utils",
+                    "plasma-workspace",
+                    "plasma-desktop",
+                    "kwin",
+                    "kdeplasma-addons",
+                    "plasma-nm",
+                    "plasma-pa",
+                    "kscreen",
+                    "powerdevil",
+                    "bluedevil",
+                    "kate",
+                    "dolphin",
+                    "ark",
+                    "spectacle",
+                    "gwenview",
+                    "okular",
+                    "kcalc",
+                    "playerctl",
+                    "xdg-utils",
+                    "xdg-user-dirs",
+                    "network-manager-applet",
                 ])
                 .debian(&[
                     "sddm",
-                    "xserver-xorg", "xinit", "x11-utils",
-                    "plasma-workspace", "plasma-desktop", "kwin-x11",
-                    "plasma-desktop-data", "plasma-nm", "plasma-pa",
-                    "kscreen", "powerdevil", "bluedevil",
-                    "kate", "dolphin", "ark", "spectacle", "gwenview", "okular", "kcalc",
-                    "playerctl", "xdg-utils", "xdg-user-dirs", "network-manager",
+                    "xserver-xorg",
+                    "xinit",
+                    "x11-utils",
+                    "plasma-workspace",
+                    "plasma-desktop",
+                    "kwin-x11",
+                    "plasma-desktop-data",
+                    "plasma-nm",
+                    "plasma-pa",
+                    "kscreen",
+                    "powerdevil",
+                    "bluedevil",
+                    "kate",
+                    "dolphin",
+                    "ark",
+                    "spectacle",
+                    "gwenview",
+                    "okular",
+                    "kcalc",
+                    "playerctl",
+                    "xdg-utils",
+                    "xdg-user-dirs",
+                    "network-manager",
                 ])
                 .arch(&[
                     "sddm",
-                    "xorg-server", "xorg-xinit", "xorg-utils",
-                    "plasma", "plasma-desktop", "kwin",
-                    "plasma-nm", "plasma-pa",
-                    "kscreen", "powerdevil", "bluedevil",
-                    "kate", "dolphin", "ark", "spectacle", "gwenview", "okular", "kcalc",
-                    "playerctl", "xdg-utils", "xdg-user-dirs", "networkmanager",
+                    "xorg-server",
+                    "xorg-xinit",
+                    "xorg-utils",
+                    "plasma",
+                    "plasma-desktop",
+                    "kwin",
+                    "plasma-nm",
+                    "plasma-pa",
+                    "kscreen",
+                    "powerdevil",
+                    "bluedevil",
+                    "kate",
+                    "dolphin",
+                    "ark",
+                    "spectacle",
+                    "gwenview",
+                    "okular",
+                    "kcalc",
+                    "playerctl",
+                    "xdg-utils",
+                    "xdg-user-dirs",
+                    "networkmanager",
                 ])
                 .desc("KDE Plasma desktop environment with X11"),
         );
@@ -199,8 +332,22 @@ impl Default for PiOverlordPackages {
         mappings.insert(
             PackageCategory::RustToolchain,
             PackageMapping::new()
-                .fedora(&["gcc", "gcc-c++", "openssl-devel", "sqlite-devel", "zlib-devel", "libffi-devel"])
-                .debian(&["gcc", "g++", "libssl-dev", "libsqlite3-dev", "zlib1g-dev", "libffi-dev"])
+                .fedora(&[
+                    "gcc",
+                    "gcc-c++",
+                    "openssl-devel",
+                    "sqlite-devel",
+                    "zlib-devel",
+                    "libffi-devel",
+                ])
+                .debian(&[
+                    "gcc",
+                    "g++",
+                    "libssl-dev",
+                    "libsqlite3-dev",
+                    "zlib1g-dev",
+                    "libffi-dev",
+                ])
                 .arch(&["gcc", "clang", "openssl", "sqlite", "zlib", "libffi"])
                 .desc("Rust build prerequisites"),
         );
@@ -208,8 +355,7 @@ impl Default for PiOverlordPackages {
         // Phase 7: Cargo Tools
         mappings.insert(
             PackageCategory::CargoTools,
-            PackageMapping::new()
-                .desc("Cargo tools (installed via cargo install)"),
+            PackageMapping::new().desc("Cargo tools (installed via cargo install)"),
         );
 
         // Phase 8: Build Tools
@@ -217,34 +363,85 @@ impl Default for PiOverlordPackages {
             PackageCategory::BuildTools,
             PackageMapping::new()
                 .fedora(&[
-                    "clang", "llvm", "lldb",
-                    "cmake", "ninja-build", "meson", "make",
-                    "autoconf", "automake", "libtool",
+                    "clang",
+                    "llvm",
+                    "lldb",
+                    "cmake",
+                    "ninja-build",
+                    "meson",
+                    "make",
+                    "autoconf",
+                    "automake",
+                    "libtool",
                     "pkgconf-pkg-config",
-                    "uboot-tools", "dtc",
-                    "btrfs-progs", "parted", "dosfstools", "cryptsetup", "lvm2",
-                    "openssl-devel", "sqlite-devel", "zlib-devel", "libffi-devel",
-                    "libxml2-devel", "libcurl-devel", "readline-devel",
+                    "uboot-tools",
+                    "dtc",
+                    "btrfs-progs",
+                    "parted",
+                    "dosfstools",
+                    "cryptsetup",
+                    "lvm2",
+                    "openssl-devel",
+                    "sqlite-devel",
+                    "zlib-devel",
+                    "libffi-devel",
+                    "libxml2-devel",
+                    "libcurl-devel",
+                    "readline-devel",
                 ])
                 .debian(&[
-                    "clang", "llvm", "lldb",
-                    "cmake", "ninja-build", "meson", "make",
-                    "autoconf", "automake", "libtool",
+                    "clang",
+                    "llvm",
+                    "lldb",
+                    "cmake",
+                    "ninja-build",
+                    "meson",
+                    "make",
+                    "autoconf",
+                    "automake",
+                    "libtool",
                     "pkg-config",
-                    "u-boot-tools", "device-tree-compiler",
-                    "btrfs-progs", "parted", "dosfstools", "cryptsetup", "lvm2",
-                    "libssl-dev", "libsqlite3-dev", "zlib1g-dev", "libffi-dev",
-                    "libxml2-dev", "libcurl4-openssl-dev", "libreadline-dev",
+                    "u-boot-tools",
+                    "device-tree-compiler",
+                    "btrfs-progs",
+                    "parted",
+                    "dosfstools",
+                    "cryptsetup",
+                    "lvm2",
+                    "libssl-dev",
+                    "libsqlite3-dev",
+                    "zlib1g-dev",
+                    "libffi-dev",
+                    "libxml2-dev",
+                    "libcurl4-openssl-dev",
+                    "libreadline-dev",
                 ])
                 .arch(&[
-                    "clang", "llvm", "lldb",
-                    "cmake", "ninja", "meson", "make",
-                    "autoconf", "automake", "libtool",
+                    "clang",
+                    "llvm",
+                    "lldb",
+                    "cmake",
+                    "ninja",
+                    "meson",
+                    "make",
+                    "autoconf",
+                    "automake",
+                    "libtool",
                     "pkgconf",
-                    "uboot-tools", "dtc",
-                    "btrfs-progs", "parted", "dosfstools", "cryptsetup", "lvm2",
-                    "openssl", "sqlite", "zlib", "libffi",
-                    "libxml2", "curl", "readline",
+                    "uboot-tools",
+                    "dtc",
+                    "btrfs-progs",
+                    "parted",
+                    "dosfstools",
+                    "cryptsetup",
+                    "lvm2",
+                    "openssl",
+                    "sqlite",
+                    "zlib",
+                    "libffi",
+                    "libxml2",
+                    "curl",
+                    "readline",
                 ])
                 .desc("Build tools and development libraries"),
         );
@@ -263,9 +460,30 @@ impl Default for PiOverlordPackages {
         mappings.insert(
             PackageCategory::Containers,
             PackageMapping::new()
-                .fedora(&["podman", "buildah", "skopeo", "podman-compose", "toolbox", "aardvark-dns"])
-                .debian(&["podman", "buildah", "skopeo", "podman-compose", "toolbox", "aardvark-dns"])
-                .arch(&["podman", "buildah", "skopeo", "podman-compose", "toolbox", "aardvark-dns"])
+                .fedora(&[
+                    "podman",
+                    "buildah",
+                    "skopeo",
+                    "podman-compose",
+                    "toolbox",
+                    "aardvark-dns",
+                ])
+                .debian(&[
+                    "podman",
+                    "buildah",
+                    "skopeo",
+                    "podman-compose",
+                    "toolbox",
+                    "aardvark-dns",
+                ])
+                .arch(&[
+                    "podman",
+                    "buildah",
+                    "skopeo",
+                    "podman-compose",
+                    "toolbox",
+                    "aardvark-dns",
+                ])
                 .desc("Podman container stack"),
         );
 
@@ -283,9 +501,32 @@ impl Default for PiOverlordPackages {
         mappings.insert(
             PackageCategory::Network,
             PackageMapping::new()
-                .fedora(&["nmap", "iperf3", "wireguard-tools", "firewalld", "fail2ban", "openssh-server", "openssh-clients"])
-                .debian(&["nmap", "iperf3", "wireguard", "ufw", "fail2ban", "openssh-server", "openssh-client"])
-                .arch(&["nmap", "iperf3", "wireguard-tools", "ufw", "fail2ban", "openssh"])
+                .fedora(&[
+                    "nmap",
+                    "iperf3",
+                    "wireguard-tools",
+                    "firewalld",
+                    "fail2ban",
+                    "openssh-server",
+                    "openssh-clients",
+                ])
+                .debian(&[
+                    "nmap",
+                    "iperf3",
+                    "wireguard",
+                    "ufw",
+                    "fail2ban",
+                    "openssh-server",
+                    "openssh-client",
+                ])
+                .arch(&[
+                    "nmap",
+                    "iperf3",
+                    "wireguard-tools",
+                    "ufw",
+                    "fail2ban",
+                    "openssh",
+                ])
                 .desc("Network tools and security"),
         );
 
@@ -293,9 +534,42 @@ impl Default for PiOverlordPackages {
         mappings.insert(
             PackageCategory::Languages,
             PackageMapping::new()
-                .fedora(&["python3", "python3-pip", "python3-virtualenv", "python3-devel", "nodejs", "npm", "golang", "lua", "lua-devel", "shellcheck", "shfmt"])
-                .debian(&["python3", "python3-pip", "python3-venv", "python3-dev", "nodejs", "npm", "golang", "lua5.4", "liblua5.4-dev", "shellcheck", "shfmt"])
-                .arch(&["python", "python-pip", "nodejs", "npm", "go", "lua", "shellcheck", "shfmt"])
+                .fedora(&[
+                    "python3",
+                    "python3-pip",
+                    "python3-virtualenv",
+                    "python3-devel",
+                    "nodejs",
+                    "npm",
+                    "golang",
+                    "lua",
+                    "lua-devel",
+                    "shellcheck",
+                    "shfmt",
+                ])
+                .debian(&[
+                    "python3",
+                    "python3-pip",
+                    "python3-venv",
+                    "python3-dev",
+                    "nodejs",
+                    "npm",
+                    "golang",
+                    "lua5.4",
+                    "liblua5.4-dev",
+                    "shellcheck",
+                    "shfmt",
+                ])
+                .arch(&[
+                    "python",
+                    "python-pip",
+                    "nodejs",
+                    "npm",
+                    "go",
+                    "lua",
+                    "shellcheck",
+                    "shfmt",
+                ])
                 .desc("Multi-language development stack"),
         );
 
@@ -313,9 +587,36 @@ impl Default for PiOverlordPackages {
         mappings.insert(
             PackageCategory::Wayland,
             PackageMapping::new()
-                .fedora(&["wl-clipboard", "grim", "slurp", "direnv", "flatpak", "helix", "neovim", "alacritty"])
-                .debian(&["wl-clipboard", "grim", "slurp", "direnv", "flatpak", "helix", "neovim", "alacritty"])
-                .arch(&["wl-clipboard", "grim", "slurp", "direnv", "flatpak", "helix", "neovim", "alacritty"])
+                .fedora(&[
+                    "wl-clipboard",
+                    "grim",
+                    "slurp",
+                    "direnv",
+                    "flatpak",
+                    "helix",
+                    "neovim",
+                    "alacritty",
+                ])
+                .debian(&[
+                    "wl-clipboard",
+                    "grim",
+                    "slurp",
+                    "direnv",
+                    "flatpak",
+                    "helix",
+                    "neovim",
+                    "alacritty",
+                ])
+                .arch(&[
+                    "wl-clipboard",
+                    "grim",
+                    "slurp",
+                    "direnv",
+                    "flatpak",
+                    "helix",
+                    "neovim",
+                    "alacritty",
+                ])
                 .desc("Wayland tools and editors"),
         );
 
@@ -323,9 +624,27 @@ impl Default for PiOverlordPackages {
         mappings.insert(
             PackageCategory::Workflow,
             PackageMapping::new()
-                .fedora(&["fastfetch", "neofetch", "papirus-icon-theme", "atuin", "zoxide"])
-                .debian(&["fastfetch", "neofetch", "papirus-icon-theme", "atuin", "zoxide"])
-                .arch(&["fastfetch", "neofetch", "papirus-icon-theme", "atuin", "zoxide"])
+                .fedora(&[
+                    "fastfetch",
+                    "neofetch",
+                    "papirus-icon-theme",
+                    "atuin",
+                    "zoxide",
+                ])
+                .debian(&[
+                    "fastfetch",
+                    "neofetch",
+                    "papirus-icon-theme",
+                    "atuin",
+                    "zoxide",
+                ])
+                .arch(&[
+                    "fastfetch",
+                    "neofetch",
+                    "papirus-icon-theme",
+                    "atuin",
+                    "zoxide",
+                ])
                 .desc("Workflow and appearance tools"),
         );
 
@@ -334,7 +653,13 @@ impl Default for PiOverlordPackages {
             PackageCategory::ArgonOne,
             PackageMapping::new()
                 .fedora(&["gcc", "make", "dtc", "i2c-tools", "i2c-tools-devel"])
-                .debian(&["gcc", "make", "device-tree-compiler", "i2c-tools", "libi2c-dev"])
+                .debian(&[
+                    "gcc",
+                    "make",
+                    "device-tree-compiler",
+                    "i2c-tools",
+                    "libi2c-dev",
+                ])
                 .arch(&["gcc", "make", "dtc", "i2c-tools"])
                 .desc("Argon One case fan control build dependencies"),
         );
@@ -371,7 +696,10 @@ impl PiOverlordPackages {
     ) -> Result<()> {
         let packages = self.get_packages_for_distro(category, driver);
         if packages.is_empty() {
-            ctx.record_warning(format!("No packages defined for {:?} on this distro", category));
+            ctx.record_warning(format!(
+                "No packages defined for {:?} on this distro",
+                category
+            ));
             return Ok(());
         }
 
@@ -402,52 +730,68 @@ impl PiOverlordPackages {
         ctx.record_action("🧠 Starting Pi Overlord installation sequence...");
 
         // Phase 1: Core Tools
-        self.install_category(PackageCategory::CoreTools, driver, ctx).await?;
+        self.install_category(PackageCategory::CoreTools, driver, ctx)
+            .await?;
 
         // Phase 2: KDE Plasma
-        self.install_category(PackageCategory::KdePlasma, driver, ctx).await?;
+        self.install_category(PackageCategory::KdePlasma, driver, ctx)
+            .await?;
 
         // Phase 3: Terminals
-        self.install_category(PackageCategory::Terminals, driver, ctx).await?;
+        self.install_category(PackageCategory::Terminals, driver, ctx)
+            .await?;
 
         // Phase 4: Fonts
-        self.install_category(PackageCategory::Fonts, driver, ctx).await?;
+        self.install_category(PackageCategory::Fonts, driver, ctx)
+            .await?;
 
         // Phase 5: Shell
-        self.install_category(PackageCategory::Shell, driver, ctx).await?;
+        self.install_category(PackageCategory::Shell, driver, ctx)
+            .await?;
 
         // Phase 6: Rust Toolchain (build deps only, rustup handled separately)
-        self.install_category(PackageCategory::RustToolchain, driver, ctx).await?;
+        self.install_category(PackageCategory::RustToolchain, driver, ctx)
+            .await?;
 
         // Phase 8: Build Tools
-        self.install_category(PackageCategory::BuildTools, driver, ctx).await?;
+        self.install_category(PackageCategory::BuildTools, driver, ctx)
+            .await?;
 
         // Phase 9: Git Forge
-        self.install_category(PackageCategory::GitForge, driver, ctx).await?;
+        self.install_category(PackageCategory::GitForge, driver, ctx)
+            .await?;
 
         // Phase 10: Containers
-        self.install_category(PackageCategory::Containers, driver, ctx).await?;
+        self.install_category(PackageCategory::Containers, driver, ctx)
+            .await?;
 
         // Phase 11: Snapshots
-        self.install_category(PackageCategory::Snapshots, driver, ctx).await?;
+        self.install_category(PackageCategory::Snapshots, driver, ctx)
+            .await?;
 
         // Phase 12: Network
-        self.install_category(PackageCategory::Network, driver, ctx).await?;
+        self.install_category(PackageCategory::Network, driver, ctx)
+            .await?;
 
         // Phase 13: Languages
-        self.install_category(PackageCategory::Languages, driver, ctx).await?;
+        self.install_category(PackageCategory::Languages, driver, ctx)
+            .await?;
 
         // Phase 14: Performance
-        self.install_category(PackageCategory::Performance, driver, ctx).await?;
+        self.install_category(PackageCategory::Performance, driver, ctx)
+            .await?;
 
         // Phase 15: Wayland
-        self.install_category(PackageCategory::Wayland, driver, ctx).await?;
+        self.install_category(PackageCategory::Wayland, driver, ctx)
+            .await?;
 
         // Phase 16: Workflow
-        self.install_category(PackageCategory::Workflow, driver, ctx).await?;
+        self.install_category(PackageCategory::Workflow, driver, ctx)
+            .await?;
 
         // Phase 19: Argon One (build deps)
-        self.install_category(PackageCategory::ArgonOne, driver, ctx).await?;
+        self.install_category(PackageCategory::ArgonOne, driver, ctx)
+            .await?;
 
         ctx.record_action("🎉 Pi Overlord installation sequence completed!");
 
@@ -459,6 +803,12 @@ impl PiOverlordPackages {
 #[derive(Debug, Clone)]
 pub struct PiOverlord {
     packages: PiOverlordPackages,
+}
+
+impl Default for PiOverlord {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl PiOverlord {
@@ -519,26 +869,50 @@ mod tests {
     // Mock drivers for testing
     struct MockFedoraDriver;
     impl DistroDriver for MockFedoraDriver {
-        fn name(&self) -> &'static str { "fedora" }
-        fn description(&self) -> &'static str { "Mock Fedora Driver" }
-        fn matches(&self, _info: &crate::PlatformInfo) -> bool { false }
-        fn pkg_backend(&self) -> crate::PkgBackend { crate::PkgBackend::Dnf }
+        fn name(&self) -> &'static str {
+            "fedora"
+        }
+        fn description(&self) -> &'static str {
+            "Mock Fedora Driver"
+        }
+        fn matches(&self, _info: &crate::PlatformInfo) -> bool {
+            false
+        }
+        fn pkg_backend(&self) -> crate::PkgBackend {
+            crate::PkgBackend::Dnf
+        }
     }
 
     struct MockDebianDriver;
     impl DistroDriver for MockDebianDriver {
-        fn name(&self) -> &'static str { "debian" }
-        fn description(&self) -> &'static str { "Mock Debian Driver" }
-        fn matches(&self, _info: &crate::PlatformInfo) -> bool { false }
-        fn pkg_backend(&self) -> crate::PkgBackend { crate::PkgBackend::Apt }
+        fn name(&self) -> &'static str {
+            "debian"
+        }
+        fn description(&self) -> &'static str {
+            "Mock Debian Driver"
+        }
+        fn matches(&self, _info: &crate::PlatformInfo) -> bool {
+            false
+        }
+        fn pkg_backend(&self) -> crate::PkgBackend {
+            crate::PkgBackend::Apt
+        }
     }
 
     struct MockArchDriver;
     impl DistroDriver for MockArchDriver {
-        fn name(&self) -> &'static str { "arch" }
-        fn description(&self) -> &'static str { "Mock Arch Driver" }
-        fn matches(&self, _info: &crate::PlatformInfo) -> bool { false }
-        fn pkg_backend(&self) -> crate::PkgBackend { crate::PkgBackend::Pacman }
+        fn name(&self) -> &'static str {
+            "arch"
+        }
+        fn description(&self) -> &'static str {
+            "Mock Arch Driver"
+        }
+        fn matches(&self, _info: &crate::PlatformInfo) -> bool {
+            false
+        }
+        fn pkg_backend(&self) -> crate::PkgBackend {
+            crate::PkgBackend::Pacman
+        }
     }
 
     #[test]

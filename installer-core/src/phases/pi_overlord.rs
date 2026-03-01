@@ -4,7 +4,7 @@ use anyhow::Result;
 
 use crate::context::PhaseContext;
 use crate::driver::DistroDriver;
-use crate::pi_overlord::{PiOverlord, PackageCategory};
+use crate::pi_overlord::{PackageCategory, PiOverlord};
 
 /// Pi Overlord installation phase
 pub async fn install_phase(ctx: &mut PhaseContext<'_>, driver: &dyn DistroDriver) -> Result<()> {
@@ -28,7 +28,10 @@ pub async fn install_category_phase(
     driver: &dyn DistroDriver,
     category: PackageCategory,
 ) -> Result<()> {
-    ctx.record_action(format!("📦 Installing Pi Overlord category: {:?}", category));
+    ctx.record_action(format!(
+        "📦 Installing Pi Overlord category: {:?}",
+        category
+    ));
 
     let pi_overlord = PiOverlord::new();
     pi_overlord.install_category(category, driver, ctx).await?;

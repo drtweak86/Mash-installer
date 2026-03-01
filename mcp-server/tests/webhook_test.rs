@@ -11,9 +11,12 @@ fn test_server_starts_and_responds() {
         .args([
             "run",
             "--",
-            "--bind-address", "127.0.0.1:34567",
-            "--github-webhook-secret", "test_secret",
-            "--max-event-history", "10"
+            "--bind-address",
+            "127.0.0.1:34567",
+            "--github-webhook-secret",
+            "test_secret",
+            "--max-event-history",
+            "10",
         ])
         .spawn()
         .expect("Failed to start server");
@@ -40,13 +43,15 @@ fn test_server_starts_and_responds() {
 fn test_webhook_validation() {
     // This would test actual webhook signature validation
     // For now, just verify the server can handle a POST request
-    
+
     let mut server = Command::new("cargo")
         .args([
             "run",
             "--",
-            "--bind-address", "127.0.0.1:34568",
-            "--github-webhook-secret", "test_secret",
+            "--bind-address",
+            "127.0.0.1:34568",
+            "--github-webhook-secret",
+            "test_secret",
         ])
         .spawn()
         .expect("Failed to start server");
@@ -54,7 +59,7 @@ fn test_webhook_validation() {
     thread::sleep(Duration::from_secs(2));
 
     let client = reqwest::blocking::Client::new();
-    
+
     // Test invalid webhook (missing headers)
     let response = client
         .post("http://127.0.0.1:34568/webhook")
