@@ -29,6 +29,7 @@ use crate::context::PhaseContext;
 pub struct HarvestConfig {
     pub dest: PathBuf,
     pub workers: usize,
+    #[allow(dead_code)] // Kept for future expansion
     pub target: usize,
     pub min_width: u32,
     pub min_height: u32,
@@ -39,6 +40,7 @@ pub struct HarvestConfig {
     pub retry_max: usize,
     pub retry_delay: Duration,
     pub rate_limit: Duration,
+    #[allow(dead_code)] // Kept for future expansion
     pub chunk_size: usize,
     pub fingerprint_bytes: usize,
 }
@@ -73,6 +75,10 @@ pub struct StateDB {
     conn: RwLock<Connection>,
 }
 
+unsafe impl Send for StateDB {}
+unsafe impl Sync for StateDB {}
+
+#[allow(dead_code, clippy::readonly_write_lock)] // Methods kept for future expansion, SQLite uses write locks
 impl StateDB {
     pub fn new(db_path: &Path) -> Result<Self> {
         let conn = Connection::open(db_path)
@@ -254,12 +260,10 @@ impl ImageInfo {
         }
 
         // PNG: 8-byte sig + IHDR chunk
-        if data.starts_with(b"\x89PNG\r\n\x1a\n") {
-            if data.len() >= 24 {
-                let w = u32::from_be_bytes(data[16..20].try_into().ok()?);
-                let h = u32::from_be_bytes(data[20..24].try_into().ok()?);
-                return Some((w, h));
-            }
+        if data.starts_with(b"\x89PNG\r\n\x1a\n") && data.len() >= 24 {
+            let w = u32::from_be_bytes(data[16..20].try_into().ok()?);
+            let h = u32::from_be_bytes(data[20..24].try_into().ok()?);
+            return Some((w, h));
         }
 
         // JPEG: scan for SOF markers
@@ -284,16 +288,15 @@ impl ImageInfo {
             let marker = data.get(i + 1).copied()?;
 
             // SOF markers: C0-C3, C5-C7, C9-CB, CD-CF
-            if (0xC0..=0xC3).contains(&marker)
+            if ((0xC0..=0xC3).contains(&marker)
                 || (0xC5..=0xC7).contains(&marker)
                 || (0xC9..=0xCB).contains(&marker)
-                || (0xCD..=0xCF).contains(&marker)
+                || (0xCD..=0xCF).contains(&marker))
+                && data.len() > i + 9
             {
-                if data.len() > i + 9 {
-                    let h = u16::from_be_bytes(data[i + 5..i + 7].try_into().ok()?) as u32;
-                    let w = u16::from_be_bytes(data[i + 7..i + 9].try_into().ok()?) as u32;
-                    return Some((w, h));
-                }
+                let h = u16::from_be_bytes(data[i + 5..i + 7].try_into().ok()?) as u32;
+                let w = u16::from_be_bytes(data[i + 7..i + 9].try_into().ok()?) as u32;
+                return Some((w, h));
             }
 
             let seg_len = u16::from_be_bytes(data[i + 2..i + 4].try_into().ok()?) as usize;
@@ -371,6 +374,7 @@ impl Downloader {
         }
     }
 
+    #[allow(dead_code)] // Kept for future expansion
     pub fn stop(&self) {
         self.stop_flag.store(true, Ordering::SeqCst);
     }
@@ -561,6 +565,7 @@ impl Downloader {
 
 // ── URL Sources ────────────────────────────────────────────────────────────
 #[derive(Debug, Clone)]
+#[allow(dead_code)] // Kept for future expansion
 pub enum WallpaperSource {
     Wallhaven,
     Reddit,
@@ -570,7 +575,9 @@ pub enum WallpaperSource {
 #[derive(Debug)]
 pub struct SourceManager {
     config: HarvestConfig,
+    #[allow(dead_code)] // Kept for future expansion
     db: Arc<StateDB>,
+    #[allow(dead_code)] // Kept for future expansion
     log: slog::Logger,
     last_request: std::sync::Mutex<f64>,
 }
@@ -822,12 +829,14 @@ impl WallpaperHarvester {
         Ok(())
     }
 
+    #[allow(dead_code)] // Kept for future expansion
     pub fn stop(&self) {
         self.stop_flag.store(true, Ordering::SeqCst);
     }
 }
 
 // ── Public API ──────────────────────────────────────────────────────────────
+#[allow(dead_code)] // Kept for future expansion
 pub async fn harvest_wallpapers(
     config: HarvestConfig,
     log: slog::Logger,

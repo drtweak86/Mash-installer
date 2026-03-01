@@ -72,14 +72,12 @@ fn configure_mcp_servers(ctx: &mut PhaseContext) -> Result<()> {
     ];
 
     // Try to find an existing GITHUB_PERSONAL_ACCESS_TOKEN in any of these files
-    let mut existing_token = String::new();
     if !ctx.options.dry_run {
         for (path, key) in &config_paths {
             if path.exists() {
                 if let Ok(content) = std::fs::read_to_string(path) {
                     if let Ok(config) = serde_json::from_str::<serde_json::Value>(&content) {
-                        if let Some(token) = find_github_token(&config, key) {
-                            existing_token = token;
+                        if let Some(_token) = find_github_token(&config, key) {
                             ctx.record_action(format!(
                                 "Detected existing GitHub token in {}",
                                 path.display()

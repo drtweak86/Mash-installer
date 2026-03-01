@@ -135,6 +135,7 @@ impl DesktopSelection {
     }
 
     /// Validate the selection - ensure protocol is compatible with DE
+    #[allow(clippy::result_large_err)] // Complex validation errors
     pub fn validate(&self) -> Result<(), InstallerError> {
         if self.environment == DesktopEnvironment::None && self.protocol != DisplayProtocol::Auto {
             return Err(InstallerError::new(
