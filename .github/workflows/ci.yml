@@ -223,14 +223,14 @@ jobs:
           docker run --rm \
             -v "$PWD/mash-setup:/usr/local/bin/mash-setup" \
             "${{ matrix.image }}" \
-            mash-setup --version
+            sh -c "apt-get update && apt-get install -y libsqlite3-0 || dnf install -y sqlite-libs || pacman -Sy --noconfirm sqlite; mash-setup --version"
 
       - name: Test doctor (${{ matrix.distro }})
         run: |
           docker run --rm \
             -v "$PWD/mash-setup:/usr/local/bin/mash-setup" \
             "${{ matrix.image }}" \
-            sh -c "mash-setup doctor; true"
+            sh -c "apt-get update && apt-get install -y libsqlite3-0 || dnf install -y sqlite-libs || pacman -Sy --noconfirm sqlite; mash-setup doctor; true"
 
   shellcheck:
     name: ShellCheck
