@@ -11,11 +11,11 @@ This document establishes the canonical order in which shafts should be explored
 **Dependencies**: None
 **Next Action**: None - complete
 
-### 2. 🏗️ SHAFT H: Installer Experience Overhaul — PLANNING COMPLETE
-**Status**: Planning complete, implementation pending
+### 2. 🏗️ SHAFT H: Installer Experience Overhaul — PHASE 7 COMPLETE
+**Status**: Phases 1-7 complete, Phase 8 pending
 **Priority**: HIGH (user experience improvements)
 **Dependencies**: None
-**Next Action**: Begin implementation
+**Next Action**: Begin Phase 8 - Testing & Documentation
 
 ### 3. 🏗️ SHAFT I: Software Catalog & Installation Flow Overhaul — PLANNING COMPLETE
 **Status**: Planning complete, implementation pending

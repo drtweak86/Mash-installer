@@ -7,6 +7,7 @@ pub mod catalog;
 pub mod cmd;
 mod config;
 mod context;
+pub mod desktop_environments;
 mod distro;
 mod docker;
 mod doctor;
@@ -18,6 +19,7 @@ pub mod fonts_all;
 mod github;
 pub mod interaction;
 pub mod localization;
+pub mod pi_overlord;
 mod lockfile;
 mod logging;
 mod options;
@@ -29,7 +31,7 @@ mod phase_runner;
 pub mod phases;
 mod pi4b_hdd;
 mod pkg;
-mod platform;
+pub mod platform;
 mod rclone;
 mod rollback;
 mod rust;
@@ -50,6 +52,10 @@ mod zsh;
 use crate::{dry_run::DryRunLog, localization::Localization};
 
 pub use backend::PkgBackend;
+pub use desktop_environments::{
+    DesktopEnvironment, DesktopPackages, DesktopSelection, detect_current_protocol,
+    get_pi_recommendations, is_de_installed,
+};
 pub use config::{init_config, show_config, ConfigError, MashConfig};
 pub use context::{
     ConfigOverrides, ConfigService, PhaseContext, PlatformContext, UIContext, UserOptionsContext,
@@ -86,6 +92,7 @@ pub use theme::{
     install_retro_theme, install_theme_file, ThemeConfig,
 };
 pub use wallpaper::{download_wallpapers, WallpaperConfig, WallpaperError};
+pub use pi_overlord::{PiOverlord, PackageCategory, PackageMapping};
 
 /// Central context threaded through every install phase.
 pub struct InstallContext {

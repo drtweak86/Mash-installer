@@ -6,6 +6,8 @@ use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 use ratatui::Frame;
 
 use crate::tui::app::{LogLevel, Screen, TuiApp};
+use crate::tui::confirmation;
+use crate::tui::info_box;
 use crate::tui::menus;
 use crate::tui::theme;
 
@@ -29,17 +31,24 @@ pub fn draw(f: &mut Frame, app: &TuiApp) {
     // Fill background with pure black
     f.render_widget(Block::default().style(theme::default_style()), f.area());
 
+    // Draw info box and get main content area
+    let main_area = info_box::draw_info_box(f, f.area(), app);
+
+    // Render main content in the area above the info box
     match app.screen {
-        Screen::Welcome => menus::draw_welcome(f, f.area(), app),
-        Screen::ArchDetected => menus::draw_arch_detected(f, f.area(), app),
-        Screen::DistroSelect => menus::draw_distro_select(f, f.area(), app),
-        Screen::ProfileSelect => menus::draw_profile_select(f, f.area(), app),
-        Screen::ModuleSelect => menus::draw_module_select(f, f.area(), app),
-        Screen::ThemeSelect => menus::draw_theme_select(f, f.area(), app),
-        Screen::SoftwareMode => menus::draw_software_mode_select(f, f.area(), app),
-        Screen::SoftwareSelect => menus::draw_software_select(f, f.area(), app),
-        Screen::Confirm => menus::draw_pre_install_confirm(f, f.area(), app),
-        Screen::FontPrep => menus::draw_font_prep(f, f.area(), app),
+        Screen::Welcome => menus::draw_welcome(f, main_area, app),
+        Screen::ArchDetected => menus::draw_arch_detected(f, main_area, app),
+        Screen::DistroSelect => menus::draw_distro_select(f, main_area, app),
+        Screen::ProfileSelect => menus::draw_profile_select(f, main_area, app),
+        Screen::ModuleSelect => menus::draw_module_select(f, main_area, app),
+        Screen::ThemeSelect => menus::draw_theme_select(f, main_area, app),
+        Screen::SoftwareMode => menus::draw_software_mode_select(f, main_area, app),
+        Screen::SoftwareSelect => menus::draw_software_select(f, main_area, app),
+        Screen::DeSelect => menus::draw_de_select(f, main_area, app),
+        Screen::ProtocolSelect => menus::draw_protocol_select(f, main_area, app),
+        Screen::DeConfirm => menus::draw_de_confirm(f, main_area, app),
+        Screen::Confirm => menus::draw_pre_install_confirm(f, main_area, app),
+        Screen::FontPrep => menus::draw_font_prep(f, main_area, app),
         Screen::Installing => draw_installing(f, app),
         Screen::Done => draw_summary(f, app, false),
         Screen::Error => draw_summary(f, app, true),
@@ -48,6 +57,11 @@ pub fn draw(f: &mut Frame, app: &TuiApp) {
     }
 
     // ── Overlay Modals (Visible on any screen) ────────────────────────────────
+
+    // Long process confirmation (highest priority overlay)
+    if app.long_process_state.is_some() {
+        confirmation::draw_long_process_confirm(f, f.area(), app);
+    }
 
     if let Some(state) = &app.password_state {
         menus::draw_password_prompt(f, f.area(), app, state);
@@ -62,6 +76,9 @@ pub fn draw(f: &mut Frame, app: &TuiApp) {
 
 pub fn draw_installing(f: &mut Frame, app: &TuiApp) {
     let area = f.area();
+    
+    // Get main area (excluding info box)
+    let (main_area, _info_area) = info_box::get_main_area_with_info_box(area);
 
     // Outer Chrome
     let outer = Block::default()
@@ -73,8 +90,8 @@ pub fn draw_installing(f: &mut Frame, app: &TuiApp) {
             theme::title_style(),
         ))
         .style(theme::default_style());
-    let inner_area = outer.inner(area);
-    f.render_widget(outer, area);
+    let inner_area = outer.inner(main_area);
+    f.render_widget(outer, main_area);
 
     // Split into Horizontal: (Main + BBS) and (Stats + Intel)
     let main_h_chunks = Layout::default()
@@ -272,6 +289,9 @@ fn draw_terminal_buffer(f: &mut Frame, area: Rect, app: &TuiApp) {
 
 pub fn draw_summary(f: &mut Frame, app: &TuiApp, is_error: bool) {
     let area = f.area();
+    
+    // Get main area (excluding info box)
+    let (main_area, _info_area) = info_box::get_main_area_with_info_box(area);
 
     let title = if is_error {
         " ! ABORTED ! "
@@ -290,8 +310,8 @@ pub fn draw_summary(f: &mut Frame, app: &TuiApp, is_error: bool) {
         .border_style(theme::border_style())
         .title(Span::styled(title, title_style))
         .style(theme::default_style());
-    let inner = outer.inner(area);
-    f.render_widget(outer, area);
+    let inner = outer.inner(main_area);
+    f.render_widget(outer, main_area);
 
     let mut lines: Vec<Line> = Vec::new();
 
