@@ -14,6 +14,7 @@ COPY installer-arch/Cargo.toml installer-arch/
 COPY installer-debian/Cargo.toml installer-debian/
 COPY installer-fedora/Cargo.toml installer-fedora/
 COPY wallpaper-downloader/Cargo.toml wallpaper-downloader/
+COPY mcp-server/Cargo.toml mcp-server/
 COPY xtask/Cargo.toml xtask/
 
 # Create placeholder source files so cargo can parse manifests without source trees.
@@ -21,14 +22,16 @@ COPY xtask/Cargo.toml xtask/
 RUN mkdir -p installer-cli/src installer-core/src \
              installer-arch/src installer-debian/src \
              installer-fedora/src wallpaper-downloader/src \
-             xtask/src \
+             mcp-server/src xtask/src \
     && echo 'fn main() {}' > installer-cli/src/main.rs \
     && echo 'fn main() {}' > xtask/src/main.rs \
+    && echo 'fn main() {}' > mcp-server/src/main.rs \
     && touch installer-core/src/lib.rs \
              installer-arch/src/lib.rs \
              installer-debian/src/lib.rs \
              installer-fedora/src/lib.rs \
-             wallpaper-downloader/src/lib.rs
+             wallpaper-downloader/src/lib.rs \
+             mcp-server/src/lib.rs
 
 # Fetch (and implicitly cache) all dependencies
 RUN cargo fetch --target x86_64-unknown-linux-gnu
@@ -40,6 +43,7 @@ COPY installer-arch/src/ installer-arch/src/
 COPY installer-debian/src/ installer-debian/src/
 COPY installer-fedora/src/ installer-fedora/src/
 COPY wallpaper-downloader/src/ wallpaper-downloader/src/
+COPY mcp-server/src/ mcp-server/src/
 COPY resources/ resources/
 
 # Build release binary with network retry
