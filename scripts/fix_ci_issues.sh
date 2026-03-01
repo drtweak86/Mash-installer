@@ -13,10 +13,8 @@ echo "🔧 MASH Installer CI Debugging Script"
 echo "======================================"
 
 # Function to check if we're running in CI
-default_ci=false
 if [ -n "${GITHUB_ACTIONS}" ]; then
     echo "📍 Running in GitHub Actions CI environment"
-    default_ci=true
 else
     echo "📍 Running locally - some fixes may not apply"
 fi
