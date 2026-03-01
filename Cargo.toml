@@ -7,7 +7,7 @@ members = [
   "installer-fedora",
   "installer-debian",
   "wallpaper-downloader",
-  "xtask",
+  "xtask", "mcp-server",
 ]
 
 [profile.release]
