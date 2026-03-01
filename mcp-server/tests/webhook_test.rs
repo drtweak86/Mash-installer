@@ -75,10 +75,15 @@ fn test_webhook_validation() {
     // This would test actual webhook signature validation
     // For now, just verify the server can handle a POST request
 
-    let mut server = Command::new("cargo")
+    // Build the binary first to ensure it's ready
+    Command::new("cargo")
+        .args(["build", "-p", "mcp-server"])
+        .status()
+        .expect("Failed to build mcp-server");
+
+    // Start the server using the compiled binary
+    let mut server = Command::new("../target/debug/mcp-server")
         .args([
-            "run",
-            "--",
             "--bind-address",
             "127.0.0.1:34568",
             "--github-webhook-secret",
@@ -89,7 +94,7 @@ fn test_webhook_validation() {
 
     // Wait for server to be responsive
     let webhook_url = "http://127.0.0.1:34568/webhook";
-    match wait_for_server("http://127.0.0.1:34568/health", 10) {
+    match wait_for_server("http://127.0.0.1:34568/health", 30) {
         Ok(_) => {
             let client = reqwest::blocking::Client::new();
 
