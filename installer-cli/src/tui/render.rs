@@ -42,7 +42,7 @@ pub fn draw(f: &mut Frame, app: &TuiApp) {
         ))
         .style(theme::default_style());
     let chrome_area = f.area();
-    f.render_widget(outer, chrome_area);
+    f.render_widget(&outer, chrome_area);
     let inner_chrome = outer.inner(chrome_area);
 
     // Draw info box and get remaining area
@@ -100,8 +100,8 @@ pub fn draw(f: &mut Frame, app: &TuiApp) {
         Screen::Confirm => menus::draw_pre_install_confirm(f, main_area, app),
         Screen::FontPrep => menus::draw_font_prep(f, main_area, app),
         Screen::Installing | Screen::Password => draw_terminal_buffer(f, main_area, app),
-        Screen::Done => draw_summary(f, main_area, app, false),
-        Screen::Error => draw_summary(f, main_area, app, true),
+        Screen::Done => draw_summary(f, app, false),
+        Screen::Error => draw_summary(f, app, true),
     }
 
     // Panel 2: System Status
@@ -131,6 +131,7 @@ pub fn draw(f: &mut Frame, app: &TuiApp) {
     }
 }
 
+#[allow(dead_code)]
 pub fn draw_installing(_f: &mut Frame, _app: &TuiApp) {
     // Deprecated in favor of universal 4-tile draw
 }
@@ -221,12 +222,10 @@ fn draw_intel_panel(f: &mut Frame, area: Rect, app: &TuiApp) {
         ]),
     ];
 
-    if let Some(ver) = &p.version {
-        info.push(Line::from(vec![
-            Span::styled("> VER:  ", theme::dim_style()),
-            Span::styled(ver.to_uppercase(), theme::success_style()),
-        ]));
-    }
+    info.push(Line::from(vec![
+        Span::styled("> VER:  ", theme::dim_style()),
+        Span::styled(p.distro_version.to_uppercase(), theme::success_style()),
+    ]));
 
     info.push(Line::from(""));
 
