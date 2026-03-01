@@ -109,6 +109,75 @@ Implementation of an intelligent "Advice Engine" that translates the `SystemProf
 
 ---
 
+## 🏗️ SHAFT U: THE GREAT REFACTOR (Hardening & Deduplication) — PLANNING COMPLETE
+> *Branch*: `work-shaft-u-refactor` (to be created)
+> *Risk*: HIGH (codebase-wide changes)
+> *Reward*: CRITICAL (structural integrity, idiomatic code, security)
+> *Status**: ✅ PLANNING COMPLETE | ⏳ IMPLEMENTATION PENDING
+
+### OVERVIEW
+Full codebase purification to ensure structural integrity and professional-grade hardening. This shaft addresses technical debt, eliminates redundancy, and strengthens the security and resilience of the MASH installer.
+
+### PHASE 1: Deduplication
+- **Objective**: Identify and eliminate redundant logic across all crates.
+- **Status**: ⏳ PENDING
+
+### PHASE 2: Structural Refining
+- **Objective**: Refactor for idiomatic Rust patterns (SystemOps, Phase Registry).
+- **Status**: ⏳ PENDING
+
+### PHASE 3: Hardening & Security
+- **Objective**: Strict input validation and side-effect gating for dry runs.
+- **Status**: ⏳ PENDING
+
+---
+
+## 🏗️ SHAFT V: THE INTERACTIVE FORGE (Installation Flow & Authorizations) — PLANNING COMPLETE
+> *Branch*: `work-shaft-v-interactive` (to be created)
+> *Risk**: MEDIUM (complex flow management)
+> *Reward*: HIGH (fully configured environment, user-friendly auth)
+> *Status**: ✅ PLANNING COMPLETE | ⏳ IMPLEMENTATION PENDING
+
+### OVERVIEW
+Perfecting the installation sequence and enabling "Living Installations" through interactive setup. Moves beyond simple binary installation to fully configured environments.
+
+### PHASE 1: Dependency-First Orchestration
+- **Objective**: Topological sorting of installation phases.
+- **Status**: ⏳ PENDING
+
+### PHASE 2: Interactive Authorizations
+- **Objective**: gh auth, ssh-keygen, and git configuration hooks.
+- **Status**: ⏳ PENDING
+
+### PHASE 3: Post-Install Verification
+- **Objective**: Automatic doctor runs to verify functional state.
+- **Status**: ⏳ PENDING
+
+---
+
+## 🏗️ SHAFT W: THE AESTHETIC GUILD (Presets, Themes & Dotfiles) — PLANNING COMPLETE
+> *Branch*: `work-shaft-w-aesthetic` (to be created)
+> *Risk*: MEDIUM (UX complexity)
+> *Reward*: MAXIMUM (beautiful, opinionated "out-of-the-box" experience)
+> *Status**: ✅ PLANNING COMPLETE | ⏳ IMPLEMENTATION PENDING
+
+### OVERVIEW
+Empowers the user with high-quality, opinionated configurations and aesthetic presets. Transitions the installer from providing "bare binaries" to providing "living, beautiful environments."
+
+### PHASE 1: The Preset Engine
+- **Objective**: Intelligent software/theme combinations based on user selection.
+- **Status**: ⏳ PENDING
+
+### PHASE 2: Dotfile & Theme Management
+- **Objective**: Clobber-safe symlink management with automatic backups.
+- **Status**: ⏳ PENDING
+
+### PHASE 3: The Wardrobe (TUI Selector)
+- **Objective**: Interactive TUI screen for fine-tuning themes and icons.
+- **Status**: ⏳ PENDING
+
+---
+
 **Next Review**: 2026-03-05 (Implementation kickoff)
 **Owner**: Bard, Drunken Dwarf Runesmith 🍺⚒️
 **Last Updated**: 2026-03-01
