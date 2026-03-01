@@ -276,7 +276,7 @@ fn install_kitty_config(ctx: &mut PhaseContext) -> Result<()> {
 }
 
 fn install_eza_aliases(ctx: &mut PhaseContext) -> Result<()> {
-    if !ctx.platform.driver.is_package_installed("eza") {
+    if !package_manager::is_installed(ctx.platform.driver, "eza") {
         tracing::info!("Skipping eza aliases because eza is not installed");
         return Ok(());
     }

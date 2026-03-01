@@ -14,7 +14,7 @@ mod menu;
 mod software_catalog;
 mod software_tiers;
 mod tui;
-mod ui_legacy;
+mod ui;
 
 #[derive(Parser)]
 #[command(
@@ -204,7 +204,7 @@ fn main() -> Result<()> {
         modules
     );
 
-    let mut observer = ui_legacy::CliPhaseObserver::new();
+    let mut observer = ui::CliPhaseObserver::new();
     run_installer_with_ui(driver, options, &mut observer).context("installer failed")
 }
 
@@ -356,9 +356,9 @@ fn write_multiline(out: &mut dyn Write, label: &str, text: &str) -> std::io::Res
 fn run_installer_with_ui(
     driver: &'static dyn DistroDriver,
     options: InstallOptions,
-    observer: &mut ui_legacy::CliPhaseObserver,
+    observer: &mut ui::CliPhaseObserver,
 ) -> Result<()> {
-    ui_legacy::print_banner();
+    ui::print_banner();
     let dry_run = options.dry_run;
     let run_result = installer_core::run_with_driver(driver, options, observer);
     observer.finish();

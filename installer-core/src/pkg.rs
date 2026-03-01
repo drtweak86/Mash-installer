@@ -127,7 +127,7 @@ where
 {
     packages
         .into_iter()
-        .filter(|pkg| !driver.is_package_installed(pkg))
+        .filter(|pkg| !package_manager::is_installed(driver, pkg))
         .collect()
 }
 
