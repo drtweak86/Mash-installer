@@ -71,6 +71,7 @@ pub enum Screen {
     ProtocolSelect,
     DeConfirm,
     FontPrep,
+    Wardrobe,
     SystemSummary,
     #[allow(dead_code)]
     Password,
@@ -233,6 +234,9 @@ pub struct TuiApp {
     pub bbs_msg: String,
     // Arch detection timer
     pub arch_timer: Option<Instant>,
+    // Presets
+    pub available_presets: Vec<installer_core::preset::Preset>,
+    pub selected_preset_idx: usize,
     // Confirm prompt (mid-install)
     pub confirm_state: Option<ConfirmState>,
     // Long process confirmation
@@ -291,6 +295,10 @@ impl TuiApp {
             sys_stats: SysStats::default(),
             bbs_msg: "⚡ Initialising the forge...".to_string(),
             arch_timer: None,
+            available_presets: installer_core::preset::PresetRegistry::load_all()
+                .map(|r| r.presets.into_values().collect())
+                .unwrap_or_default(),
+            selected_preset_idx: 0,
             confirm_state: None,
             long_process_state: None,
             password_state: None,
@@ -495,6 +503,7 @@ impl TuiApp {
             Screen::ProtocolSelect => self.handle_list_key(code, 3),
             Screen::DeConfirm => self.handle_confirm_key(code),
             Screen::FontPrep => self.handle_font_prep_key(code),
+            Screen::Wardrobe => self.handle_wardrobe_key(code),
             Screen::SystemSummary => self.handle_system_summary_key(code),
             Screen::Authorization => self.handle_auth_key(code),
             Screen::Installing => self.handle_installing_key(code),
@@ -768,7 +777,7 @@ impl TuiApp {
                 self.screen = Screen::FontPrep;
             }
             KeyCode::Esc | KeyCode::Char('n') | KeyCode::Char('N') => {
-                self.go_back();
+                self.screen = Screen::DeConfirm;
             }
             _ => {}
         }
@@ -779,14 +788,64 @@ impl TuiApp {
             KeyCode::Enter | KeyCode::Char('y') | KeyCode::Char('Y') => {
                 // User wants nerd fonts
                 self.push_log("User requested Nerd Font installation.", LogLevel::Info);
-                self.start_install();
+                self.screen = Screen::Wardrobe;
             }
             KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
                 // User skips nerd fonts
                 self.push_log("Nerd Font installation skipped by user.", LogLevel::Warning);
-                self.start_install();
+                self.screen = Screen::Wardrobe;
             }
             _ => {}
+        }
+    }
+
+    fn handle_wardrobe_key(&mut self, code: KeyCode) {
+        match code {
+            KeyCode::Up | KeyCode::Char('k') => {
+                if self.selected_preset_idx > 0 {
+                    self.selected_preset_idx -= 1;
+                }
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                if self.selected_preset_idx + 1 < self.available_presets.len() {
+                    self.selected_preset_idx += 1;
+                }
+            }
+            KeyCode::Enter => {
+                self.apply_preset();
+                self.start_install();
+            }
+            KeyCode::Esc | KeyCode::Backspace => {
+                self.screen = Screen::FontPrep;
+            }
+            _ => {}
+        }
+    }
+
+    fn apply_preset(&mut self) {
+        if let Some(preset) = self.available_presets.get(self.selected_preset_idx).cloned() {
+            self.push_log(format!("Applying preset: {}", preset.name), LogLevel::Info);
+            
+            // Apply software selections
+            for (category, program_id) in &preset.software_plan.selections {
+                self.software_picks
+                    .insert(category.clone(), program_id.clone());
+            }
+
+            // Update Theme Plan based on theme_id (simple mapping for now)
+            if preset.theme_id == "neon-night" || preset.theme_id == "retro-bbc" {
+                self.theme_plan = ThemePlan::RetroWithWallpapers;
+            }
+
+            // Apply tweaks
+            for tweak in &preset.tweaks {
+                match tweak.as_str() {
+                    "enable_p10k" => self.modules.enable_p10k = true,
+                    "argon_one" => self.modules.enable_argon = true,
+                    "docker_data_root" => self.modules.docker_data_root = true,
+                    _ => {}
+                }
+            }
         }
     }
 

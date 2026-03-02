@@ -11,15 +11,15 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
-
 use anyhow::{Context, Result};
+use serde::{Deserialize, Serialize};
 
 use crate::catalog::{Catalog, Program};
 use crate::{
     cmd, package_manager, AuthType, AuthorizationService, PhaseContext, PhaseResult, Validator,
 };
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
 pub enum ThemePlan {
     #[default]
     None,
@@ -27,12 +27,13 @@ pub enum ThemePlan {
     RetroWithWallpapers,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SoftwareTierPlan {
     pub full_install: bool,
     /// Selections mapping Category ID -> Program ID
     pub selections: BTreeMap<String, String>,
     pub theme_plan: ThemePlan,
+    pub preset_id: Option<String>,
 }
 
 impl Validator for SoftwareTierPlan {
@@ -48,16 +49,18 @@ impl SoftwareTierPlan {
         full_install: bool,
         selections: BTreeMap<String, String>,
         theme_plan: ThemePlan,
+        preset_id: Option<String>,
     ) -> Self {
         Self {
             full_install,
             selections,
             theme_plan,
+            preset_id,
         }
     }
 
     pub fn is_empty(&self) -> bool {
-        self.selections.is_empty() && matches!(self.theme_plan, ThemePlan::None)
+        self.selections.is_empty()
     }
 }
 
@@ -67,6 +70,7 @@ impl Default for SoftwareTierPlan {
             full_install: true,
             selections: BTreeMap::new(),
             theme_plan: ThemePlan::None,
+            preset_id: None,
         }
     }
 }
@@ -258,7 +262,7 @@ fn install_retro_theme_plan(ctx: &mut PhaseContext, with_wallpapers: bool) -> Re
         "Install BBC/UNIX Retro Theme",
         Some(home_dir.display().to_string()),
         |ctx| {
-            crate::theme::install_retro_theme(&home_dir)?;
+            crate::theme::install_retro_theme(&home_dir, ctx.options.dry_run)?;
             ctx.record_action("Installed BBC/UNIX Retro Theme");
             Ok(())
         },

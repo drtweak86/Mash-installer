@@ -2,36 +2,84 @@
 // SPDX-License-Identifier: MIT
 
 use anyhow::{Context, Result};
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use tracing::{info, warn};
 
-/// Theme installation configuration
-pub struct ThemeConfig {
-    pub name: &'static str,
-    pub resource_path: PathBuf,
-    pub target_path: PathBuf,
+/// A Theme defines the visual style of the environment.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Theme {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub colors: BTreeMap<String, String>, // key -> hex
+    pub font_id: Option<String>,
+    pub wallpaper_id: Option<String>,
+    pub configs: Vec<ThemeConfigEntry>,
+}
+
+/// A configuration file associated with a theme.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ThemeConfigEntry {
+    pub name: String,
+    pub resource_path: String, // Relative to resources/themes/<theme_id>/
+    pub target_path: String,   // Relative to user home, e.g., ".config/i3/config"
     pub is_executable: bool,
 }
 
-/// Install a theme file from resources to target location
-pub fn install_theme_file(config: &ThemeConfig) -> Result<()> {
-    info!(
-        "Installing theme file: {} -> {}",
-        config.resource_path.display(),
-        config.target_path.display()
-    );
+use crate::dotfiles::{DeployStrategy, DotfileManager};
 
-    // Create parent directories if they don't exist
-    if let Some(parent) = config.target_path.parent() {
-        fs::create_dir_all(parent).context("Failed to create parent directories")?;
+/// Theme installation configuration (internal)
+pub struct ThemeConfig {
+    pub name: String,
+    pub resource_path: PathBuf,
+    pub target_path: PathBuf, // Relative to base_path (home)
+    pub is_executable: bool,
+    pub strategy: DeployStrategy,
+}
+
+impl Theme {
+    pub fn install(&self, base_path: &Path, dry_run: bool) -> Result<()> {
+        info!("Installing theme: {}...", self.name);
+        let df_mgr = DotfileManager::new(base_path, dry_run);
+
+        let resources_base = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("resources")
+            .join("themes")
+            .join(&self.id);
+
+        for entry in &self.configs {
+            let target_rel = PathBuf::from(&entry.target_path);
+            let resource_path = resources_base.join(&entry.resource_path);
+            
+            df_mgr.deploy(&resource_path, &target_rel, DeployStrategy::Copy)?;
+
+            // Set permissions if executable
+            if entry.is_executable && !dry_run {
+                let target_full = base_path.join(&target_rel);
+                let mut perms = fs::metadata(&target_full)
+                    .context("Failed to get file metadata")?
+                    .permissions();
+                perms.set_mode(0o755);
+                fs::set_permissions(&target_full, perms)
+                    .context("Failed to set executable permissions")?;
+            }
+        }
+
+        info!("✅ Theme '{}' installed successfully!", self.name);
+        Ok(())
     }
+}
 
-    // Copy the file
-    fs::copy(&config.resource_path, &config.target_path).context("Failed to copy theme file")?;
-
-    // Set permissions if executable
+/// Install a theme file from resources to target location (legacy compat)
+pub fn install_theme_file(config: &ThemeConfig) -> Result<()> {
+    let mgr = DotfileManager::new(Path::new("/"), false); // Legacy assume absolute or handled elsewhere
+    mgr.deploy(&config.resource_path, &config.target_path, config.strategy)?;
+    
     if config.is_executable {
         let mut perms = fs::metadata(&config.target_path)
             .context("Failed to get file metadata")?
@@ -40,58 +88,54 @@ pub fn install_theme_file(config: &ThemeConfig) -> Result<()> {
         fs::set_permissions(&config.target_path, perms)
             .context("Failed to set executable permissions")?;
     }
-
-    info!("Successfully installed: {}", config.target_path.display());
     Ok(())
 }
 
+/// Get the legacy retro theme as a data-driven struct
+pub fn get_retro_theme() -> Theme {
+    Theme {
+        id: "retro-bbc".into(),
+        name: "BBC/UNIX Retro".into(),
+        description: "Classic BBC Micro and Early UNIX terminal aesthetics.".into(),
+        colors: [
+            ("background".into(), "#000000".into()),
+            ("foreground".into(), "#ffffff".into()),
+            ("accent".into(), "#ffff00".into()),
+        ].into_iter().collect(),
+        font_id: Some("JetBrainsMono".into()),
+        wallpaper_id: None,
+        configs: vec![
+            ThemeConfigEntry {
+                name: "i3-config".into(),
+                resource_path: "i3-config".into(),
+                target_path: ".config/i3/config".into(),
+                is_executable: false,
+            },
+            ThemeConfigEntry {
+                name: "i3status-config".into(),
+                resource_path: "i3status-retro.conf".into(),
+                target_path: ".config/i3/i3status-retro.conf".into(),
+                is_executable: false,
+            },
+            ThemeConfigEntry {
+                name: "kitty-config".into(),
+                resource_path: "kitty.conf".into(),
+                target_path: ".config/kitty/theme.conf".into(),
+                is_executable: false,
+            },
+            ThemeConfigEntry {
+                name: "conky-config".into(),
+                resource_path: "conkyrc".into(),
+                target_path: ".config/conky/retro-bbc.conkyrc".into(),
+                is_executable: false,
+            },
+        ],
+    }
+}
+
 /// Install the complete retro theme
-pub fn install_retro_theme(base_path: &Path) -> Result<()> {
-    info!("Installing BBC/UNIX Retro Theme...");
-
-    let resources_base = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .join("resources")
-        .join("themes")
-        .join("retro-bbc");
-
-    // Install i3 configuration
-    install_theme_file(&ThemeConfig {
-        name: "i3-config",
-        resource_path: resources_base.join("i3-config"),
-        target_path: base_path.join(".config/i3/config"),
-        is_executable: false,
-    })?;
-
-    // Install i3status configuration
-    install_theme_file(&ThemeConfig {
-        name: "i3status-config",
-        resource_path: resources_base.join("i3status-retro.conf"),
-        target_path: base_path.join(".config/i3/i3status-retro.conf"),
-        is_executable: false,
-    })?;
-
-    // Install Kitty configuration
-    install_theme_file(&ThemeConfig {
-        name: "kitty-config",
-        resource_path: resources_base.join("kitty.conf"),
-        target_path: base_path.join(".config/kitty/theme.conf"),
-        is_executable: false,
-    })?;
-
-    // Install Conky configuration
-    install_theme_file(&ThemeConfig {
-        name: "conky-config",
-        resource_path: resources_base.join("conkyrc"),
-        target_path: base_path.join(".config/conky/retro-bbc.conkyrc"),
-        is_executable: false,
-    })?;
-
-    // Note: wallpaper downloader is now the Rust `wallpaper-downloader` crate;
-    // the legacy wallpaper_downloader_final.py was removed in Shaft K Phase 2.
-
-    info!("✅ BBC/UNIX Retro Theme installed successfully!");
-    Ok(())
+pub fn install_retro_theme(base_path: &Path, dry_run: bool) -> Result<()> {
+    get_retro_theme().install(base_path, dry_run)
 }
 
 /// Check if a command exists in PATH
@@ -161,10 +205,11 @@ mod tests {
         let target_clone = target.clone();
 
         let config = ThemeConfig {
-            name: "test",
+            name: "test".to_string(),
             resource_path: source,
             target_path: target_clone,
             is_executable: false,
+            strategy: DeployStrategy::Copy,
         };
 
         let result = install_theme_file(&config);

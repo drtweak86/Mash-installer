@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use anyhow::Result;
+use installer_core::dotfiles::DeployStrategy;
 use installer_core::theme::{
     command_exists, ensure_i3_installed, ensure_kitty_installed, ensure_retro_theme_dependencies,
     install_retro_theme, install_theme_file, ThemeConfig,
@@ -16,7 +17,7 @@ fn test_full_theme_workflow() -> Result<()> {
     let base_path = temp_dir.path().to_path_buf();
 
     // Test complete theme installation sequence
-    let result = install_retro_theme(&base_path);
+    let result = install_retro_theme(&base_path, false);
     assert!(result.is_ok(), "Theme installation should succeed");
 
     // Verify all files installed to correct locations
@@ -75,10 +76,11 @@ fn test_theme_file_install() -> Result<()> {
     let target = temp_dir.path().join("test-config");
 
     let config = ThemeConfig {
-        name: "test",
+        name: "test".to_string(),
         resource_path: source.clone(),
         target_path: target.clone(),
         is_executable: false,
+        strategy: DeployStrategy::Copy,
     };
 
     let result = install_theme_file(&config);
@@ -88,10 +90,11 @@ fn test_theme_file_install() -> Result<()> {
     // Test executable file installation
     let exec_target = temp_dir.path().join("executable-test");
     let exec_config = ThemeConfig {
-        name: "exec-test",
+        name: "exec-test".to_string(),
         resource_path: source,
         target_path: exec_target.clone(),
         is_executable: true,
+        strategy: DeployStrategy::Copy,
     };
 
     let result = install_theme_file(&exec_config);
@@ -123,10 +126,11 @@ fn test_parent_directory_creation() -> Result<()> {
     let source = PathBuf::from("Cargo.toml");
 
     let config = ThemeConfig {
-        name: "deep-test",
+        name: "deep-test".to_string(),
         resource_path: source,
         target_path: deep_path.clone(),
         is_executable: false,
+        strategy: DeployStrategy::Copy,
     };
 
     let result = install_theme_file(&config);

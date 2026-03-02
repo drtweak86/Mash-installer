@@ -15,7 +15,7 @@ pub fn install_phase(ctx: &mut PhaseContext) -> Result<PhaseResult> {
     let selections = &ctx.options.software_plan.selections;
 
     // Check if any AI agents are selected in the "AI Spirits" category
-    let mut selected_agents = Vec::new();
+    let mut selected_agents: Vec<&str> = Vec::new();
     if let Some(pick) = selections.get("AI Spirits") {
         selected_agents.push(pick.as_str());
     } else {

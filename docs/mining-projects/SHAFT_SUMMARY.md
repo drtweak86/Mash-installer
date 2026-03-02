@@ -9,16 +9,27 @@
 
 #### 🎯 Objective
 Perfecting the installation sequence and enabling "Living Installations" through interactive setup. Moves beyond simple binary installation to fully configured environments.
-
 #### 📦 Deliverables
 1. **Dependency-First Orchestration**: Topological sorting and prerequisite gates.
 2. **Interactive Authorization Service**: Support for gh, ssh, git, rclone, borg, tailscale, ngrok, cloudflared, docker, argon-one.
 3. **The Doctor Reforged**: Secret scrubbing, cleanup, and detailed action tracking.
 
+### Shaft W: The Aesthetic Guild (Presets, Themes & Dotfiles)
+**Status**: ✅ COMPLETE
+**Completed**: 2026-03-02
+**Owner**: Bard
+
+#### 🎯 Objective
+Empower the user with high-quality, opinionated configurations and aesthetic presets. Transition the installer from providing "bare binaries" to providing "living, beautiful environments."
+
+#### 📦 Deliverables
+1. **The Preset Engine**: Intelligent combination of software, themes, and settings.
+2. **Dotfile Manager**: Conflict-aware config file management (backup & restore).
+3. **The Wardrobe**: Interactive TUI for theme selection.
+
 ---
 
 ## 🏗️ ACTIVE SHAFTS
-
 ### Shaft H: Installer Experience Overhaul ✅ PLANNING COMPLETE
 **Status**: ✅ PLANNING COMPLETE | ⏳ IMPLEMENTATION PENDING
 **Branch**: `work-shaft-h-experience` (to be created)

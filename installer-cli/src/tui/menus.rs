@@ -1079,6 +1079,89 @@ pub fn draw_auth_prompt(
     f.render_widget(selector, chunks[2]);
 }
 
+// ── Wardrobe (Preset Selection) Screen ─────────────────────────────────────
+
+pub fn draw_wardrobe(f: &mut Frame, area: Rect, app: &TuiApp) {
+    let popup = centered_rect(80, 70, area);
+    let block = station_block("THE WARDROBE: CHOOSE A PRESET");
+    let inner = block.inner(popup);
+    f.render_widget(block, popup);
+
+    let chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(40), Constraint::Percentage(60)])
+        .split(inner);
+
+    // List of presets
+    let preset_names: Vec<ListItem> = app
+        .available_presets
+        .iter()
+        .enumerate()
+        .map(|(i, p)| {
+            let style = if i == app.selected_preset_idx {
+                theme::accent_style().add_modifier(Modifier::REVERSED)
+            } else {
+                theme::default_style()
+            };
+            ListItem::new(format!("  {}  ", p.name.to_uppercase())).style(style)
+        })
+        .collect();
+
+    let list = List::new(preset_names)
+        .block(Block::default().borders(Borders::RIGHT).border_style(theme::dim_style()))
+        .style(theme::default_style());
+    f.render_widget(list, chunks[0]);
+
+    // Preset details
+    if let Some(preset) = app.available_presets.get(app.selected_preset_idx) {
+        let mut detail_lines = vec![
+            Line::from(Span::styled(preset.name.to_uppercase(), theme::title_style())),
+            Line::from(""),
+            Line::from(preset.description.to_uppercase()),
+            Line::from(""),
+            Line::from(Span::styled("COMPONENTS:", theme::accent_style())),
+        ];
+
+        for (cat, prog) in &preset.software_plan.selections {
+            detail_lines.push(Line::from(format!("  + {:<12} : {}", cat.to_uppercase(), prog)));
+        }
+
+        detail_lines.push(Line::from(""));
+        detail_lines.push(Line::from(Span::styled("TWEAKS:", theme::accent_style())));
+        for tweak in &preset.tweaks {
+            detail_lines.push(Line::from(format!("  > {}", tweak.replace('_', " ").to_uppercase())));
+        }
+
+        detail_lines.push(Line::from(""));
+        detail_lines.push(Line::from(Span::styled("THEME ID:", theme::accent_style())));
+        detail_lines.push(Line::from(format!("  @ {}", preset.theme_id.to_uppercase())));
+
+        let details = Paragraph::new(detail_lines)
+            .style(theme::default_style())
+            .wrap(Wrap { trim: true })
+            .block(Block::default().padding(ratatui::widgets::Padding::horizontal(2)));
+        f.render_widget(details, chunks[1]);
+    }
+
+    // Controls at bottom of popup
+    let controls = Paragraph::new(Line::from(vec![
+        Span::styled("UP/DOWN", theme::accent_style()),
+        Span::raw(" NAVIGATE    "),
+        Span::styled("ENTER", theme::accent_style()),
+        Span::raw(" SELECT & BEGIN    "),
+        Span::styled("ESC", theme::accent_style()),
+        Span::raw(" BACK"),
+    ]))
+    .alignment(Alignment::Center);
+    
+    // Split the vertical space to put controls at the very bottom
+    let footer_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(0), Constraint::Length(1)])
+        .split(inner);
+    f.render_widget(controls, footer_chunks[1]);
+}
+
 // ── Desktop Environment Select ─────────────────────────────────────────────
 
 pub fn draw_de_select(f: &mut Frame, area: Rect, app: &TuiApp) {

@@ -1,64 +1,45 @@
 # Shaft W: THE AESTHETIC GUILD (Presets, Themes & Dotfiles)
 
 **Shaft Title**: THE AESTHETIC GUILD (Presets, Themes & Dotfiles)
-**Status**: ⏳ PLANNING COMPLETE | 🌑 IMPLEMENTATION PENDING
+**Status**: 🔨 ACTIVE
 **Owner**: Bard, Drunken Dwarf Runesmith 🍺⚒️
-**Last Updated**: 2026-03-01
 
-## 🎯 SCOPE
+## 🎯 Objective
+Empower the user with high-quality, opinionated configurations and aesthetic presets. Transition the installer from providing "bare binaries" to providing "living, beautiful environments." We will build a system that safely manages dotfiles, themes, and "Presets" (curated combinations of software and aesthetics).
 
-This shaft empowers the user with high-quality, opinionated configurations and aesthetic presets. It transitions the installer from providing "bare binaries" to providing "living, beautiful environments."
+## 📦 Core Deliverables
 
-1. **The Preset Engine**: Offer intelligent software/theme combinations based on user selection.
-2. **Dotfile & Theme Repositories**: Integrated, curated configurations for ZSH, Starship, Kitty, and more.
-3. **Interactive Configuration Selector**: A TUI "Wardrobe" screen for fine-tuning themes and icons.
-4. **Robust Dotfile Management**: Clobber-safe symlink management with automatic backups.
+### 1. The Preset Engine
+- **Concept**: A "Preset" is a named configuration that selects specific software tiers, themes, and shell settings.
+- **Examples**: "Cyberpunk Neon", "Minimalist Zen", "Retro Terminal".
+- **Implementation**: A new `Preset` struct and logic to apply it to the `UserOptionsContext`.
 
-## 📁 FILES TO BE CREATED OR TOUCHED
+### 2. Dotfile & Theme Management (The "Stow" Protocol)
+- **Problem**: We currently copy files. We need a robust way to manage symlinks or copies that handles conflicts (clobbering) safely.
+- **Solution**: A "Stow-like" functionality within `installer-core` that:
+    - Backs up existing config files (with timestamps).
+    - Symlinks or copies new configs from the `resources/` directory.
+    - specialized `dotfile_manager` module.
 
-### New Files
-- `installer-core/src/presets.rs` - Preset logic and database
-- `installer-core/src/dotfiles.rs` - Symlink and backup management
-- `installer-cli/src/tui/wardrobe.rs` - The Aesthetic Selection screen
-- `resources/themes/modern_neon.toml` - New neon theme preset
-- `resources/themes/retro_dwarf.toml` - New dwarven retro theme preset
+### 3. The Wardrobe (TUI Selector)
+- **Concept**: An interactive screen to browse and select themes/presets.
+- **UI**: A TUI list/grid showing available presets with descriptions.
+- **Preview**: (Optional/Future) ASCII art preview of the theme.
 
-### Modified Files
-- `installer-core/src/config.rs` - Support for theme/preset configuration
-- `installer-cli/src/tui/menus.rs` - Add Aesthetic Selection stage to flow
-- `installer-cli/src/tui/app.rs` - Integrate preview/wardrobe logic
-- `installer-core/src/lib.rs` - Export new aesthetic modules
+## ⚠️ Risks & Challenges
+- **Dotfile Conflicts**: Overwriting user configs is the cardinal sin. We MUST have 100% reliable backup logic.
+- **Platform Paths**: Config paths vary between distros (though `XDG_CONFIG_HOME` helps).
+- **Complexity**: Presets touch almost every other system (software selection, fonts, shell).
 
-## ⚒️ METHODOLOGY
+## 🗓️ Phased Approach
 
-### Technical Strategy
-1. **Preset Matching**: Analyze `SoftwarePlan` to suggest relevant aesthetic presets (e.g., if Kitty and ZSH are selected, suggest "Neon Terminal").
-2. **Backup Before Write**: Every dotfile write must first backup existing files to `~/.mash-backups/`.
-3. **Template Substitution**: Use `handlebars` or similar to inject system-specific values (e.g., font names) into dotfile templates.
-4. **Theme Preview**: Provide descriptive summaries and mock-ups in the TUI to guide the user's choice.
+### Phase 1: The Preset Engine
+Define the data structures for `Preset` and `Theme`. Create the logic to load them from TOML/JSON resources.
 
-## 📦 DELIVERABLES
+### Phase 2: Dotfile Manager
+Build the `dotfile` module with `backup`, `link`, and `restore` capabilities. Unit test heavily for collision handling.
 
-### Phase 1: The Preset Engine ✅ PLANNED
-- [ ] Implement `PresetDetector` that suggests combos based on `SoftwarePlan`.
-- [ ] Implement `presets.toml` database.
-- [ ] Add "Preset Selection" modal to the installer flow.
+### Phase 3: The Wardrobe UI
+Create the TUI screen `Screen::Wardrobe` to let the user pick their style.
 
-### Phase 2: Dotfile & Theme Management ✅ PLANNED
-- [ ] Implement `DotfileManager` with backup and symlink logic.
-- [ ] Add `Oh My Zsh`, `Powerlevel10k`, and `Pure` theme options.
-- [ ] Add `Kitty` color schemes and `Starship` prompt variations.
-- [ ] Implement `colorls` and `lsd` configuration support.
-
-### Phase 3: The Wardrobe (TUI Selector) ✅ PLANNED
-- [ ] Create the "Wardrobe" screen for interactive theme selection.
-- [ ] Implement "Preview Mode" for font and color combinations.
-- [ ] Add "Applied Theme" visual confirmation.
-
-## 🔧 VERIFICATION CHECKLIST
-- [ ] Correct presets are suggested based on software selection.
-- [ ] Existing dotfiles are backed up correctly before being replaced.
-- [ ] Symlinks are created and point to the correct internal resources.
-- [ ] TUI previews accurately reflect the configurations being applied.
-
-"*A dwarf's home is his forge, but his terminal is his pride. Time to make it shine.*" — Bard 🍺⚒️
+"*A sharp blade is good, but a beautiful blade inspires the soul.*" — Bard 🍺
