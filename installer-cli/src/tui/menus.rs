@@ -6,7 +6,6 @@ use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph, Wrap};
 use ratatui::Frame;
 
-use crate::software_catalog::SOFTWARE_CATEGORIES;
 use crate::tui::app::{ModuleState, TuiApp, MODULE_LABELS};
 use crate::tui::theme;
 
@@ -456,7 +455,11 @@ pub fn draw_software_mode_select(f: &mut Frame, area: Rect, app: &TuiApp) {
 
     f.render_widget(Paragraph::new("SELECT INSTALLATION METHOD:"), chunks[0]);
 
-    let options = ["AUTOMATIC S-TIER ALLOCATION", "MANUAL CATEGORY SELECTION"];
+    let options = [
+        "BARD'S RECOMMENDATIONS (S-TIER ONLY)",
+        "AUTOMATIC BASELINE (QUICK SYNC)",
+        "MANUAL CATEGORY AUDIT (FINE TUNING)",
+    ];
     let items: Vec<ListItem> = options
         .iter()
         .enumerate()
@@ -480,7 +483,7 @@ pub fn draw_software_mode_select(f: &mut Frame, area: Rect, app: &TuiApp) {
 // ── Software tier select (per category) ──────────────────────────────────────
 
 pub fn draw_software_select(f: &mut Frame, area: Rect, app: &TuiApp) {
-    let popup = centered_rect(80, 70, area);
+    let popup = centered_rect(90, 80, area);
     let block = station_block("REPOSITORY AUDIT");
     let inner = block.inner(popup);
     f.render_widget(block, popup);
@@ -490,40 +493,93 @@ pub fn draw_software_select(f: &mut Frame, area: Rect, app: &TuiApp) {
         .constraints([
             Constraint::Length(2),
             Constraint::Min(0),
-            Constraint::Length(2),
+            Constraint::Length(4), // Info footer
+            Constraint::Length(2), // Prompt
         ])
         .split(inner);
 
-    let category = SOFTWARE_CATEGORIES
-        .get(app.software_category_idx)
-        .map(|cat| cat.label)
+    let category_data = app.catalog.categories.get(app.software_category_idx);
+    let category_name = category_data
+        .map(|cat| cat.display_name.as_str())
         .unwrap_or("UNKNOWN");
 
     f.render_widget(
         Paragraph::new(format!(
             "CAT: {} ({}/{})",
-            category.to_uppercase(),
+            category_name.to_uppercase(),
             app.software_category_idx + 1,
-            SOFTWARE_CATEGORIES.len()
-        )),
+            app.catalog.categories.len()
+        ))
+        .style(theme::title_style()),
         chunks[0],
     );
 
-    let options = SOFTWARE_CATEGORIES
-        .get(app.software_category_idx)
-        .map(|cat| cat.options)
-        .unwrap_or(&[]);
+    let mut items: Vec<ListItem> = Vec::new();
+    let mut selectable_programs: Vec<&installer_core::catalog::Program> = Vec::new();
 
-    let items: Vec<ListItem> = options
-        .iter()
-        .enumerate()
-        .map(|(i, opt)| {
-            let label = format!("{} [{}]", opt.name.to_uppercase(), opt.tier);
-            command_prompt_line(label, i + 1, i == app.menu_cursor)
-        })
-        .collect();
+    if let Some(cat) = category_data {
+        for subcat in &cat.subcategories {
+            items.push(ListItem::new(Line::from(vec![Span::styled(
+                format!("━━ {} ━━", subcat.name.to_uppercase()),
+                theme::accent_style(),
+            )])));
+
+            for prog in &subcat.programs {
+                let global_idx = selectable_programs.len();
+                let is_selected = global_idx == app.menu_cursor;
+                let style = if is_selected {
+                    theme::selected_style()
+                } else {
+                    theme::default_style()
+                };
+
+                let rec_marker = if prog.recommended { " [REC]" } else { "" };
+                items.push(ListItem::new(Line::from(vec![
+                    Span::styled(
+                        format!("  [{}] ", if is_selected { ">" } else { " " }),
+                        style,
+                    ),
+                    Span::styled(
+                        format!(
+                            "{:<20} [{}] {}",
+                            prog.name.to_uppercase(),
+                            prog.tier,
+                            rec_marker
+                        ),
+                        style,
+                    ),
+                ])));
+                selectable_programs.push(prog);
+            }
+        }
+    }
+
     let list = List::new(items).style(theme::default_style());
     f.render_widget(list, chunks[1]);
+
+    // Info Panel
+    if let Some(prog) = selectable_programs.get(app.menu_cursor) {
+        let mut info_lines = vec![Line::from(vec![
+            Span::styled("DESC: ", theme::dim_style()),
+            Span::styled(&prog.description, theme::default_style()),
+        ])];
+
+        if let Some(reasoning) = &prog.reasoning {
+            info_lines.push(Line::from(vec![
+                Span::styled("NOTE: ", theme::dim_style()),
+                Span::styled(reasoning, theme::default_style()),
+            ]));
+        }
+
+        let info_para = Paragraph::new(info_lines)
+            .block(
+                Block::default()
+                    .borders(Borders::TOP)
+                    .border_style(theme::muted_style()),
+            )
+            .wrap(Wrap { trim: true });
+        f.render_widget(info_para, chunks[2]);
+    }
 
     let prompt = Paragraph::new(vec![Line::from(vec![
         Span::styled("COMMAND > ", theme::success_style()),
@@ -533,7 +589,7 @@ pub fn draw_software_select(f: &mut Frame, area: Rect, app: &TuiApp) {
             theme::success_style().add_modifier(Modifier::SLOW_BLINK),
         ),
     ])]);
-    f.render_widget(prompt, chunks[2]);
+    f.render_widget(prompt, chunks[3]);
 }
 
 // ── Pre-install confirm ───────────────────────────────────────────────────────
@@ -560,7 +616,48 @@ pub fn draw_pre_install_confirm(f: &mut Frame, area: Rect, app: &TuiApp) {
     lines.push(Line::from(vec![
         Span::styled("  PROFILE:  ", theme::dim_style()),
         Span::styled(
-            format!("{:?}", app.profile_idx).to_uppercase(),
+            format!("{:?}", app.profile_level()).to_uppercase(),
+            theme::success_style(),
+        ),
+    ]));
+    lines.push(Line::from(vec![
+        Span::styled("  SOFTWARE: ", theme::dim_style()),
+        Span::styled(
+            app.software_plan_label().to_uppercase(),
+            theme::success_style(),
+        ),
+    ]));
+
+    // If manual mode, show a few picks
+    if app.software_mode == crate::tui::app::SoftwareMode::Manual && !app.software_picks.is_empty()
+    {
+        lines.push(Line::from(vec![
+            Span::styled("    SELECTED: ", theme::dim_style()),
+            Span::styled(
+                format!("{} CATEGORIES AUDITED", app.software_picks.len()),
+                theme::default_style(),
+            ),
+        ]));
+
+        for (count, (cat, pick)) in app.software_picks.iter().enumerate() {
+            if count >= 3 {
+                lines.push(Line::from(vec![Span::styled(
+                    "    ...",
+                    theme::dim_style(),
+                )]));
+                break;
+            }
+            lines.push(Line::from(vec![
+                Span::styled(format!("    • {:<15} : ", cat), theme::dim_style()),
+                Span::styled(pick, theme::success_style()),
+            ]));
+        }
+    }
+
+    lines.push(Line::from(vec![
+        Span::styled("  THEME:    ", theme::dim_style()),
+        Span::styled(
+            app.theme_plan_label().to_uppercase(),
             theme::success_style(),
         ),
     ]));

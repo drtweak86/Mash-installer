@@ -17,12 +17,12 @@ pub fn install_phase(ctx: &mut PhaseContext) -> Result<PhaseResult> {
     // Check if any AI agents are selected in the "AI Spirits" category
     let mut selected_agents = Vec::new();
     if let Some(pick) = selections.get("AI Spirits") {
-        selected_agents.push(*pick);
+        selected_agents.push(pick.as_str());
     } else {
         // Check all selections just in case
         for (cat, pick) in selections {
-            if cat == &"AI Spirits" || *pick == "Claude" || *pick == "Gemini" || *pick == "Vibe" {
-                selected_agents.push(*pick);
+            if cat == "AI Spirits" || pick == "Claude" || pick == "Gemini" || pick == "Vibe" {
+                selected_agents.push(pick.as_str());
             }
         }
     }

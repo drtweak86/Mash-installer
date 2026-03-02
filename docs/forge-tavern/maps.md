@@ -4,10 +4,10 @@
 ---
 
 ## 🏗️ SHAFT I: Software Catalog & Installation Flow Overhaul — ACTIVE
-> *Branch*: `work-shaft-i-catalog` (to be created)
+> *Branch*: `main` (integrated)
 > *Risk*: MEDIUM (catalog restructuring, UI changes)
 > *Reward*: HIGH (significantly improved user experience, logical organization)
-> *Status*: 🔨 IMPLEMENTATION IN PROGRESS (Phase 1 Complete)
+> *Status*: 🔨 IMPLEMENTATION IN PROGRESS (Phase 4 Complete)
 
 ### OVERVIEW
 Complete reorganization of MASH software catalog and installation flow to create a more logical, user-friendly, and efficient system with curated S-tier applications, multiple installation modes, and optimized dependency handling.
@@ -20,29 +20,31 @@ Complete reorganization of MASH software catalog and installation flow to create
 - [x] Create TOML Catalog Structure (`s-tier_catalog.toml`, `full_catalog.toml`, `programming_languages.toml`)
 **Status**: ✅ COMPLETE 2026-03-01
 
-### PHASE 2: Installation Modes
+### PHASE 2: Installation Modes ✅ COMPLETE
 **Objective**: Implement Manual, Auto, and Bard's Recommendations modes
-- [ ] Manual Mode: Individual program selection with search/filter
-- [ ] Auto Mode: One-click category installation
-- [ ] Bard's Recommendations: Opinionated S-tier selection
-**Status**: ⏳ PENDING
+- [x] Manual Mode: Individual program selection from TOML catalog
+- [x] Auto Mode: Quick baseline sync from category defaults
+- [x] Bard's Recommendations: Opinionated S-tier selection
+**Status**: ✅ COMPLETE 2026-03-01
 
-### PHASE 3: Menu Restructuring
+### PHASE 3: Menu Restructuring ✅ COMPLETE
 **Objective**: Organize software into logical categories
-- [ ] Category/Subcategory Hierarchy implementation
-- [ ] UI Implementation in `installer-cli`
-**Status**: ⏳ PENDING
+- [x] Category/Subcategory Hierarchy implementation in TUI
+- [x] Dynamic Catalog loading engine in `installer-core`
+- [x] Enhanced program info panels (Tier, Reasoning, Description)
+**Status**: ✅ COMPLETE 2026-03-01
 
-### PHASE 4: Installation Flow Optimization
+### PHASE 4: Installation Flow Optimization ✅ COMPLETE
 **Objective**: Ensure proper installation order
-- [ ] Dependency Resolution (ccache/sccache before heavy builds)
-- [ ] Parallel Installation implementation
-**Status**: ⏳ PENDING
+- [x] Optimized sequence (Snapshots -> Core Tools -> Software Tiers)
+- [x] Dev Profile optimization (sccache integration, compiler tuning)
+- [x] Dependency Resolution (early nodejs/rustup for subsequent tools)
+**Status**: ✅ COMPLETE 2026-03-01
 
 ### PHASE 5: UI Integration
 **Objective**: Connect catalog to installer UI
-- [ ] Software Selection Screens
-- [ ] Visual Progress Tracking
+- [ ] Visual Progress Tracking for complex multi-phase installs
+- [ ] Post-selection summary audit
 **Status**: ⏳ PENDING
 
 ---
@@ -105,29 +107,6 @@ Implementation of an intelligent "Advice Engine" that translates the `SystemProf
 ### PHASE 4: Software Stability & Version Wisdom
 - **File**: `docs/mining-projects/shaft-t/EX_T04_Software_Stability_Wisdom.md`
 - **Objective**: Rules for ARM64 Node, Firmware hints, and Session stability.
-- **Status**: ⏳ PENDING
-
----
-
-## 🏗️ SHAFT U: THE GREAT REFACTOR (Hardening & Deduplication) — PLANNING COMPLETE
-> *Branch*: `work-shaft-u-refactor` (to be created)
-> *Risk*: HIGH (codebase-wide changes)
-> *Reward*: CRITICAL (structural integrity, idiomatic code, security)
-> *Status**: ✅ PLANNING COMPLETE | ⏳ IMPLEMENTATION PENDING
-
-### OVERVIEW
-Full codebase purification to ensure structural integrity and professional-grade hardening. This shaft addresses technical debt, eliminates redundancy, and strengthens the security and resilience of the MASH installer.
-
-### PHASE 1: Deduplication
-- **Objective**: Identify and eliminate redundant logic across all crates.
-- **Status**: ⏳ PENDING
-
-### PHASE 2: Structural Refining
-- **Objective**: Refactor for idiomatic Rust patterns (SystemOps, Phase Registry).
-- **Status**: ⏳ PENDING
-
-### PHASE 3: Hardening & Security
-- **Objective**: Strict input validation and side-effect gating for dry runs.
 - **Status**: ⏳ PENDING
 
 ---

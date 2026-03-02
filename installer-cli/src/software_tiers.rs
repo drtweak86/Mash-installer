@@ -7,9 +7,10 @@
 //! `installer-core/src/software_tiers.rs`. Nothing in this module installs packages.
 
 use super::menu::run_theme_menu;
-use crate::software_catalog::{SoftwareOption, SOFTWARE_CATEGORIES};
+use crate::software_catalog;
 use anyhow::Result;
-use installer_core::{interaction::InteractionService, SoftwareTierPlan};
+use installer_core::interaction::InteractionService;
+use installer_core::{SoftwareTierPlan, ThemePlan};
 use std::collections::BTreeMap;
 use std::io::{self, Write};
 
@@ -17,8 +18,9 @@ pub fn run_software_tier_menu(interaction: &InteractionService) -> Result<Softwa
     println!("\nStep 3/4: Curated software tiers");
     println!("Choose how Mash-Installer picks S/A-tier software:");
     let options = [
-        "Full S-tier install (recommended bundle)",
-        "Choose per category",
+        "BARD'S RECOMMENDATIONS (S-TIER ONLY)",
+        "AUTOMATIC BASELINE (QUICK SYNC)",
+        "MANUAL CATEGORY AUDIT (FINE TUNING)",
     ];
     let choice = interaction.select_option(
         "software.tiers.mode",
@@ -34,31 +36,61 @@ pub fn run_software_tier_menu(interaction: &InteractionService) -> Result<Softwa
         },
     )?;
 
-    if choice == 1 {
-        // For full S-tier install, we still need to ask about theme
-        println!("\nStep 3/6: Theme Selection");
-        let theme_plan = run_theme_menu(interaction)?;
-        let mut picks = BTreeMap::new();
-        for category in SOFTWARE_CATEGORIES {
-            if let Some(recommended) = category.options.first() {
-                picks.insert(category.label, recommended.name);
+    match choice {
+        1 => {
+            let catalog = software_catalog::load_s_tier();
+            let theme_plan = ThemePlan::RetroWithWallpapers;
+            let mut picks = BTreeMap::new();
+            for category in &catalog.categories {
+                for subcategory in &category.subcategories {
+                    if let Some(recommended) = subcategory.programs.iter().find(|p| p.recommended) {
+                        picks.insert(category.display_name.clone(), recommended.id.clone());
+                    } else if let Some(first) = subcategory.programs.first() {
+                        picks.insert(category.display_name.clone(), first.id.clone());
+                    }
+                }
             }
+            Ok(SoftwareTierPlan::new(true, picks, theme_plan))
         }
-        Ok(SoftwareTierPlan::new(true, picks, theme_plan))
-    } else {
-        run_custom_selection(interaction)
+        2 => {
+            let catalog = software_catalog::load_s_tier();
+            let theme_plan = ThemePlan::RetroOnly;
+            let mut picks = BTreeMap::new();
+            for category in &catalog.categories {
+                for subcategory in &category.subcategories {
+                    if let Some(first) = subcategory.programs.first() {
+                        picks.insert(category.display_name.clone(), first.id.clone());
+                    }
+                }
+            }
+            Ok(SoftwareTierPlan::new(true, picks, theme_plan))
+        }
+        3 => run_custom_selection(interaction),
+        _ => unreachable!(),
     }
 }
 
 fn run_custom_selection(interaction: &InteractionService) -> Result<SoftwareTierPlan> {
+    let catalog = software_catalog::load_full();
     let mut picks = BTreeMap::new();
-    for category in SOFTWARE_CATEGORIES {
-        println!("\nCategory: {}", category.label);
-        let option_lines: Vec<String> = category.options.iter().map(format_option).collect();
+
+    for category in &catalog.categories {
+        println!("\nCategory: {}", category.display_name);
+        let all_programs: Vec<_> = category
+            .subcategories
+            .iter()
+            .flat_map(|sc| &sc.programs)
+            .collect();
+
+        let option_lines: Vec<String> = all_programs
+            .iter()
+            .map(|p| format!("{} [{}] – {}", p.name, p.tier, p.description))
+            .collect();
         let option_refs: Vec<&str> = option_lines.iter().map(String::as_str).collect();
-        let prompt = format!("Pick a tool for {}", category.label);
+
+        let prompt = format!("Pick a tool for {}", category.display_name);
         let selection = interaction.select_option(
-            &format!("software.tier.{}", category.label),
+            &format!("software.tier.{}", category.name),
             &prompt,
             &option_refs,
             1,
@@ -69,8 +101,8 @@ fn run_custom_selection(interaction: &InteractionService) -> Result<SoftwareTier
                 Ok(prompt_choice(prompt, 1, options.len()))
             },
         )?;
-        let chosen = &category.options[selection - 1];
-        picks.insert(category.label, chosen.name);
+        let chosen = all_programs[selection - 1];
+        picks.insert(category.display_name.clone(), chosen.id.clone());
     }
 
     // Add theme selection
@@ -78,15 +110,6 @@ fn run_custom_selection(interaction: &InteractionService) -> Result<SoftwareTier
     let theme_plan = run_theme_menu(interaction)?;
 
     Ok(SoftwareTierPlan::new(false, picks, theme_plan))
-}
-
-fn format_option(option: &SoftwareOption) -> String {
-    format!(
-        "{} ({}) – {}",
-        option.name,
-        option.tier.label(),
-        option.description
-    )
 }
 
 fn prompt_choice(prompt: &str, default: usize, max_choice: usize) -> usize {

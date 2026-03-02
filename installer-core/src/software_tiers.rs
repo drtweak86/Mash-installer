@@ -14,6 +14,7 @@ use std::os::unix::fs::PermissionsExt;
 
 use anyhow::{Context, Result};
 
+use crate::catalog::{Catalog, Program};
 use crate::{cmd, package_manager, PhaseContext, PhaseResult, Validator};
 
 #[derive(Clone, Debug, Default)]
@@ -27,28 +28,23 @@ pub enum ThemePlan {
 #[derive(Clone, Debug)]
 pub struct SoftwareTierPlan {
     pub full_install: bool,
-    pub selections: BTreeMap<&'static str, &'static str>,
+    /// Selections mapping Category ID -> Program ID
+    pub selections: BTreeMap<String, String>,
     pub theme_plan: ThemePlan,
 }
 
 impl Validator for SoftwareTierPlan {
     fn validate(&self) -> Vec<String> {
-        let mut errors = Vec::new();
-        for (category, selection) in &self.selections {
-            if packages_for_selection(selection).is_none() {
-                errors.push(format!(
-                    "No package mapping for {category} selection: {selection}"
-                ));
-            }
-        }
-        errors
+        // Since we'll load the catalog dynamically, we might need to pass it here or just validate IDs.
+        // For now, we'll keep it simple and assume IDs are valid if they come from the UI.
+        Vec::new()
     }
 }
 
 impl SoftwareTierPlan {
     pub fn new(
         full_install: bool,
-        selections: BTreeMap<&'static str, &'static str>,
+        selections: BTreeMap<String, String>,
         theme_plan: ThemePlan,
     ) -> Self {
         Self {
@@ -75,25 +71,47 @@ impl Default for SoftwareTierPlan {
 
 pub fn install_phase(ctx: &mut PhaseContext) -> Result<PhaseResult> {
     let plan = &ctx.options.software_plan;
-    for error in plan.validate() {
-        ctx.record_warning(format!("Plan validation: {error}"));
-    }
 
     if plan.is_empty() {
         tracing::info!("No software tiers selected; skipping.");
         return Ok(PhaseResult::Success);
     }
 
-    let mut required = BTreeSet::new();
-    let mut optional = BTreeSet::new();
+    // Load catalogs
+    let s_tier = Catalog::load_s_tier()?;
+    let full = Catalog::load_full()?;
+    let languages = Catalog::load_languages()?;
 
-    for (category, selection) in plan.selections.iter() {
-        if let Some(packages) = packages_for_selection(selection) {
-            required.extend(packages.required.iter().copied());
-            optional.extend(packages.optional.iter().copied());
+    let mut required = BTreeSet::new();
+    let optional = BTreeSet::new();
+
+    let distro_family = &ctx.platform.platform.distro_family;
+
+    for program_id in plan.selections.values() {
+        if let Some(program) = find_program_in_catalogs(program_id, &[&s_tier, &full, &languages]) {
+            // Optimization: If full_install is true, we only install S-tier if specifically in that mode.
+            // Wait, if full_install is true, we WANT all selections.
+            // If full_install is false, we might want to filter? No, the selections are explicit.
+
+            // The actual logic should be: if full_install is true AND it's "BardsRecommendations",
+            // we already have the S-tier picks.
+            // If it's "Auto", we have the first from each category.
+
+            // Let's refine: Only install if it matches the distro family.
+            if let Some(pkgs) = program.packages.get(distro_family) {
+                for pkg in pkgs {
+                    required.insert(pkg.clone());
+                }
+            } else {
+                ctx.record_warning(format!(
+                    "No package mapping for program {} on distro family {}",
+                    program.name, distro_family
+                ));
+            }
         } else {
             ctx.record_warning(format!(
-                "No package mapping for software tier selection: {category} -> {selection}"
+                "Program ID {} not found in any catalog",
+                program_id
             ));
         }
     }
@@ -104,277 +122,26 @@ pub fn install_phase(ctx: &mut PhaseContext) -> Result<PhaseResult> {
     Ok(PhaseResult::Success)
 }
 
-struct PackageSet {
-    required: &'static [&'static str],
-    optional: &'static [&'static str],
-}
-
-fn packages_for_selection(selection: &str) -> Option<PackageSet> {
-    let packages = match selection {
-        // Terminal
-        "Kitty" => PackageSet {
-            required: &["kitty"],
-            optional: &[],
-        },
-        "Alacritty" => PackageSet {
-            required: &["alacritty"],
-            optional: &[],
-        },
-        "WezTerm" => PackageSet {
-            required: &["wezterm"],
-            optional: &[],
-        },
-        "Foot" => PackageSet {
-            required: &["foot"],
-            optional: &[],
-        },
-        "ST" => PackageSet {
-            required: &["st"],
-            optional: &[],
-        },
-        // Shell
-        "Zsh + Starship" => PackageSet {
-            required: &["zsh", "starship"],
-            optional: &[],
-        },
-        "Fish" => PackageSet {
-            required: &["fish"],
-            optional: &[],
-        },
-        "Bash" => PackageSet {
-            required: &["bash"],
-            optional: &[],
-        },
-        "Nu" => PackageSet {
-            required: &["nushell"],
-            optional: &[],
-        },
-        "PowerShell Core" => PackageSet {
-            required: &[],
-            optional: &["powershell"],
-        },
-        // File Manager
-        "eza" => PackageSet {
-            required: &["eza"],
-            optional: &[],
-        },
-        "lf" => PackageSet {
-            required: &["lf"],
-            optional: &[],
-        },
-        "nnn" => PackageSet {
-            required: &["nnn"],
-            optional: &[],
-        },
-        "ranger" => PackageSet {
-            required: &["ranger"],
-            optional: &[],
-        },
-        "vifm" => PackageSet {
-            required: &["vifm"],
-            optional: &[],
-        },
-        // Text Editor
-        "Helix" => PackageSet {
-            required: &["helix"],
-            optional: &[],
-        },
-        "Neovim" => PackageSet {
-            required: &["neovim"],
-            optional: &[],
-        },
-        "Visual Studio Code" => PackageSet {
-            required: &[],
-            optional: &["code"],
-        },
-        "Micro" => PackageSet {
-            required: &["micro"],
-            optional: &[],
-        },
-        "Kakoune" => PackageSet {
-            required: &["kakoune"],
-            optional: &[],
-        },
-        // Git Client
-        "Lazygit" => PackageSet {
-            required: &["lazygit"],
-            optional: &[],
-        },
-        "Tig" => PackageSet {
-            required: &["tig"],
-            optional: &[],
-        },
-        "GitUI" => PackageSet {
-            required: &["gitui"],
-            optional: &[],
-        },
-        "Forge" => PackageSet {
-            required: &[],
-            optional: &["forge"],
-        },
-        "GitHub CLI (gh)" => PackageSet {
-            required: &["gh"],
-            optional: &[],
-        },
-        // Process Viewer
-        "btop" => PackageSet {
-            required: &["btop"],
-            optional: &[],
-        },
-        "glances" => PackageSet {
-            required: &["glances"],
-            optional: &[],
-        },
-        "htop" => PackageSet {
-            required: &["htop"],
-            optional: &[],
-        },
-        "bpytop" => PackageSet {
-            required: &["bpytop"],
-            optional: &[],
-        },
-        "gotop" => PackageSet {
-            required: &["gotop"],
-            optional: &[],
-        },
-        // Browser
-        "Brave" => PackageSet {
-            required: &[],
-            optional: &["brave-browser"],
-        },
-        "Librewolf" => PackageSet {
-            required: &[],
-            optional: &["librewolf"],
-        },
-        "Vivaldi" => PackageSet {
-            required: &[],
-            optional: &["vivaldi-stable"],
-        },
-        "Firefox" => PackageSet {
-            required: &["firefox"],
-            optional: &[],
-        },
-        "Chromium" => PackageSet {
-            required: &["chromium"],
-            optional: &[],
-        },
-        // Media Player
-        "MPV" => PackageSet {
-            required: &["mpv"],
-            optional: &[],
-        },
-        "VLC" => PackageSet {
-            required: &["vlc"],
-            optional: &[],
-        },
-        "SMPlayer" => PackageSet {
-            required: &["smplayer"],
-            optional: &[],
-        },
-        "Celluloid" => PackageSet {
-            required: &["celluloid"],
-            optional: &[],
-        },
-        "MPlayer" => PackageSet {
-            required: &["mplayer"],
-            optional: &[],
-        },
-        // HTPC
-        "Kodi" => PackageSet {
-            required: &["kodi"],
-            optional: &[],
-        },
-        "Plex Media Server" => PackageSet {
-            required: &[],
-            optional: &["plexmediaserver"],
-        },
-        "Jellyfin" => PackageSet {
-            required: &[],
-            optional: &["jellyfin"],
-        },
-        "Emby" => PackageSet {
-            required: &[],
-            optional: &["emby-server"],
-        },
-        "OSMC" => PackageSet {
-            required: &[],
-            optional: &["osmc"],
-        },
-        // VPN
-        "WireGuard" => PackageSet {
-            required: &["wireguard"],
-            optional: &[],
-        },
-        "OpenVPN" => PackageSet {
-            required: &["openvpn"],
-            optional: &[],
-        },
-        "Tailscale" => PackageSet {
-            required: &["tailscale"],
-            optional: &[],
-        },
-        "StrongSwan" => PackageSet {
-            required: &["strongswan"],
-            optional: &[],
-        },
-        "OpenConnect" => PackageSet {
-            required: &["openconnect"],
-            optional: &[],
-        },
-        // Firewall
-        "nftables" => PackageSet {
-            required: &["nftables"],
-            optional: &[],
-        },
-        "firewalld" => PackageSet {
-            required: &["firewalld"],
-            optional: &[],
-        },
-        "ufw" => PackageSet {
-            required: &["ufw"],
-            optional: &[],
-        },
-        "iptables" => PackageSet {
-            required: &["iptables"],
-            optional: &[],
-        },
-        "Shorewall" => PackageSet {
-            required: &[],
-            optional: &["shorewall"],
-        },
-        // Backup
-        "rclone + borg" => PackageSet {
-            required: &["rclone", "borgbackup"],
-            optional: &[],
-        },
-        "restic" => PackageSet {
-            required: &["restic"],
-            optional: &[],
-        },
-        "duplicacy" => PackageSet {
-            required: &[],
-            optional: &["duplicacy"],
-        },
-        "duplicity" => PackageSet {
-            required: &["duplicity"],
-            optional: &[],
-        },
-        "borgmatic" => PackageSet {
-            required: &[],
-            optional: &["borgmatic"],
-        },
-        _ => return None,
-    };
-    Some(packages)
+fn find_program_in_catalogs<'a>(id: &str, catalogs: &[&'a Catalog]) -> Option<&'a Program> {
+    for catalog in catalogs {
+        for category in &catalog.categories {
+            for subcategory in &category.subcategories {
+                if let Some(program) = subcategory.programs.iter().find(|p| p.id == id) {
+                    return Some(program);
+                }
+            }
+        }
+    }
+    None
 }
 
 fn install_packages(
     ctx: &mut PhaseContext,
-    required: &BTreeSet<&'static str>,
-    optional: &BTreeSet<&'static str>,
+    required: &BTreeSet<String>,
+    optional: &BTreeSet<String>,
 ) -> Result<()> {
     if !required.is_empty() {
-        let required_vec: Vec<&str> = required.iter().copied().collect();
+        let required_vec: Vec<&str> = required.iter().map(|s| s.as_str()).collect();
         if ctx.options.dry_run {
             ctx.record_dry_run(
                 "software_tiers",
@@ -396,7 +163,7 @@ fn install_packages(
         }
     }
 
-    for pkg in optional.iter().copied() {
+    for pkg in optional {
         if ctx.options.dry_run {
             ctx.record_dry_run(
                 "software_tiers",

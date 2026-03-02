@@ -31,6 +31,7 @@ pub mod pi4b;
 pub mod pi_overlord;
 mod pkg;
 pub mod platform;
+pub mod profile;
 mod rclone;
 mod rollback;
 mod rust;
@@ -73,6 +74,10 @@ pub use phase_runner::{
 };
 pub use pi_overlord::{PackageCategory, PackageMapping, PiOverlord};
 pub use platform::{detect as detect_platform, PlatformInfo};
+pub use profile::{
+    BlockDevice, CpuInfo, DistroInfo, MemoryInfo, MountInfo, PlatformInfo as ProfilePlatformInfo,
+    PlatformType, SessionInfo, StorageInfo, SystemProfile,
+};
 pub use rollback::RollbackManager;
 pub use software_tiers::SoftwareTierPlan;
 pub use software_tiers::ThemePlan;

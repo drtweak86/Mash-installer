@@ -18,12 +18,12 @@ use installer_core::{
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 
-use crate::software_catalog::SOFTWARE_CATEGORIES;
 use crate::tui::bbs::spawn_bbs_cycler;
 use crate::tui::confirmation::LongProcessState;
 use crate::tui::observer::RatatuiPhaseObserver;
 use crate::tui::render;
 use crate::tui::sysinfo_poller::spawn_sysinfo_poller;
+use installer_core::catalog::Program;
 use std::collections::BTreeMap;
 
 // ── Message bus ──────────────────────────────────────────────────────────────
@@ -150,6 +150,14 @@ pub struct PasswordState {
 
 // ── Module selection (mirrors menu::ModuleSelection) ─────────────────────────
 
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub enum SoftwareMode {
+    #[default]
+    BardsRecommendations,
+    Auto,
+    Manual,
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct ModuleState {
     pub enable_argon: bool,
@@ -189,8 +197,9 @@ pub struct TuiApp {
     // Theme selection
     pub theme_plan: ThemePlan,
     // Software tiers
-    pub software_full: bool,
-    pub software_picks: BTreeMap<&'static str, &'static str>,
+    pub software_mode: SoftwareMode,
+    pub catalog: installer_core::catalog::Catalog,
+    pub software_picks: BTreeMap<String, String>, // Category Name -> Program ID
     pub software_category_idx: usize,
     // Dry-run flag (passed in from CLI)
     pub dry_run: bool,
@@ -242,7 +251,8 @@ impl TuiApp {
             desktop_environment: None,
             display_protocol: installer_core::desktop::DisplayProtocol::Auto,
             theme_plan: ThemePlan::None,
-            software_full: true,
+            software_mode: SoftwareMode::BardsRecommendations,
+            catalog: installer_core::catalog::Catalog::load_s_tier().unwrap_or_default(),
             software_picks: BTreeMap::new(),
             software_category_idx: 0,
             dry_run: false,
@@ -314,7 +324,7 @@ impl TuiApp {
         self.arch_timer = Some(Instant::now());
     }
 
-    fn profile_level(&self) -> ProfileLevel {
+    pub fn profile_level(&self) -> ProfileLevel {
         match self.profile_idx {
             0 => ProfileLevel::Minimal,
             1 => ProfileLevel::Dev,
@@ -337,18 +347,40 @@ impl TuiApp {
     }
 
     fn build_software_plan(&self) -> SoftwareTierPlan {
-        let picks = if self.software_full {
-            let mut picks = BTreeMap::new();
-            for category in SOFTWARE_CATEGORIES {
-                if let Some(recommended) = category.options.first() {
-                    picks.insert(category.label, recommended.name);
+        let picks = match self.software_mode {
+            SoftwareMode::BardsRecommendations => {
+                let mut picks = BTreeMap::new();
+                for category in &self.catalog.categories {
+                    for subcategory in &category.subcategories {
+                        if let Some(recommended) =
+                            subcategory.programs.iter().find(|p| p.recommended)
+                        {
+                            picks.insert(category.display_name.clone(), recommended.id.clone());
+                        } else if let Some(first) = subcategory.programs.first() {
+                            picks.insert(category.display_name.clone(), first.id.clone());
+                        }
+                    }
                 }
+                picks
             }
-            picks
-        } else {
-            self.software_picks.clone()
+            SoftwareMode::Auto => {
+                let mut picks = BTreeMap::new();
+                for category in &self.catalog.categories {
+                    for subcategory in &category.subcategories {
+                        if let Some(first) = subcategory.programs.first() {
+                            picks.insert(category.display_name.clone(), first.id.clone());
+                        }
+                    }
+                }
+                picks
+            }
+            SoftwareMode::Manual => self.software_picks.clone(),
         };
-        SoftwareTierPlan::new(self.software_full, picks, self.theme_plan.clone())
+        SoftwareTierPlan::new(
+            matches!(self.software_mode, SoftwareMode::BardsRecommendations),
+            picks,
+            self.theme_plan.clone(),
+        )
     }
 
     fn spawn_installer(&self, driver: &'static dyn DistroDriver) {
@@ -520,18 +552,26 @@ impl TuiApp {
                 }
             }
             Screen::SoftwareMode => {
-                if idx < 2 {
+                if idx < 3 {
                     self.menu_cursor = idx;
                     self.advance_from_list();
                 }
             }
             Screen::SoftwareSelect => {
-                if let Some(cat) = SOFTWARE_CATEGORIES.get(self.software_category_idx) {
-                    if idx < cat.options.len() {
+                if let Some(category) = self.catalog.categories.get(self.software_category_idx) {
+                    let all_programs: Vec<&Program> = category
+                        .subcategories
+                        .iter()
+                        .flat_map(|sc| &sc.programs)
+                        .collect();
+
+                    if idx < all_programs.len() {
                         self.menu_cursor = idx;
-                        let chosen = &cat.options[self.menu_cursor];
-                        self.software_picks.insert(cat.label, chosen.name);
-                        if self.software_category_idx + 1 >= SOFTWARE_CATEGORIES.len() {
+                        let chosen = all_programs[self.menu_cursor];
+                        self.software_picks
+                            .insert(category.display_name.clone(), chosen.id.clone());
+
+                        if self.software_category_idx + 1 >= self.catalog.categories.len() {
                             self.screen = Screen::Confirm;
                             self.menu_cursor = 0;
                         } else {
@@ -627,7 +667,11 @@ impl TuiApp {
                     }
                     KeyCode::Esc | KeyCode::Char('n') | KeyCode::Char('N') => {
                         self.screen = Screen::SoftwareMode;
-                        self.menu_cursor = if self.software_full { 0 } else { 1 };
+                        self.menu_cursor = match self.software_mode {
+                            SoftwareMode::BardsRecommendations => 0,
+                            SoftwareMode::Auto => 1,
+                            SoftwareMode::Manual => 2,
+                        };
                     }
                     _ => {}
                 }
@@ -705,20 +749,31 @@ impl TuiApp {
                     _ => ThemePlan::None,
                 };
                 self.screen = Screen::SoftwareMode;
-                self.menu_cursor = if self.software_full { 0 } else { 1 };
+                self.menu_cursor = match self.software_mode {
+                    SoftwareMode::BardsRecommendations => 0,
+                    SoftwareMode::Auto => 1,
+                    SoftwareMode::Manual => 2,
+                };
             }
             Screen::SoftwareMode => {
-                if self.menu_cursor == 0 {
-                    self.software_full = true;
-                    self.software_picks.clear();
-                    self.screen = Screen::Confirm;
-                    self.menu_cursor = 0;
-                } else {
-                    self.software_full = false;
-                    self.software_picks.clear();
-                    self.software_category_idx = 0;
-                    self.menu_cursor = 0;
-                    self.screen = Screen::SoftwareSelect;
+                self.software_mode = match self.menu_cursor {
+                    0 => SoftwareMode::BardsRecommendations,
+                    1 => SoftwareMode::Auto,
+                    _ => SoftwareMode::Manual,
+                };
+
+                match self.software_mode {
+                    SoftwareMode::BardsRecommendations | SoftwareMode::Auto => {
+                        self.software_picks.clear();
+                        self.screen = Screen::Confirm;
+                        self.menu_cursor = 0;
+                    }
+                    SoftwareMode::Manual => {
+                        self.software_picks.clear();
+                        self.software_category_idx = 0;
+                        self.menu_cursor = 0;
+                        self.screen = Screen::SoftwareSelect;
+                    }
                 }
             }
             _ => {}
@@ -763,7 +818,7 @@ impl TuiApp {
     }
 
     fn handle_software_key(&mut self, code: KeyCode) {
-        let category = match SOFTWARE_CATEGORIES.get(self.software_category_idx) {
+        let category = match self.catalog.categories.get(self.software_category_idx) {
             Some(category) => category,
             None => {
                 self.screen = Screen::Confirm;
@@ -771,6 +826,14 @@ impl TuiApp {
                 return;
             }
         };
+
+        // Flatten all programs in the category across all subcategories
+        let all_programs: Vec<&Program> = category
+            .subcategories
+            .iter()
+            .flat_map(|sc| &sc.programs)
+            .collect();
+
         match code {
             KeyCode::Up | KeyCode::Char('k') => {
                 if self.menu_cursor > 0 {
@@ -778,14 +841,16 @@ impl TuiApp {
                 }
             }
             KeyCode::Down | KeyCode::Char('j') => {
-                if self.menu_cursor + 1 < category.options.len() {
+                if self.menu_cursor + 1 < all_programs.len() {
                     self.menu_cursor += 1;
                 }
             }
             KeyCode::Enter => {
-                let chosen = &category.options[self.menu_cursor];
-                self.software_picks.insert(category.label, chosen.name);
-                if self.software_category_idx + 1 >= SOFTWARE_CATEGORIES.len() {
+                let chosen = all_programs[self.menu_cursor];
+                self.software_picks
+                    .insert(category.display_name.clone(), chosen.id.clone());
+
+                if self.software_category_idx + 1 >= self.catalog.categories.len() {
                     self.screen = Screen::Confirm;
                     self.menu_cursor = 0;
                 } else {
@@ -801,9 +866,16 @@ impl TuiApp {
     }
 
     fn selected_option_index(&self, category_idx: usize) -> Option<usize> {
-        let category = SOFTWARE_CATEGORIES.get(category_idx)?;
-        let picked = self.software_picks.get(category.label)?;
-        category.options.iter().position(|opt| opt.name == *picked)
+        let category = self.catalog.categories.get(category_idx)?;
+        let picked = self.software_picks.get(&category.display_name)?;
+
+        let all_programs: Vec<&Program> = category
+            .subcategories
+            .iter()
+            .flat_map(|sc| &sc.programs)
+            .collect();
+
+        all_programs.iter().position(|p| p.id == *picked)
     }
 
     fn theme_menu_index(&self) -> usize {
@@ -823,14 +895,14 @@ impl TuiApp {
     }
 
     pub fn software_plan_label(&self) -> String {
-        if self.software_full {
-            "Full S-tier".to_string()
-        } else {
-            format!(
-                "Custom ({}/{})",
+        match self.software_mode {
+            SoftwareMode::BardsRecommendations => "Bard's Recommendations (S-tier)".to_string(),
+            SoftwareMode::Auto => "Automatic (Baseline)".to_string(),
+            SoftwareMode::Manual => format!(
+                "Manual ({}/{})",
                 self.software_picks.len(),
-                SOFTWARE_CATEGORIES.len()
-            )
+                self.catalog.categories.len()
+            ),
         }
     }
 
@@ -1227,7 +1299,11 @@ impl TuiApp {
             Screen::SoftwareSelect => {
                 if self.software_category_idx == 0 {
                     self.screen = Screen::SoftwareMode;
-                    self.menu_cursor = if self.software_full { 0 } else { 1 };
+                    self.menu_cursor = match self.software_mode {
+                        SoftwareMode::BardsRecommendations => 0,
+                        SoftwareMode::Auto => 1,
+                        SoftwareMode::Manual => 2,
+                    };
                 } else {
                     self.software_category_idx = self.software_category_idx.saturating_sub(1);
                     self.menu_cursor = self
@@ -1235,12 +1311,22 @@ impl TuiApp {
                         .unwrap_or(0);
                 }
             }
-            Screen::Confirm => {
-                self.screen = Screen::SoftwareSelect;
-                self.menu_cursor = self
-                    .selected_option_index(self.software_category_idx)
-                    .unwrap_or(0);
-            }
+            Screen::Confirm => match self.software_mode {
+                SoftwareMode::BardsRecommendations | SoftwareMode::Auto => {
+                    self.screen = Screen::SoftwareMode;
+                    self.menu_cursor = match self.software_mode {
+                        SoftwareMode::BardsRecommendations => 0,
+                        SoftwareMode::Auto => 1,
+                        _ => 0,
+                    };
+                }
+                SoftwareMode::Manual => {
+                    self.screen = Screen::SoftwareSelect;
+                    self.menu_cursor = self
+                        .selected_option_index(self.software_category_idx)
+                        .unwrap_or(0);
+                }
+            },
             Screen::FontPrep => {
                 self.screen = Screen::Confirm;
                 self.menu_cursor = 0;

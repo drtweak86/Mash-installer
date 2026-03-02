@@ -176,7 +176,7 @@ fn draw_stats_panel(f: &mut Frame, area: Rect, app: &TuiApp) {
     let stats_text = vec![
         Line::from(vec![
             Span::styled(" CPU: ", theme::dim_style()),
-            Span::styled(format!("{:3}%", s.cpu_pct as u16), theme::success_style()),
+            Span::styled(format!("{:3}%", s.cpu_pct), theme::success_style()),
         ]),
         Line::from(vec![
             Span::styled(" RAM: ", theme::dim_style()),
@@ -187,8 +187,17 @@ fn draw_stats_panel(f: &mut Frame, area: Rect, app: &TuiApp) {
             Span::styled(format!("{:.1}kB/s", s.net_rx_kbps), theme::success_style()),
         ]),
         Line::from(vec![
-            Span::styled(" I/O: ", theme::dim_style()),
-            Span::styled("STABLE", theme::success_style()),
+            Span::styled(" PRG: ", theme::dim_style()),
+            if app.screen == Screen::Installing || app.screen == Screen::Password {
+                let progress = if app.total_phases > 0 {
+                    (app.current_phase as f32 / app.total_phases as f32 * 100.0) as u16
+                } else {
+                    0
+                };
+                Span::styled(format!("{:3}%", progress), theme::accent_style())
+            } else {
+                Span::styled("IDLE", theme::success_style())
+            },
         ]),
     ];
 
