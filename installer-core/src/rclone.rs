@@ -1,21 +1,31 @@
 use anyhow::{Context, Result};
 use std::process::Command;
 
-use crate::{cmd, package_manager, PhaseContext, PhaseResult};
+use crate::{
+    cmd, package_manager, AuthType, AuthorizationService, PhaseContext, PhaseResult,
+};
 
 pub fn install_phase(ctx: &mut PhaseContext) -> Result<PhaseResult> {
-    if which::which("rclone").is_ok() {
+    if which::which("rclone").is_err() {
+        // Try the system package manager first
+        if !try_pkg(ctx)? {
+            // Fall back to official install script
+            install_via_script(ctx)?;
+        }
+    } else {
         tracing::info!("rclone already installed");
-        return Ok(PhaseResult::Success);
     }
 
-    // Try the system package manager first
-    if try_pkg(ctx)? {
-        return Ok(PhaseResult::Success);
+    if ctx.options.interactive {
+        // Rclone Config
+        if !AuthorizationService::new(ctx.observer, ctx.options).is_authorized(AuthType::RcloneConfig) {
+            if ctx.observer.request_auth(AuthType::RcloneConfig)? {
+                AuthorizationService::new(ctx.observer, ctx.options).authorize(AuthType::RcloneConfig)?;
+                ctx.record_configured("rclone cloud remotes");
+            }
+        }
     }
 
-    // Fall back to official install script
-    install_via_script(ctx)?;
     Ok(PhaseResult::Success)
 }
 

@@ -11,8 +11,59 @@ use std::time::Duration;
 use crate::{
     cmd, config,
     context::{ConfigOverrides, ConfigService},
+    scrubber,
     system::{RealSystem, SystemOps},
 };
+
+pub struct Doctor<'a> {
+    system: &'a dyn SystemOps,
+    temp_files: Vec<std::path::PathBuf>,
+}
+
+impl<'a> Doctor<'a> {
+    pub fn new(system: &'a dyn SystemOps) -> Self {
+        Self {
+            system,
+            temp_files: Vec::new(),
+        }
+    }
+
+    /// Register a temporary file for cleanup.
+    pub fn register_temp_file(&mut self, path: std::path::PathBuf) {
+        self.temp_files.push(path);
+    }
+
+    /// Clean up all registered temporary files.
+    pub fn cleanup(&mut self) -> Result<()> {
+        for path in self.temp_files.drain(..) {
+            if path.exists() {
+                if path.is_dir() {
+                    fs::remove_dir_all(&path)?;
+                } else {
+                    fs::remove_file(&path)?;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Run a diagnostic check and return a report.
+    pub fn run_diagnostics(&mut self, staging_override: Option<&Path>) -> Result<PreflightReport> {
+        let report = collect_preflight_checks(self.system, staging_override)?;
+        Ok(report)
+    }
+
+    /// Log a message while scrubbing secrets.
+    pub fn log_info(&self, out: &mut dyn Write, message: &str) -> std::io::Result<()> {
+        writeln!(out, "{}", scrubber::scrub(message))
+    }
+}
+
+impl<'a> Drop for Doctor<'a> {
+    fn drop(&mut self) {
+        let _ = self.cleanup();
+    }
+}
 
 #[derive(Clone, Copy, Debug, ValueEnum, Default)]
 #[value(rename_all = "lower")]

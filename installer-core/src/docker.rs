@@ -8,7 +8,8 @@ use std::process::Command;
 use crate::{
     apt_repo, cmd,
     driver::{RepoKind, ServiceName},
-    package_manager, systemd, PhaseContext, PhaseResult, PkgBackend,
+    package_manager, systemd, AuthType, AuthorizationService, PhaseContext, PhaseResult,
+    PkgBackend,
 };
 
 pub fn install_phase(ctx: &mut PhaseContext) -> Result<PhaseResult> {
@@ -53,6 +54,14 @@ pub fn install_phase(ctx: &mut PhaseContext) -> Result<PhaseResult> {
     };
     if let Some(data_root) = desired_data_root {
         configure_data_root(ctx, &data_root)?;
+    }
+
+    if ctx.options.interactive {
+        if !AuthorizationService::new(ctx.observer, ctx.options).is_authorized(AuthType::DockerAuth) {
+            if ctx.observer.request_auth(AuthType::DockerAuth)? {
+                AuthorizationService::new(ctx.observer, ctx.options).authorize(AuthType::DockerAuth)?;
+            }
+        }
     }
 
     Ok(PhaseResult::Success)
@@ -304,6 +313,12 @@ mod tests {
         localization: Localization,
         rollback: RollbackManager,
         dry_run_log: DryRunLog,
+        observer: MockObserver,
+    }
+
+    struct MockObserver;
+    impl crate::PhaseObserver for MockObserver {
+        fn on_event(&mut self, _event: crate::PhaseEvent) {}
     }
 
     impl TestPhaseEnv {
@@ -345,6 +360,7 @@ mod tests {
                 localization,
                 rollback: RollbackManager::new(),
                 dry_run_log: DryRunLog::new(),
+                observer: MockObserver,
             })
         }
 
@@ -357,6 +373,7 @@ mod tests {
                 &self.localization,
                 &self.rollback,
                 &self.dry_run_log,
+                &mut self.observer,
             )
         }
     }

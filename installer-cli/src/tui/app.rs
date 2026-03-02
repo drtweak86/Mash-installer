@@ -45,6 +45,10 @@ pub enum TuiMessage {
     PasswordPrompt {
         reply: Sender<String>,
     },
+    AuthRequest {
+        auth_type: installer_core::AuthType,
+        reply: Sender<bool>,
+    },
 
     Done(Box<InstallationReport>),
     InstallError(String),
@@ -70,6 +74,7 @@ pub enum Screen {
     SystemSummary,
     #[allow(dead_code)]
     Password,
+    Authorization,
     Installing,
     Done,
     Error,
@@ -145,6 +150,14 @@ pub struct ConfirmState {
 pub struct PasswordState {
     pub reply: Sender<String>,
     pub password: String,
+}
+
+// ── Auth prompt state ────────────────────────────────────────────────────────
+
+pub struct AuthState {
+    pub auth_type: installer_core::AuthType,
+    pub reply: Sender<bool>,
+    pub selected: bool,
 }
 
 // ── Long process confirmation state ─────────────────────────────────────────
@@ -226,6 +239,8 @@ pub struct TuiApp {
     pub long_process_state: Option<LongProcessState>,
     // Password prompt (mid-install)
     pub password_state: Option<PasswordState>,
+    // Auth prompt (mid-install)
+    pub auth_state: Option<AuthState>,
     // Final report
     pub report: Option<Box<InstallationReport>>,
     pub error_msg: Option<String>,
@@ -279,6 +294,7 @@ impl TuiApp {
             confirm_state: None,
             long_process_state: None,
             password_state: None,
+            auth_state: None,
             report: None,
             error_msg: None,
             tx,
@@ -480,6 +496,7 @@ impl TuiApp {
             Screen::DeConfirm => self.handle_confirm_key(code),
             Screen::FontPrep => self.handle_font_prep_key(code),
             Screen::SystemSummary => self.handle_system_summary_key(code),
+            Screen::Authorization => self.handle_auth_key(code),
             Screen::Installing => self.handle_installing_key(code),
             Screen::Done | Screen::Error => match code {
                 KeyCode::Up => {
@@ -519,6 +536,35 @@ impl TuiApp {
                 }
                 _ => {}
             }
+        }
+    }
+
+    fn handle_auth_key(&mut self, code: KeyCode) {
+        match code {
+            KeyCode::Left | KeyCode::Right | KeyCode::Tab => {
+                if let Some(ref mut s) = self.auth_state {
+                    s.selected = !s.selected;
+                }
+            }
+            KeyCode::Enter => {
+                if let Some(s) = self.auth_state.take() {
+                    let _ = s.reply.send(s.selected);
+                    self.screen = Screen::Installing;
+                }
+            }
+            KeyCode::Esc | KeyCode::Char('n') | KeyCode::Char('N') => {
+                if let Some(s) = self.auth_state.take() {
+                    let _ = s.reply.send(false);
+                    self.screen = Screen::Installing;
+                }
+            }
+            KeyCode::Char('y') | KeyCode::Char('Y') => {
+                if let Some(s) = self.auth_state.take() {
+                    let _ = s.reply.send(true);
+                    self.screen = Screen::Installing;
+                }
+            }
+            _ => {}
         }
     }
 
@@ -991,6 +1037,14 @@ impl TuiApp {
                     password: String::new(),
                 });
                 self.screen = Screen::Password;
+            }
+            TuiMessage::AuthRequest { auth_type, reply } => {
+                self.auth_state = Some(AuthState {
+                    auth_type,
+                    reply,
+                    selected: true,
+                });
+                self.screen = Screen::Authorization;
             }
 
             TuiMessage::Done(report) => {

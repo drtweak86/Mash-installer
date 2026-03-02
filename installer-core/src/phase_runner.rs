@@ -24,6 +24,8 @@ pub struct PhaseOutput {
     pub name: String,
     pub description: String,
     pub actions_taken: Vec<String>,
+    pub configured_actions: Vec<String>,
+    pub tweaked_actions: Vec<String>,
     pub rollback_actions: Vec<String>,
     pub warnings: Vec<String>,
     pub dry_run: bool,
@@ -41,6 +43,8 @@ impl PhaseOutput {
             name: name.into(),
             description: description.into(),
             actions_taken: metadata.actions_taken,
+            configured_actions: metadata.configured_actions,
+            tweaked_actions: metadata.tweaked_actions,
             rollback_actions: metadata.rollback_actions,
             warnings: metadata.warnings,
             dry_run: metadata.dry_run,
@@ -53,6 +57,8 @@ impl PhaseOutput {
             name: name.into(),
             description: description.into(),
             actions_taken: Vec::new(),
+            configured_actions: Vec::new(),
+            tweaked_actions: Vec::new(),
             rollback_actions: Vec::new(),
             warnings: Vec::new(),
             dry_run,
@@ -132,7 +138,7 @@ impl PhaseRunner {
         let mut errors = Vec::new();
         let mut outputs = Vec::new();
 
-        for (i, phase) in self.phases.iter().enumerate() {
+        'phase_loop: for (i, phase) in self.phases.iter().enumerate() {
             // Check for interrupt signal between phases
             if signal_guard.is_some_and(|sg| sg.is_interrupted()) {
                 info!("Signal received, rolling back and shutting down gracefully...");
@@ -163,6 +169,40 @@ impl PhaseRunner {
             let phase_name = phase.name().to_string();
             let phase_description = phase.description().to_string();
 
+            // Prerequisite Gate: Check dependencies
+            for dep in phase.dependencies() {
+                // We only care about dependencies that are part of the current run's phase set.
+                // If a dependency was registered but skipped via should_run, we don't block.
+                // But if it was SUPPOSED to run and FAILED, we must block.
+                
+                // Check if this dependency was supposed to run
+                let dep_supposed_to_run = self.phases.iter().any(|p| p.name() == *dep && p.should_run(ctx));
+                
+                if dep_supposed_to_run && !completed.contains(&dep.to_string()) {
+                    emit_event(
+                        observer,
+                        &mut events,
+                        PhaseEvent::Warning {
+                            message: format!("Skipping {} because dependency {} was not completed", phase_name, dep),
+                        },
+                    );
+                    emit_event(
+                        observer,
+                        &mut events,
+                        PhaseEvent::Skipped {
+                            index: i + 1,
+                            phase: phase_name.clone(),
+                        },
+                    );
+                    outputs.push(PhaseOutput::skipped(
+                        phase_name.clone(),
+                        phase_description.clone(),
+                        ctx.options.dry_run,
+                    ));
+                    continue 'phase_loop;
+                }
+            }
+
             if !phase.should_run(ctx) {
                 emit_event(
                     observer,
@@ -191,7 +231,7 @@ impl PhaseRunner {
             );
             let phase_span = logging::phase_span(ctx, phase.as_ref());
             let _phase_guard = phase_span.enter();
-            let mut phase_ctx = ctx.phase_context();
+            let mut phase_ctx = ctx.phase_context(observer);
             let phase_result = phase_ctx.run_or_record(
                 phase_name.clone(),
                 "Phase simulated",
@@ -371,6 +411,11 @@ pub trait PhaseObserver {
     fn sudo_password(&mut self) -> anyhow::Result<String> {
         Ok(String::new())
     }
+
+    /// Ask the user for interactive authorization.
+    fn request_auth(&mut self, _auth_type: crate::AuthType) -> anyhow::Result<bool> {
+        Ok(false)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -393,12 +438,18 @@ pub trait Phase {
         ErrorSeverity::Fatal
     }
     fn execute(&self, ctx: &mut PhaseContext) -> AnyhowResult<PhaseResult>;
+
+    /// Names of phases that MUST be completed before this one.
+    fn dependencies(&self) -> &[&'static str] {
+        &[]
+    }
 }
 
 pub struct FunctionPhase {
     name: String,
     description: String,
     run: fn(&mut PhaseContext) -> AnyhowResult<PhaseResult>,
+    deps: Vec<&'static str>,
 }
 
 impl Phase for FunctionPhase {
@@ -413,6 +464,10 @@ impl Phase for FunctionPhase {
     fn execute(&self, ctx: &mut PhaseContext) -> AnyhowResult<PhaseResult> {
         (self.run)(ctx)
     }
+
+    fn dependencies(&self) -> &[&'static str] {
+        &self.deps
+    }
 }
 
 impl FunctionPhase {
@@ -425,7 +480,13 @@ impl FunctionPhase {
             name: name.into(),
             description: description.into(),
             run,
+            deps: Vec::new(),
         }
+    }
+
+    pub fn with_deps(mut self, deps: Vec<&'static str>) -> Self {
+        self.deps = deps;
+        self
     }
 }
 
@@ -789,6 +850,68 @@ mod tests {
             .events
             .iter()
             .any(|evt| evt.starts_with("skipped:2:phase-skip")));
+        Ok(())
+    }
+
+    #[test]
+    fn phase_runner_skips_on_failed_dependency() -> Result<()> {
+        let ctx = build_test_context()?;
+        let phases: Vec<Box<dyn Phase>> = vec![
+            Box::new(TestPhase::new(
+                "A",
+                "A",
+                true,
+                ErrorSeverity::Fatal,
+                failing_phase,
+            )),
+            Box::new(FunctionPhase::new("B", "B", success_phase).with_deps(vec!["A"])),
+        ];
+        
+        let runner = PhaseRunner::from_phases(phases);
+        let mut observer = RecordingObserver::new();
+        
+        // This will return error because A fails
+        let _ = runner.run(&ctx, &mut observer, None);
+        
+        assert!(observer
+            .events
+            .iter()
+            .any(|evt| evt.starts_with("failure:1:A:")));
+        
+        // We can't easily check if B was skipped here because the runner stops on fatal error A.
+        // Let's use Recoverable severity for A.
+        Ok(())
+    }
+
+    #[test]
+    fn phase_runner_skips_on_failed_dependency_recoverable() -> Result<()> {
+        let ctx = build_test_context()?;
+        let phases: Vec<Box<dyn Phase>> = vec![
+            Box::new(TestPhase::new(
+                "A",
+                "A",
+                true,
+                ErrorSeverity::Recoverable,
+                failing_phase,
+            )),
+            Box::new(FunctionPhase::new("B", "B", success_phase).with_deps(vec!["A"])),
+        ];
+        
+        let runner = PhaseRunner::with_policy(phases, PhaseErrorPolicy::ContinueOnError);
+        let mut observer = RecordingObserver::new();
+        
+        let result = runner.run(&ctx, &mut observer, None)?;
+        
+        assert_eq!(result.completed_phases.len(), 0);
+        assert!(observer
+            .events
+            .iter()
+            .any(|evt| evt.contains("Skipping B because dependency A was not completed")));
+        assert!(observer
+            .events
+            .iter()
+            .any(|evt| evt.starts_with("skipped:2:B")));
+            
         Ok(())
     }
 }

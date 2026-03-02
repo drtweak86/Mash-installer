@@ -16,9 +16,28 @@ pub struct SystemProfile {
     pub distro: DistroInfo,
     pub cpu: CpuInfo,
     pub memory: MemoryInfo,
+    pub gpu: GpuInfo,
+    pub network: NetworkInfo,
+    pub software: SoftwareInfo,
     pub session: SessionInfo,
     pub storage: StorageInfo,
     pub timestamp: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SoftwareInfo {
+    pub nodejs_version: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct GpuInfo {
+    pub model: String,
+    pub driver: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct NetworkInfo {
+    pub interfaces: Vec<String>,
 }
 
 /// Hardware platform classification.
@@ -36,6 +55,7 @@ pub struct PlatformInfo {
     pub platform_type: PlatformType,
     pub model: String,
     pub board_revision: Option<String>,
+    pub is_laptop: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -130,6 +150,9 @@ impl SystemProfile {
         profile.distro = DistroInfo::detect()?;
         profile.cpu = CpuInfo::detect(&sys);
         profile.memory = MemoryInfo::detect(&sys, system);
+        profile.gpu = GpuInfo::detect(system)?;
+        profile.network = NetworkInfo::detect(system)?;
+        profile.software = SoftwareInfo::detect(system)?;
         profile.session = SessionInfo::detect();
         profile.storage = StorageInfo::detect(system)?;
 
@@ -293,6 +316,7 @@ impl PlatformInfo {
                     platform_type: PlatformType::RaspberryPi,
                     model,
                     board_revision: detect_board_revision(system),
+                    is_laptop: false, // Pis are not laptops (usually)
                 });
             }
             if !model.is_empty() {
@@ -300,6 +324,7 @@ impl PlatformInfo {
                     platform_type: PlatformType::GenericArm,
                     model,
                     board_revision: None,
+                    is_laptop: false,
                 });
             }
         }
@@ -309,8 +334,24 @@ impl PlatformInfo {
             platform_type: PlatformType::PC,
             model: "Standard PC".to_string(),
             board_revision: None,
+            is_laptop: detect_is_laptop(system),
         })
     }
+}
+
+fn detect_is_laptop(_system: &dyn crate::SystemOps) -> bool {
+    // Check for battery presence as a proxy for laptop
+    let power_supply = Path::new("/sys/class/power_supply");
+    if let Ok(entries) = std::fs::read_dir(power_supply) {
+        for entry in entries.flatten() {
+            if let Ok(name) = entry.file_name().into_string() {
+                if name.starts_with("BAT") {
+                    return true;
+                }
+            }
+        }
+    }
+    false
 }
 
 fn detect_board_revision(system: &dyn crate::SystemOps) -> Option<String> {
@@ -409,6 +450,72 @@ impl CpuInfo {
             logical_cores: sys.cpus().len(),
             flags,
         }
+    }
+}
+
+impl GpuInfo {
+    pub fn detect(system: &dyn crate::SystemOps) -> Result<Self> {
+        // Simple shim for GPU detection
+        let mut model = "Unknown".to_string();
+        let mut driver = "Unknown".to_string();
+
+        // Attempt to scry via lspci if available
+        let mut cmd = std::process::Command::new("lspci");
+        if let Ok(output) = system.command_output(&mut cmd) {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            for line in stdout.lines() {
+                if line.contains("VGA") || line.contains("Display") || line.contains("3D") {
+                    model = line.to_string();
+                    break;
+                }
+            }
+        }
+
+        // Try to identify driver from /proc/modules or similar
+        if let Ok(modules) = system.read_to_string(Path::new("/proc/modules")) {
+            if modules.contains("nvidia") {
+                driver = "nvidia".to_string();
+            } else if modules.contains("amdgpu") {
+                driver = "amdgpu".to_string();
+            } else if modules.contains("i915") {
+                driver = "intel".to_string();
+            } else if modules.contains("vc4") || modules.contains("v3d") {
+                driver = "mesa (broadcom)".to_string();
+            }
+        }
+
+        Ok(Self { model, driver })
+    }
+}
+
+impl NetworkInfo {
+    pub fn detect(_system: &dyn crate::SystemOps) -> Result<Self> {
+        let mut interfaces = Vec::new();
+        if let Ok(entries) = std::fs::read_dir("/sys/class/net") {
+            for entry in entries.flatten() {
+                if let Ok(name) = entry.file_name().into_string() {
+                    interfaces.push(name);
+                }
+            }
+        }
+        Ok(Self { interfaces })
+    }
+}
+
+impl SoftwareInfo {
+    pub fn detect(system: &dyn crate::SystemOps) -> Result<Self> {
+        let mut nodejs_version = None;
+
+        let mut cmd = std::process::Command::new("node");
+        cmd.arg("--version");
+        if let Ok(output) = system.command_output(&mut cmd) {
+            let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !version.is_empty() {
+                nodejs_version = Some(version);
+            }
+        }
+
+        Ok(Self { nodejs_version })
     }
 }
 

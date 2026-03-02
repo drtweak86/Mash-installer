@@ -3,7 +3,8 @@ use std::path::Path;
 use std::process::Command;
 
 use crate::{
-    cmd, driver::ServiceName, package_manager, systemd, PhaseContext, PhaseResult, PkgBackend,
+    cmd, driver::ServiceName, package_manager, systemd, AuthType, AuthorizationService,
+    PhaseContext, PhaseResult, PkgBackend,
 };
 
 /// Clone target for the argononed C daemon.
@@ -21,6 +22,15 @@ pub fn install_phase(ctx: &mut PhaseContext) -> Result<PhaseResult> {
     match ctx.platform.pkg_backend {
         PkgBackend::Pacman | PkgBackend::Dnf => install_argononed(ctx)?,
         PkgBackend::Apt => install_argon_oem(ctx)?,
+    }
+
+    if ctx.options.interactive {
+        if !AuthorizationService::new(ctx.observer, ctx.options).is_authorized(AuthType::ArgonOneConfig) {
+            if ctx.observer.request_auth(AuthType::ArgonOneConfig)? {
+                AuthorizationService::new(ctx.observer, ctx.options).authorize(AuthType::ArgonOneConfig)?;
+                ctx.record_configured("Argon One fan thresholds");
+            }
+        }
     }
 
     Ok(PhaseResult::Success)

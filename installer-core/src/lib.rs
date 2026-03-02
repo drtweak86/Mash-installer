@@ -1,12 +1,15 @@
+pub mod advice;
 mod ai_agents;
 mod apt_repo;
 mod argon;
+pub mod authorization;
 mod backend;
 mod buildroot;
 pub mod catalog;
 pub mod cmd;
 mod config;
 mod context;
+mod dependency_graph;
 pub mod desktop;
 mod distro;
 mod docker;
@@ -35,6 +38,7 @@ pub mod profile;
 mod rclone;
 mod rollback;
 mod rust;
+pub mod scrubber;
 mod signal;
 mod snapshots;
 mod software_tiers;
@@ -50,8 +54,10 @@ mod wallpaper;
 mod zsh;
 
 use crate::{dry_run::DryRunLog, localization::Localization};
+pub use advice::{AdviceEngine, AdviceEntry, Rule, Severity as AdviceSeverity};
 
 // --- Core API ---
+pub use authorization::{AuthType, AuthorizationService};
 pub use backend::PkgBackend;
 pub use config::{init_config, show_config, ConfigError, MashConfig};
 pub use context::{
@@ -109,7 +115,7 @@ pub struct InstallContext {
 }
 
 impl InstallContext {
-    fn phase_context(&self) -> PhaseContext<'_> {
+    fn phase_context<'a>(&'a self, observer: &'a mut dyn PhaseObserver) -> PhaseContext<'a> {
         PhaseContext::new(
             &self.options,
             &self.platform,
@@ -118,6 +124,7 @@ impl InstallContext {
             &self.localization,
             &self.rollback,
             &self.dry_run_log,
+            observer,
         )
     }
 
@@ -128,6 +135,15 @@ impl InstallContext {
     ) -> anyhow::Result<String> {
         self.interaction
             .sudo_password(|_prompt| observer.sudo_password())
+    }
+
+    /// Request interactive authorization from the user.
+    pub fn request_auth(
+        &self,
+        observer: &mut dyn PhaseObserver,
+        auth_type: AuthType,
+    ) -> anyhow::Result<bool> {
+        observer.request_auth(auth_type)
     }
 }
 // 1984 transition verified

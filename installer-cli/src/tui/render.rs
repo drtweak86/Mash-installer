@@ -100,7 +100,7 @@ pub fn draw(f: &mut Frame, app: &TuiApp) {
         Screen::Confirm => menus::draw_pre_install_confirm(f, main_area, app),
         Screen::FontPrep => menus::draw_font_prep(f, main_area, app),
         Screen::SystemSummary => menus::draw_system_summary(f, main_area, app),
-        Screen::Installing | Screen::Password => draw_terminal_buffer(f, main_area, app),
+        Screen::Installing | Screen::Password | Screen::Authorization => draw_terminal_buffer(f, main_area, app),
         Screen::Done => draw_summary(f, app, false),
         Screen::Error => draw_summary(f, app, true),
     }
@@ -123,6 +123,10 @@ pub fn draw(f: &mut Frame, app: &TuiApp) {
 
     if let Some(state) = &app.password_state {
         menus::draw_password_prompt(f, f.area(), app, state);
+    }
+
+    if let Some(state) = &app.auth_state {
+        menus::draw_auth_prompt(f, f.area(), app, state);
     }
 
     if let Some(_state) = &app.confirm_state {
@@ -372,19 +376,50 @@ pub fn draw_summary(f: &mut Frame, app: &TuiApp, is_error: bool) {
     }
 
     if let Some(report) = &app.report {
-        lines.push(Line::from(Span::styled(
-            "PHASE AUDIT:",
-            theme::accent_style(),
-        )));
-        for phase in &report.completed_phases {
-            lines.push(Line::from(vec![
-                Span::styled("  [OK] ", theme::success_style()),
-                Span::styled(phase, theme::default_style()),
-            ]));
+        let mut installed = Vec::new();
+        let mut configured = Vec::new();
+        let mut tweaked = Vec::new();
+
+        for output in &report.outputs {
+            installed.extend(output.actions_taken.clone());
+            configured.extend(output.configured_actions.clone());
+            tweaked.extend(output.tweaked_actions.clone());
+        }
+
+        if !installed.is_empty() {
+            lines.push(Line::from(Span::styled("INSTALLED:", theme::accent_style())));
+            for item in installed {
+                lines.push(Line::from(vec![
+                    Span::styled("  + ", theme::success_style()),
+                    Span::styled(item, theme::default_style()),
+                ]));
+            }
+            lines.push(Line::from(""));
+        }
+
+        if !configured.is_empty() {
+            lines.push(Line::from(Span::styled("CONFIGURED:", theme::accent_style())));
+            for item in configured {
+                lines.push(Line::from(vec![
+                    Span::styled("  * ", theme::success_style()),
+                    Span::styled(item, theme::default_style()),
+                ]));
+            }
+            lines.push(Line::from(""));
+        }
+
+        if !tweaked.is_empty() {
+            lines.push(Line::from(Span::styled("TWEAKED:", theme::accent_style())));
+            for item in tweaked {
+                lines.push(Line::from(vec![
+                    Span::styled("  > ", theme::success_style()),
+                    Span::styled(item, theme::default_style()),
+                ]));
+            }
+            lines.push(Line::from(""));
         }
 
         if !report.errors.is_empty() {
-            lines.push(Line::from(""));
             lines.push(Line::from(Span::styled("INCIDENTS:", theme::error_style())));
             for err in &report.errors {
                 lines.push(Line::from(Span::styled(

@@ -3,7 +3,22 @@
 
 ---
 
-## Session: 2026-03-01 — Shaft J, H, I (Phase 1) Completion
+## Session: 2026-03-02 — Shaft V: The Interactive Forge
+
+### Summary
+Transformed the installer from a binary-dropper into a "Living Installation" engine. Implemented dependency-first orchestration, a robust interactive authorization service for 10+ tools, and comprehensive post-install verification (The Doctor).
+
+### Key Achievements
+- [x] **Dependency-First Orchestration**: Phases now respect topological sort and prerequisite gates.
+- [x] **Interactive Authorization Service**:
+  - `gh auth login`, `ssh-keygen`, `git config`
+  - `rclone config`, `borg init`
+  - `tailscale up`, `ngrok config`, `cloudflared tunnel login`
+  - `docker login`, `argonone-config`
+- [x] **TUI Integration**: Clean modals for all interactive prompts.
+- [x] **The Doctor Reforged**: Added secret scrubbing, automatic cleanup, and detailed action tracking (Installed vs. Configured vs. Tweaked).
+
+---\n\n## Session: 2026-03-01 — Shaft J, H, I (Phase 1) Completion
 
 ### Summary
 Mastered the Overlord Protocols (Shaft J), overhauled the installer experience with fonts and DE support (Shaft H), and curated the new 10-category software catalog (Shaft I Phase 1).
@@ -700,5 +715,23 @@ Forged a comprehensive auto-detection and profiling system that scries the machi
 
 ---
 
+---
+
+## Session: 2026-03-01 — Shaft T: The Bard's Wisdom Completion
+
+### Summary
+Implemented an intelligent Advice Engine that translates the `SystemProfile` into actionable wisdom. The forge can now provide expert-level performance hints, stability warnings, and hardware-specific optimizations, drawing from the deep experience of the dwarf ancestors.
+
+### Deliverables
+- [x] **Advice Engine Core**: Forged the `Rule` trait and orchestration logic in `installer-core/src/advice.rs`.
+- [x] **16 Ancestral Wisdom Rules**:
+    - **Hardware**: Low RAM, missing swap, high-core optimizations, and laptop identification.
+    - **Storage**: Btrfs snapshots/compression, flash storage protection, and workspace relocation.
+    - **Stability**: ARM64 stability (Node v22), 32-bit limits, and NVIDIA-Wayland conflicts.
+- [x] **Pedigree Expansion**: Upgraded `SystemProfile` with GPU, network interface, and software version scythes.
+- [x] **Verified Integrity**: Every rule is backed by unit tests verifying logic against mock pedigrees.
+
+---
+
 *Document Status: ACTIVE* 🟢
-*Version: 6.0* (Updated 2026-03-01 with Shaft I & S completion)
+*Version: 7.0* (Updated 2026-03-01 with Shaft T completion)

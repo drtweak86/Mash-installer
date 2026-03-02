@@ -249,7 +249,10 @@ pub struct PhaseContext<'a> {
     pub localization: &'a Localization,
     pub rollback: &'a RollbackManager,
     pub dry_run_log: &'a DryRunLog,
+    pub observer: &'a mut dyn crate::PhaseObserver,
     actions_taken: Vec<String>,
+    configured_actions: Vec<String>,
+    tweaked_actions: Vec<String>,
     rollback_actions: Vec<String>,
     warnings: Vec<String>,
 }
@@ -263,6 +266,7 @@ impl<'a> PhaseContext<'a> {
         localization: &'a Localization,
         rollback: &'a RollbackManager,
         dry_run_log: &'a DryRunLog,
+        observer: &'a mut dyn crate::PhaseObserver,
     ) -> Self {
         PhaseContext {
             options,
@@ -272,7 +276,10 @@ impl<'a> PhaseContext<'a> {
             localization,
             rollback,
             dry_run_log,
+            observer,
             actions_taken: Vec::new(),
+            configured_actions: Vec::new(),
+            tweaked_actions: Vec::new(),
             rollback_actions: Vec::new(),
             warnings: Vec::new(),
         }
@@ -292,6 +299,16 @@ impl<'a> PhaseContext<'a> {
     /// Record an action that should be represented in `PhaseOutput`.
     pub fn record_action(&mut self, action: impl Into<String>) {
         self.actions_taken.push(action.into());
+    }
+
+    /// Record a configuration action.
+    pub fn record_configured(&mut self, action: impl Into<String>) {
+        self.configured_actions.push(action.into());
+    }
+
+    /// Record a tweak or setting change.
+    pub fn record_tweaked(&mut self, action: impl Into<String>) {
+        self.tweaked_actions.push(action.into());
     }
 
     /// Record a non-fatal warning that will appear in the phase output.
@@ -334,6 +351,8 @@ impl<'a> PhaseContext<'a> {
     pub fn take_metadata(&mut self) -> PhaseMetadata {
         PhaseMetadata {
             actions_taken: std::mem::take(&mut self.actions_taken),
+            configured_actions: std::mem::take(&mut self.configured_actions),
+            tweaked_actions: std::mem::take(&mut self.tweaked_actions),
             rollback_actions: std::mem::take(&mut self.rollback_actions),
             warnings: std::mem::take(&mut self.warnings),
             dry_run: self.options.dry_run,
@@ -344,6 +363,8 @@ impl<'a> PhaseContext<'a> {
 /// Collected metadata that each phase can report to the runner.
 pub struct PhaseMetadata {
     pub actions_taken: Vec<String>,
+    pub configured_actions: Vec<String>,
+    pub tweaked_actions: Vec<String>,
     pub rollback_actions: Vec<String>,
     pub warnings: Vec<String>,
     pub dry_run: bool,

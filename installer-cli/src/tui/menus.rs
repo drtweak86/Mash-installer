@@ -984,6 +984,101 @@ pub fn draw_password_prompt(
     f.render_widget(para, inner);
 }
 
+// ── Mid-install auth prompt ────────────────────────────────────────────────
+
+pub fn draw_auth_prompt(
+    f: &mut Frame,
+    area: Rect,
+    _app: &TuiApp,
+    state: &crate::tui::app::AuthState,
+) {
+    use installer_core::AuthType;
+    use ratatui::widgets::Modifier;
+
+    let (title, description) = match state.auth_type {
+        AuthType::GitHubCli => (
+            "GITHUB CLI AUTHORIZATION",
+            "The forge needs to launch 'gh auth login' to configure your GitHub access. \
+             This will require you to follow prompts in the terminal.",
+        ),
+        AuthType::SshKey => (
+            "SSH KEY GENERATION",
+            "No SSH keys were detected. Would you like the forge to generate a new Ed25519 key for you?",
+        ),
+        AuthType::GitConfig => (
+            "GIT GLOBAL CONFIGURATION",
+            "Your global Git user.name and user.email are not set. Would you like to configure them now?",
+        ),
+        AuthType::RcloneConfig => (
+            "RCLONE CONFIGURATION",
+            "rclone is not configured. The forge will now launch 'rclone config' so you can set up your cloud remotes.",
+        ),
+        AuthType::BorgSetup => (
+            "BORG BACKUP SETUP",
+            "BorgBackup is installed but no repository was found. Would you like to initialize a new backup repository?",
+        ),
+        AuthType::TailscaleAuth => (
+            "TAILSCALE AUTHORIZATION",
+            "Tailscale is installed but not authorized. The forge will now launch 'tailscale up' so you can join your tailnet.",
+        ),
+        AuthType::NgrokAuth => (
+            "NGROK CONFIGURATION",
+            "Ngrok requires an authtoken. The forge will launch the config tool so you can paste your token.",
+        ),
+        AuthType::CloudflaredAuth => (
+            "CLOUDFLARED AUTHORIZATION",
+            "Cloudflared requires a login. The forge will launch 'cloudflared tunnel login' to authorize your station.",
+        ),
+        AuthType::DockerAuth => (
+            "DOCKER REGISTRY LOGIN",
+            "Would you like to log in to a Docker registry (e.g., Docker Hub) now?",
+        ),
+        AuthType::ArgonOneConfig => (
+            "ARGON ONE FAN CONFIG",
+            "The Argon One fan script is installed. The forge will launch the config tool for your temperature thresholds.",
+        ),
+    };
+
+    let popup = centered_rect(60, 20, area);
+    let block = station_block(title);
+    let inner = block.inner(popup);
+    f.render_widget(block, popup);
+
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(1),
+            Constraint::Min(0),
+            Constraint::Length(1),
+        ])
+        .split(inner);
+
+    let desc_para = Paragraph::new(description.to_uppercase())
+        .style(theme::default_style())
+        .alignment(Alignment::Center)
+        .wrap(Wrap { trim: true });
+    f.render_widget(desc_para, chunks[1]);
+
+    let yes_style = if state.selected {
+        theme::accent_style().add_modifier(Modifier::REVERSED)
+    } else {
+        theme::default_style()
+    };
+    let no_style = if !state.selected {
+        theme::accent_style().add_modifier(Modifier::REVERSED)
+    } else {
+        theme::default_style()
+    };
+
+    let selector = Paragraph::new(Line::from(vec![
+        Span::styled("  [ YES ]  ", yes_style),
+        Span::raw("    "),
+        Span::styled("  [ NO  ]  ", no_style),
+    ]))
+    .alignment(Alignment::Center);
+    f.render_widget(selector, chunks[2]);
+}
+
 // ── Desktop Environment Select ─────────────────────────────────────────────
 
 pub fn draw_de_select(f: &mut Frame, area: Rect, app: &TuiApp) {

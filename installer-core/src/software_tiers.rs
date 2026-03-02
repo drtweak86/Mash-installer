@@ -15,7 +15,9 @@ use std::os::unix::fs::PermissionsExt;
 use anyhow::{Context, Result};
 
 use crate::catalog::{Catalog, Program};
-use crate::{cmd, package_manager, PhaseContext, PhaseResult, Validator};
+use crate::{
+    cmd, package_manager, AuthType, AuthorizationService, PhaseContext, PhaseResult, Validator,
+};
 
 #[derive(Clone, Debug, Default)]
 pub enum ThemePlan {
@@ -118,6 +120,48 @@ pub fn install_phase(ctx: &mut PhaseContext) -> Result<PhaseResult> {
 
     install_packages(ctx, &required, &optional)?;
     apply_theme_plan(ctx, &plan.theme_plan)?;
+
+    if ctx.options.interactive {
+        let has_borg = plan.selections.values().any(|v| v == "borgbackup");
+        if has_borg {
+            if !AuthorizationService::new(ctx.observer, ctx.options).is_authorized(AuthType::BorgSetup) {
+                if ctx.observer.request_auth(AuthType::BorgSetup)? {
+                    AuthorizationService::new(ctx.observer, ctx.options).authorize(AuthType::BorgSetup)?;
+                    ctx.record_configured("Borg backup repository");
+                }
+            }
+        }
+
+        let has_tailscale = plan.selections.values().any(|v| v == "tailscale");
+        if has_tailscale {
+            if !AuthorizationService::new(ctx.observer, ctx.options).is_authorized(AuthType::TailscaleAuth) {
+                if ctx.observer.request_auth(AuthType::TailscaleAuth)? {
+                    AuthorizationService::new(ctx.observer, ctx.options).authorize(AuthType::TailscaleAuth)?;
+                    ctx.record_configured("Tailscale (Authorized)");
+                }
+            }
+        }
+
+        let has_ngrok = plan.selections.values().any(|v| v == "ngrok");
+        if has_ngrok {
+            if !AuthorizationService::new(ctx.observer, ctx.options).is_authorized(AuthType::NgrokAuth) {
+                if ctx.observer.request_auth(AuthType::NgrokAuth)? {
+                    AuthorizationService::new(ctx.observer, ctx.options).authorize(AuthType::NgrokAuth)?;
+                    ctx.record_configured("Ngrok authtoken");
+                }
+            }
+        }
+
+        let has_cloudflared = plan.selections.values().any(|v| v == "cloudflared");
+        if has_cloudflared {
+            if !AuthorizationService::new(ctx.observer, ctx.options).is_authorized(AuthType::CloudflaredAuth) {
+                if ctx.observer.request_auth(AuthType::CloudflaredAuth)? {
+                    AuthorizationService::new(ctx.observer, ctx.options).authorize(AuthType::CloudflaredAuth)?;
+                    ctx.record_configured("Cloudflared (Authorized)");
+                }
+            }
+        }
+    }
 
     Ok(PhaseResult::Success)
 }

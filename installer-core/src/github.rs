@@ -2,15 +2,44 @@ use anyhow::Result;
 use std::process::Command;
 
 use crate::{
-    apt_repo, cmd, driver::RepoKind, package_manager, PhaseContext, PhaseResult, PkgBackend,
+    apt_repo, cmd, driver::RepoKind, package_manager, AuthType, AuthorizationService,
+    PhaseContext, PhaseResult, PkgBackend,
 };
 
 pub fn install_phase(ctx: &mut PhaseContext) -> Result<PhaseResult> {
     install_git(ctx)?;
     install_gh(ctx)?;
     install_ssh_tools(ctx)?;
-    remind_gh_auth_if_needed();
-    print_ssh_notes();
+
+    if ctx.options.interactive {
+        // GitHub CLI Auth
+        if !AuthorizationService::new(ctx.observer, ctx.options).is_authorized(AuthType::GitHubCli) {
+            if ctx.observer.request_auth(AuthType::GitHubCli)? {
+                AuthorizationService::new(ctx.observer, ctx.options).authorize(AuthType::GitHubCli)?;
+                ctx.record_configured("GitHub CLI (Authorized)");
+            }
+        }
+
+        // SSH Key Generation
+        if !AuthorizationService::new(ctx.observer, ctx.options).is_authorized(AuthType::SshKey) {
+            if ctx.observer.request_auth(AuthType::SshKey)? {
+                AuthorizationService::new(ctx.observer, ctx.options).authorize(AuthType::SshKey)?;
+                ctx.record_configured("SSH keys (Generated & Registered)");
+            }
+        }
+
+        // Git Config
+        if !AuthorizationService::new(ctx.observer, ctx.options).is_authorized(AuthType::GitConfig) {
+            if ctx.observer.request_auth(AuthType::GitConfig)? {
+                AuthorizationService::new(ctx.observer, ctx.options).authorize(AuthType::GitConfig)?;
+                ctx.record_configured("Git global identity");
+            }
+        }
+    } else {
+        remind_gh_auth_if_needed();
+        print_ssh_notes();
+    }
+    
     Ok(PhaseResult::Success)
 }
 

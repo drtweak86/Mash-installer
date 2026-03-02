@@ -1,5 +1,22 @@
 # MASH Mining Projects: Complete Summary
 
+## ✅ COMPLETED SHAFTS
+
+### Shaft V: The Interactive Forge (Installation Flow & Authorizations)
+**Status**: ✅ COMPLETE
+**Completed**: 2026-03-02
+**Owner**: Bard
+
+#### 🎯 Objective
+Perfecting the installation sequence and enabling "Living Installations" through interactive setup. Moves beyond simple binary installation to fully configured environments.
+
+#### 📦 Deliverables
+1. **Dependency-First Orchestration**: Topological sorting and prerequisite gates.
+2. **Interactive Authorization Service**: Support for gh, ssh, git, rclone, borg, tailscale, ngrok, cloudflared, docker, argon-one.
+3. **The Doctor Reforged**: Secret scrubbing, cleanup, and detailed action tracking.
+
+---
+
 ## 🏗️ ACTIVE SHAFTS
 
 ### Shaft H: Installer Experience Overhaul ✅ PLANNING COMPLETE
