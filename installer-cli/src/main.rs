@@ -271,18 +271,25 @@ fn print_completion_message(report: &InstallationReport, dry_run: bool) {
 }
 
 fn print_dry_run_summary(report: &InstallationReport) {
-    println!("──── Dry-run summary ────────────────────────────");
-    if report.dry_run_log.is_empty() {
+    println!("──── Pre-flight Audit Report (Dry Run) ──────────");
+    if report.audit_report.total_actions == 0 {
         println!("  No dry-run actions were recorded.");
     } else {
-        for (idx, entry) in report.dry_run_log.iter().enumerate() {
-            println!("  {}. [{}] {}", idx + 1, entry.phase, entry.action);
-            if let Some(detail) = &entry.detail {
-                println!("     {detail}");
+        println!(
+            "  Total planned actions: {}",
+            report.audit_report.total_actions
+        );
+        for (phase, entries) in &report.audit_report.phases {
+            println!("\n  [{}]", phase);
+            for entry in entries {
+                println!("    • {}", entry.action);
+                if let Some(detail) = &entry.detail {
+                    println!("      {}", detail);
+                }
             }
         }
     }
-    println!("  No resources were modified during dry run.");
+    println!("\n  No resources were modified during dry run.");
     println!("───────────────────────────────────────────────");
     println!();
 }
@@ -413,6 +420,7 @@ mod error_report_tests {
                 description: "test driver".into(),
             },
             dry_run_log: Vec::new(),
+            audit_report: installer_core::dry_run::PreflightAuditReport::default(),
         }
     }
 
@@ -432,17 +440,19 @@ mod error_report_tests {
     fn write_error_report_outputs_no_errors_message() {
         let report = InstallationReport {
             completed_phases: Vec::new(),
-            staging_dir: PathBuf::from("/tmp/staging"),
+            staging_dir: PathBuf::from("/tmp"),
             errors: Vec::new(),
             outputs: Vec::new(),
             events: Vec::new(),
             options: InstallOptions::default(),
             driver: DriverInfo {
                 name: "test".into(),
-                description: "test driver".into(),
+                description: "test".into(),
             },
             dry_run_log: Vec::new(),
+            audit_report: installer_core::dry_run::PreflightAuditReport::default(),
         };
+
         let mut buf = Vec::new();
         write_error_report(&report, &mut buf).expect("write failed");
         let output = String::from_utf8(buf).expect("invalid utf8");

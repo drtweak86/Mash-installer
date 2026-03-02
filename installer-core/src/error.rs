@@ -1,6 +1,6 @@
 use crate::cmd;
 use crate::context::UserOptionsContext;
-use crate::dry_run::DryRunEntry;
+use crate::dry_run::{DryRunEntry, PreflightAuditReport};
 use crate::ConfigError;
 use crate::ProfileLevel;
 use crate::{InstallOptions, SoftwareTierPlan};
@@ -11,6 +11,7 @@ use std::path::PathBuf;
 use thiserror::Error as ThisError;
 
 #[derive(ThisError, Debug)]
+#[allow(dead_code)]
 pub enum CoreError {
     #[error("Platform detection failed: {0}")]
     PlatformDetection(String),
@@ -179,6 +180,7 @@ pub struct InstallationReport {
     pub options: InstallOptions,
     pub driver: DriverInfo,
     pub dry_run_log: Vec<DryRunEntry>,
+    pub audit_report: PreflightAuditReport,
 }
 
 impl InstallationReport {
@@ -223,6 +225,7 @@ impl From<Error> for InstallerRunError {
                     description: "unknown driver".to_string(),
                 },
                 dry_run_log: Vec::new(),
+                audit_report: PreflightAuditReport::default(),
             }),
             source: installer_error,
         }
@@ -258,6 +261,7 @@ impl From<ConfigError> for Box<InstallerRunError> {
                 description: "unknown driver".to_string(),
             },
             dry_run_log: Vec::new(),
+            audit_report: PreflightAuditReport::default(),
         };
 
         Box::new(InstallerRunError {
