@@ -13,7 +13,8 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 
-pub use crate::model::software::{SoftwareTierPlan, ThemePlan};
+pub use crate::model::software::SoftwareTierPlan;
+pub use crate::model::software::ThemePlan;
 
 use crate::catalog::{Catalog, Program};
 use crate::system::cmd;
@@ -31,89 +32,109 @@ pub fn install_phase(ctx: &mut PhaseContext) -> Result<PhaseResult> {
     let s_tier = Catalog::load_s_tier()?;
     let full = Catalog::load_full()?;
     let languages = Catalog::load_languages()?;
+    let catalogs = [&s_tier, &full, &languages];
 
     let mut required = BTreeSet::new();
     let optional = BTreeSet::new();
 
     let distro_family = &ctx.platform.platform.distro_family;
 
-    for program_id in plan.selections.values() {
-        if let Some(program) = find_program_in_catalogs(program_id, &[&s_tier, &full, &languages]) {
-            // Optimization: If full_install is true, we only install S-tier if specifically in that mode.
-            // Wait, if full_install is true, we WANT all selections.
-            // If full_install is false, we might want to filter? No, the selections are explicit.
+    // 1. Resolve programs by tier inheritance if target_tier is set
+    if let Some(target_tier) = plan.target_tier {
+        let allowed_tiers = target_tier.resolve();
+        for catalog in catalogs {
+            for category in &catalog.categories {
+                for subcategory in &category.subcategories {
+                    for program in &subcategory.programs {
+                        if allowed_tiers.contains(&program.tier) {
+                            if let Some(pkgs) = program.packages.get(distro_family) {
+                                for pkg in pkgs {
+                                    required.insert(pkg.clone());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
-            // The actual logic should be: if full_install is true AND it's "BardsRecommendations",
-            // we already have the S-tier picks.
-            // If it's "Auto", we have the first from each category.
-
-            // Let's refine: Only install if it matches the distro family.
-            if let Some(pkgs) = program.packages.get(distro_family) {
-                for pkg in pkgs {
-                    required.insert(pkg.clone());
+    // 2. Resolve explicit program selections
+    for program_ids in plan.selections.values() {
+        for program_id in program_ids {
+            if let Some(program) = find_program_in_catalogs(program_id, &catalogs) {
+                if let Some(pkgs) = program.packages.get(distro_family) {
+                    for pkg in pkgs {
+                        required.insert(pkg.clone());
+                    }
+                } else {
+                    ctx.record_warning(format!(
+                        "No package mapping for program {} on distro family {}",
+                        program.name, distro_family
+                    ));
                 }
             } else {
                 ctx.record_warning(format!(
-                    "No package mapping for program {} on distro family {}",
-                    program.name, distro_family
+                    "Program ID {} not found in any catalog",
+                    program_id
                 ));
             }
-        } else {
-            ctx.record_warning(format!(
-                "Program ID {} not found in any catalog",
-                program_id
-            ));
         }
     }
 
     install_packages(ctx, &required, &optional)?;
     apply_theme_plan(ctx, &plan.theme_plan)?;
 
+    // Post-install configurations (Auth, etc.)
     if ctx.options.interactive {
-        let has_borg = plan.selections.values().any(|v| v == "borgbackup");
-        if has_borg
-            && !AuthorizationService::new(ctx.observer, ctx.options)
-                .is_authorized(AuthType::BorgSetup)
-            && ctx.observer.request_auth(AuthType::BorgSetup)?
-        {
-            AuthorizationService::new(ctx.observer, ctx.options).authorize(AuthType::BorgSetup)?;
-            ctx.record_configured("Borg backup repository");
-        }
-
-        let has_tailscale = plan.selections.values().any(|v| v == "tailscale");
-        if has_tailscale
-            && !AuthorizationService::new(ctx.observer, ctx.options)
-                .is_authorized(AuthType::TailscaleAuth)
-            && ctx.observer.request_auth(AuthType::TailscaleAuth)?
-        {
-            AuthorizationService::new(ctx.observer, ctx.options)
-                .authorize(AuthType::TailscaleAuth)?;
-            ctx.record_configured("Tailscale (Authorized)");
-        }
-
-        let has_ngrok = plan.selections.values().any(|v| v == "ngrok");
-        if has_ngrok
-            && !AuthorizationService::new(ctx.observer, ctx.options)
-                .is_authorized(AuthType::NgrokAuth)
-            && ctx.observer.request_auth(AuthType::NgrokAuth)?
-        {
-            AuthorizationService::new(ctx.observer, ctx.options).authorize(AuthType::NgrokAuth)?;
-            ctx.record_configured("Ngrok authtoken");
-        }
-
-        let has_cloudflared = plan.selections.values().any(|v| v == "cloudflared");
-        if has_cloudflared
-            && !AuthorizationService::new(ctx.observer, ctx.options)
-                .is_authorized(AuthType::CloudflaredAuth)
-            && ctx.observer.request_auth(AuthType::CloudflaredAuth)?
-        {
-            AuthorizationService::new(ctx.observer, ctx.options)
-                .authorize(AuthType::CloudflaredAuth)?;
-            ctx.record_configured("Cloudflared (Authorized)");
-        }
+        handle_interactive_auth(ctx, plan)?;
     }
 
     Ok(PhaseResult::Success)
+}
+
+fn handle_interactive_auth(ctx: &mut PhaseContext, plan: &SoftwareTierPlan) -> Result<()> {
+    let all_selected_ids: BTreeSet<_> = plan.selections.values().flatten().collect();
+
+    let has_borg = all_selected_ids.contains(&"borgbackup".to_string());
+    if has_borg
+        && !AuthorizationService::new(ctx.observer, ctx.options).is_authorized(AuthType::BorgSetup)
+        && ctx.observer.request_auth(AuthType::BorgSetup)?
+    {
+        AuthorizationService::new(ctx.observer, ctx.options).authorize(AuthType::BorgSetup)?;
+        ctx.record_configured("Borg backup repository");
+    }
+
+    let has_tailscale = all_selected_ids.contains(&"tailscale".to_string());
+    if has_tailscale
+        && !AuthorizationService::new(ctx.observer, ctx.options)
+            .is_authorized(AuthType::TailscaleAuth)
+        && ctx.observer.request_auth(AuthType::TailscaleAuth)?
+    {
+        AuthorizationService::new(ctx.observer, ctx.options).authorize(AuthType::TailscaleAuth)?;
+        ctx.record_configured("Tailscale (Authorized)");
+    }
+
+    let has_ngrok = all_selected_ids.contains(&"ngrok".to_string());
+    if has_ngrok
+        && !AuthorizationService::new(ctx.observer, ctx.options).is_authorized(AuthType::NgrokAuth)
+        && ctx.observer.request_auth(AuthType::NgrokAuth)?
+    {
+        AuthorizationService::new(ctx.observer, ctx.options).authorize(AuthType::NgrokAuth)?;
+        ctx.record_configured("Ngrok authtoken");
+    }
+
+    let has_cloudflared = all_selected_ids.contains(&"cloudflared".to_string());
+    if has_cloudflared
+        && !AuthorizationService::new(ctx.observer, ctx.options)
+            .is_authorized(AuthType::CloudflaredAuth)
+        && ctx.observer.request_auth(AuthType::CloudflaredAuth)?
+    {
+        AuthorizationService::new(ctx.observer, ctx.options).authorize(AuthType::CloudflaredAuth)?;
+        ctx.record_configured("Cloudflared (Authorized)");
+    }
+
+    Ok(())
 }
 
 fn find_program_in_catalogs<'a>(id: &str, catalogs: &[&'a Catalog]) -> Option<&'a Program> {
@@ -227,6 +248,8 @@ fn install_retro_theme_plan(ctx: &mut PhaseContext, with_wallpapers: bool) -> Re
 }
 
 fn install_wallpaper_downloader(ctx: &mut PhaseContext, home_dir: &std::path::Path) -> Result<()> {
+    // Note: This logic might be moved to the new unified wallpaper crate later.
+    // For now, we keep it as a first-boot systemd service.
     let script_path = home_dir.join(".local/bin/wallpaper_downloader_final.py");
     let pip_cmd = ["-m", "pip", "install", "--user", "requests"];
     let first_boot_script = home_dir.join(".local/bin/mash-retro-wallpapers-first-boot.sh");

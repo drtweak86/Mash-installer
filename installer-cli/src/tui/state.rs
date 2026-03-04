@@ -7,7 +7,10 @@ pub use installer_core::desktop::{DesktopEnvironment, DisplayProtocol};
 pub use installer_core::platform::PlatformInfo;
 pub use installer_core::preset::Preset;
 pub use installer_core::SystemProfile;
-pub use installer_core::{AuthType, DistroDriver, InstallationReport, PhaseEvent, ThemePlan};
+pub use installer_core::{
+    AuthType, DistroDriver, InstallationReport, PhaseEvent, SoftwareCategory, SoftwareTierPlan,
+    ThemePlan, Tier,
+};
 
 // ── Message bus ──────────────────────────────────────────────────────────────
 
@@ -231,7 +234,7 @@ pub struct TuiApp {
     // Software tiers
     pub software_mode: SoftwareMode,
     pub catalog: Catalog,
-    pub software_picks: BTreeMap<String, String>,
+    pub software_picks: BTreeMap<SoftwareCategory, Vec<String>>,
     pub software_category_idx: usize,
     // Dry-run flag
     pub dry_run: bool,

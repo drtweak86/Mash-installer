@@ -1,5 +1,5 @@
 use crate::model::software::SoftwareTierPlan;
-use crate::Validator;
+use crate::model::Validator;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 

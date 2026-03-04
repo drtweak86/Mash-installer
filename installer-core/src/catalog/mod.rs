@@ -1,12 +1,14 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+use crate::model::software::{SoftwareCategory, Tier};
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Program {
     pub id: String,
     pub name: String,
     pub description: String,
-    pub tier: String,
+    pub tier: Tier,
     pub packages: HashMap<String, Vec<String>>,
     #[serde(default)]
     pub recommended: bool,
@@ -23,7 +25,8 @@ pub struct Subcategory {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Category {
-    pub name: String,
+    #[serde(rename = "name")]
+    pub id: SoftwareCategory,
     pub display_name: String,
     pub description: String,
     pub icon: Option<String>,

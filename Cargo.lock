@@ -934,6 +934,7 @@ dependencies = [
  "serde_urlencoded",
  "sha2",
  "signal-hook 0.4.3",
+ "strum",
  "tempfile",
  "thiserror 2.0.18",
  "tokio",

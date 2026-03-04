@@ -1,7 +1,7 @@
 //! AI Spirits install phase.
 //!
 //! Installs optional AI coding assistants (Claude Code, Gemini CLI, Mistral Vibe)
-//! when the user selects them under the "AI Spirits" software category. Also
+//! when the user selects them under the "Development" software category. Also
 //! injects a GitHub MCP server entry into any detected AI desktop config files
 //! (Claude Desktop, Zed, Cursor, VS Code).
 //!
@@ -9,21 +9,33 @@
 
 use crate::system::cmd;
 use crate::{package_manager, PhaseContext, PhaseResult};
+use crate::model::software::SoftwareCategory;
 use anyhow::Result;
 use std::process::Command;
 
 pub fn install_phase(ctx: &mut PhaseContext) -> Result<PhaseResult> {
-    let selections = &ctx.options.software_plan.selections;
-
-    // Check if any AI agents are selected in the "AI Spirits" category
+    let plan = &ctx.options.software_plan;
+    
+    // Check if any AI agents are selected
     let mut selected_agents: Vec<&str> = Vec::new();
-    if let Some(pick) = selections.get("AI Spirits") {
-        selected_agents.push(pick.as_str());
-    } else {
-        // Check all selections just in case
-        for (cat, pick) in selections {
-            if cat == "AI Spirits" || pick == "Claude" || pick == "Gemini" || pick == "Vibe" {
+    
+    // Check explicit selections in Development category
+    if let Some(picks) = plan.selections.get(&SoftwareCategory::Development) {
+        for pick in picks {
+            if pick == "claude" || pick == "gemini" || pick == "vibe" {
                 selected_agents.push(pick.as_str());
+            }
+        }
+    }
+    
+    // Check all selections just in case they are under a different category or name
+    for picks in plan.selections.values() {
+        for pick in picks {
+            match pick.as_str() {
+                "claude" | "Claude" => if !selected_agents.contains(&"claude") { selected_agents.push("claude") },
+                "gemini" | "Gemini" => if !selected_agents.contains(&"gemini") { selected_agents.push("gemini") },
+                "vibe" | "Vibe" => if !selected_agents.contains(&"vibe") { selected_agents.push("vibe") },
+                _ => {}
             }
         }
     }
@@ -38,9 +50,9 @@ pub fn install_phase(ctx: &mut PhaseContext) -> Result<PhaseResult> {
 
     for agent in selected_agents {
         match agent {
-            "Claude" => install_claude(ctx)?,
-            "Gemini" => install_gemini(ctx)?,
-            "Vibe" => install_vibe(ctx)?,
+            "claude" => install_claude(ctx)?,
+            "gemini" => install_gemini(ctx)?,
+            "vibe" => install_vibe(ctx)?,
             _ => {}
         }
     }

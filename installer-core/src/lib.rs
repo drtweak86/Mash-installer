@@ -1,4 +1,4 @@
-mod model;
+pub mod model;
 mod system;
 mod wallpaper;
 
@@ -70,6 +70,7 @@ pub use context::{
 pub use doctor::{run_doctor, DoctorOutput};
 pub use driver::{AptRepoConfig, DistroDriver, RepoKind, ServiceName};
 pub use model::phase::AuthType;
+pub use model::software::{SoftwareCategory, SoftwareTierPlan, ThemePlan, Tier};
 pub use options::{InstallOptions, ProfileLevel};
 pub use orchestrator::run_with_driver;
 pub use package_spec::{PackageIntent, PackageSpec};
@@ -85,8 +86,7 @@ pub use profile::{
     PlatformType, SessionInfo, StorageInfo, SystemProfile, SystemProfileExt,
 };
 pub use rollback::RollbackManager;
-pub use software_tiers::SoftwareTierPlan;
-pub use software_tiers::ThemePlan;
+pub use software_tiers::install_phase as run_software_install;
 pub use status::{run_status, StatusOutput};
 pub use system::error::{
     DriverInfo, ErrorSeverity, InstallationReport, InstallerError, InstallerRunError,
