@@ -11,27 +11,17 @@ COPY Cargo.toml Cargo.lock ./
 COPY installer-cli/Cargo.toml installer-cli/
 COPY installer-core/Cargo.toml installer-core/
 COPY installer-drivers/Cargo.toml installer-drivers/
-COPY installer-model/Cargo.toml installer-model/
-COPY mash-system/Cargo.toml mash-system/
-COPY mash-wallpaper/Cargo.toml mash-wallpaper/
-COPY wallpaper-downloader/Cargo.toml wallpaper-downloader/
 COPY xtask/Cargo.toml xtask/
 COPY workspace-hack/Cargo.toml workspace-hack/
 
 # Create placeholder source files so cargo can parse manifests without source trees.
 RUN mkdir -p installer-cli/src installer-core/src \
-             installer-drivers/src installer-model/src \
-             mash-system/src mash-wallpaper/src \
-             wallpaper-downloader/src \
+             installer-drivers/src \
              xtask/src workspace-hack/src \
     && echo 'fn main() {}' > installer-cli/src/main.rs \
     && echo 'fn main() {}' > xtask/src/main.rs \
     && touch installer-core/src/lib.rs \
              installer-drivers/src/lib.rs \
-             installer-model/src/lib.rs \
-             mash-system/src/lib.rs \
-             mash-wallpaper/src/lib.rs \
-             wallpaper-downloader/src/lib.rs \
              workspace-hack/src/lib.rs
 
 # Fetch dependencies
@@ -41,10 +31,6 @@ RUN cargo fetch --target x86_64-unknown-linux-gnu
 COPY installer-cli/src/ installer-cli/src/
 COPY installer-core/src/ installer-core/src/
 COPY installer-drivers/src/ installer-drivers/src/
-COPY installer-model/src/ installer-model/src/
-COPY mash-system/src/ mash-system/src/
-COPY mash-wallpaper/src/ mash-wallpaper/src/
-COPY wallpaper-downloader/src/ wallpaper-downloader/src/
 COPY resources/ resources/
 
 # Build release binary
@@ -62,7 +48,7 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /root/
 
-# Copy binary from builder (handling custom target path if present)
+# Copy binary from builder
 COPY --from=builder /app/target/release/mash-setup /usr/local/bin/mash-setup
 
 # Copy install script
