@@ -1,9 +1,0 @@
-[package]
-name = "installer-arch"
-version = "1.0.0"
-edition = "2021"
-description = "Arch-specific installer driver"
-license = "MIT"
-
-[dependencies]
-installer-core = { path = "../installer-core" }

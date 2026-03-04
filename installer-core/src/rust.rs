@@ -10,7 +10,8 @@ use anyhow::{Context, Result};
 use std::path::PathBuf;
 use std::process::Command;
 
-use crate::{cmd, PhaseContext, PhaseResult};
+use crate::system::cmd;
+use crate::{PhaseContext, PhaseResult};
 
 /// Check if rustup is installed for the current user.
 fn has_rustup() -> bool {
@@ -65,6 +66,7 @@ rustflags = [
 
 [build]
 jobs = 4 # Utilize all 4 cores of the Pi 4B
+rustc-wrapper = "sccache"
 
 # SAFE FALLBACK FOR OTHER SYSTEMS
 #[build]
@@ -196,6 +198,12 @@ fn install_cargo_tools(ctx: &mut PhaseContext) -> Result<()> {
         ("cargo-edit", "cargo-add"), // provides `cargo add`
         ("cargo-watch", "cargo-watch"),
         ("cargo-audit", "cargo-audit"),
+        ("cargo-nextest", "cargo-nextest"),
+        ("cargo-maelstrom", "cargo-maelstrom"),
+        ("cargo-machete", "cargo-machete"),
+        ("cargo-shear", "cargo-shear"),
+        ("cargo-deps", "cargo-deps"),
+        ("cargo-hakari", "cargo-hakari"),
         ("bacon", "bacon"),
         ("just", "just"),
         ("sccache", "sccache"),

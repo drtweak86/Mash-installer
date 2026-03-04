@@ -3,25 +3,13 @@ use std::path::{Path, PathBuf};
 use crate::backend::PkgBackend;
 use crate::config::{self, ConfigError};
 use crate::driver::DistroDriver;
-use crate::dry_run::DryRunLog;
 use crate::localization::Localization;
+pub use crate::model::options::UserOptionsContext;
 use crate::platform::PlatformInfo;
 use crate::rollback::RollbackManager;
 use crate::staging;
-use crate::SoftwareTierPlan;
+use crate::system::dry_run::DryRunLog;
 use anyhow::Result;
-
-/// CLI-supplied options that guide the installation.
-pub struct UserOptionsContext {
-    pub profile: crate::ProfileLevel,
-    pub staging_dir: PathBuf,
-    pub dry_run: bool,
-    pub interactive: bool,
-    pub enable_argon: bool,
-    pub enable_p10k: bool,
-    pub docker_data_root: bool,
-    pub software_plan: SoftwareTierPlan,
-}
 
 /// Options that override values in the persisted Mash config.
 #[derive(Debug, Clone, Default)]
@@ -87,7 +75,7 @@ pub struct PlatformContext {
     pub driver_name: &'static str,
     pub driver: &'static dyn DistroDriver,
     pub pkg_backend: PkgBackend,
-    pub system: &'static dyn crate::system::SystemOps,
+    pub system: &'static dyn crate::sys_ops::SystemOps,
 }
 
 impl PlatformContext {
@@ -207,6 +195,9 @@ mod tests {
             distro_codename: "test".into(),
             distro_family: "debian".into(),
             pi_model: model.map(|s| s.to_string()),
+            cpu_model: "test".into(),
+            cpu_cores: 4,
+            ram_total_gb: 8.0,
         };
         PlatformContext {
             config_service,
@@ -214,7 +205,7 @@ mod tests {
             driver_name: "test",
             driver: &TEST_DRIVER,
             pkg_backend: TEST_DRIVER.pkg_backend(),
-            system: &crate::system::REAL_SYSTEM,
+            system: &crate::sys_ops::REAL_SYSTEM,
         }
     }
 
@@ -249,12 +240,16 @@ pub struct PhaseContext<'a> {
     pub localization: &'a Localization,
     pub rollback: &'a RollbackManager,
     pub dry_run_log: &'a DryRunLog,
+    pub observer: &'a mut dyn crate::PhaseObserver,
     actions_taken: Vec<String>,
+    configured_actions: Vec<String>,
+    tweaked_actions: Vec<String>,
     rollback_actions: Vec<String>,
     warnings: Vec<String>,
 }
 
 impl<'a> PhaseContext<'a> {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         options: &'a UserOptionsContext,
         platform: &'a PlatformContext,
@@ -263,6 +258,7 @@ impl<'a> PhaseContext<'a> {
         localization: &'a Localization,
         rollback: &'a RollbackManager,
         dry_run_log: &'a DryRunLog,
+        observer: &'a mut dyn crate::PhaseObserver,
     ) -> Self {
         PhaseContext {
             options,
@@ -272,7 +268,10 @@ impl<'a> PhaseContext<'a> {
             localization,
             rollback,
             dry_run_log,
+            observer,
             actions_taken: Vec::new(),
+            configured_actions: Vec::new(),
+            tweaked_actions: Vec::new(),
             rollback_actions: Vec::new(),
             warnings: Vec::new(),
         }
@@ -292,6 +291,16 @@ impl<'a> PhaseContext<'a> {
     /// Record an action that should be represented in `PhaseOutput`.
     pub fn record_action(&mut self, action: impl Into<String>) {
         self.actions_taken.push(action.into());
+    }
+
+    /// Record a configuration action.
+    pub fn record_configured(&mut self, action: impl Into<String>) {
+        self.configured_actions.push(action.into());
+    }
+
+    /// Record a tweak or setting change.
+    pub fn record_tweaked(&mut self, action: impl Into<String>) {
+        self.tweaked_actions.push(action.into());
     }
 
     /// Record a non-fatal warning that will appear in the phase output.
@@ -334,6 +343,8 @@ impl<'a> PhaseContext<'a> {
     pub fn take_metadata(&mut self) -> PhaseMetadata {
         PhaseMetadata {
             actions_taken: std::mem::take(&mut self.actions_taken),
+            configured_actions: std::mem::take(&mut self.configured_actions),
+            tweaked_actions: std::mem::take(&mut self.tweaked_actions),
             rollback_actions: std::mem::take(&mut self.rollback_actions),
             warnings: std::mem::take(&mut self.warnings),
             dry_run: self.options.dry_run,
@@ -341,13 +352,7 @@ impl<'a> PhaseContext<'a> {
     }
 }
 
-/// Collected metadata that each phase can report to the runner.
-pub struct PhaseMetadata {
-    pub actions_taken: Vec<String>,
-    pub rollback_actions: Vec<String>,
-    pub warnings: Vec<String>,
-    pub dry_run: bool,
-}
+pub use crate::model::phase::PhaseMetadata;
 
 pub trait DryRunDefault {
     fn dry_run_default() -> Self;

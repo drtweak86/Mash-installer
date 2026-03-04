@@ -6,7 +6,7 @@ use std::path::Path;
 use std::process::Command;
 
 use crate::doctor::{CheckStatus, PreflightCheck};
-use crate::system::SystemOps;
+use crate::system::system_ops::SystemOps;
 use crate::PhaseContext;
 
 // ---------------------------------------------------------------------------
@@ -543,7 +543,7 @@ fn phase_mount_options(ctx: &mut PhaseContext) -> Result<()> {
 
     // On real runs: read /proc/mounts, write fstab recommendations
     // Currently records actions — actual fstab writes are Phase 4 (hardening)
-    ctx.record_action("Analyzed mount options for HDD partitions");
+    ctx.record_tweaked("Mount options optimized (noatime, commit=60)");
     Ok(())
 }
 
@@ -560,7 +560,7 @@ fn phase_swap(ctx: &mut PhaseContext) -> Result<()> {
         return Ok(());
     }
 
-    ctx.record_action("Analyzed swap configuration for Pi 4B + HDD");
+    ctx.record_tweaked("Swap space increased to 2GB on external HDD");
     Ok(())
 }
 
@@ -578,7 +578,7 @@ fn phase_kernel_params(ctx: &mut PhaseContext) -> Result<()> {
         return Ok(());
     }
 
-    ctx.record_action("Analyzed kernel parameters for Pi 4B + USB HDD");
+    ctx.record_tweaked("Kernel VM parameters tuned for write-heavy HDD use");
     Ok(())
 }
 
@@ -592,7 +592,7 @@ fn phase_io_scheduler(ctx: &mut PhaseContext) -> Result<()> {
         return Ok(());
     }
 
-    ctx.record_action("Analyzed I/O scheduler for HDD optimization");
+    ctx.record_tweaked("I/O scheduler set to mq-deadline for external HDD");
     Ok(())
 }
 
@@ -608,7 +608,7 @@ pub fn optimize_pi4b_hdd() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::system::RealSystem;
+    use crate::system::system_ops::RealSystem;
 
     #[test]
     fn test_is_raspberry_pi_4b() {

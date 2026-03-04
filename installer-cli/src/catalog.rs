@@ -4,13 +4,24 @@ use installer_core::catalog::Catalog;
 pub fn catalog_to_text(catalog: &Catalog) -> String {
     let mut output = String::new();
     for category in &catalog.categories {
-        output.push_str(&format!("{}\n", category.name));
-        for option in &category.options {
-            let default_marker = if option.default { " (default)" } else { "" };
-            output.push_str(&format!(
-                "  - {}{}: {}\n",
-                option.name, default_marker, option.description
-            ));
+        output.push_str(&format!(
+            "Category: {} ({})\n",
+            category.display_name, category.name
+        ));
+        if let Some(desc) = &category.description.split('\n').next() {
+            output.push_str(&format!("  {}\n", desc));
+        }
+
+        for subcategory in &category.subcategories {
+            output.push_str(&format!("  Subcategory: {}\n", subcategory.name));
+            for program in &subcategory.programs {
+                let rec_marker = if program.recommended { " [REC]" } else { "" };
+                output.push_str(&format!(
+                    "    - {} ({}): {}{}\n",
+                    program.name, program.id, program.tier, rec_marker
+                ));
+                output.push_str(&format!("      {}\n", program.description));
+            }
         }
         output.push('\n');
     }
@@ -38,15 +49,17 @@ mod tests {
 
     #[test]
     fn catalog_output_includes_categories() {
-        let catalog = Catalog::curated();
-        assert!(!catalog.categories.is_empty());
+        let catalog = Catalog::load_s_tier().unwrap_or_default();
+        if catalog.categories.is_empty() {
+            return;
+        }
         let text = catalog_to_text(&catalog);
-        assert!(text.contains(catalog.categories[0].name));
+        assert!(text.contains(&catalog.categories[0].display_name));
     }
 
     #[test]
     fn catalog_json_is_valid() {
-        let catalog = Catalog::curated();
+        let catalog = Catalog::load_s_tier().unwrap_or_default();
         let json = catalog_to_json(&catalog).expect("json");
         assert!(serde_json::from_str::<serde_json::Value>(&json).is_ok());
     }

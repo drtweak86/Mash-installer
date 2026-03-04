@@ -45,4 +45,16 @@ impl PhaseObserver for RatatuiPhaseObserver {
         }
         Ok(reply_rx.recv().unwrap_or_default())
     }
+
+    fn request_auth(&mut self, auth_type: installer_core::AuthType) -> anyhow::Result<bool> {
+        let (reply_tx, reply_rx) = mpsc::channel::<bool>();
+        let msg = TuiMessage::AuthRequest {
+            auth_type,
+            reply: reply_tx,
+        };
+        if self.tx.send(msg).is_err() {
+            return Ok(false);
+        }
+        Ok(reply_rx.recv().unwrap_or(false))
+    }
 }

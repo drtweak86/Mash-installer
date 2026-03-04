@@ -2,8 +2,8 @@ use anyhow::{Context, Result};
 use std::path::Path;
 use std::process::Command;
 
+use crate::system::cmd;
 use crate::{
-    cmd,
     context::PhaseContext,
     driver::{AptRepoConfig, RepoKind},
     package_manager,

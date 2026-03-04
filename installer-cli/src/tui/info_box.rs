@@ -167,11 +167,22 @@ fn build_info_lines(app: &TuiApp) -> Vec<Line<'static>> {
 
         Screen::Confirm => vec![
             Line::from(Span::styled(
-                "Pre-Installation Confirmation",
+                "Final provision confirmation",
                 theme::accent_style(),
             )),
             Line::from(Span::styled(
-                "Review all settings before proceeding",
+                "Review the manifest before striking steel",
+                theme::dim_style(),
+            )),
+        ],
+
+        Screen::SystemSummary => vec![
+            Line::from(Span::styled(
+                "System scrying results",
+                theme::accent_style(),
+            )),
+            Line::from(Span::styled(
+                "Verify hardware and storage landscape",
                 theme::dim_style(),
             )),
         ],
@@ -180,6 +191,25 @@ fn build_info_lines(app: &TuiApp) -> Vec<Line<'static>> {
             Line::from(Span::styled("Font Preparation", theme::accent_style())),
             Line::from(Span::styled(
                 "Downloading and installing fonts",
+                theme::dim_style(),
+            )),
+        ],
+
+        Screen::Wardrobe => vec![
+            Line::from(Span::styled("The Wardrobe", theme::accent_style())),
+            Line::from(Span::styled(
+                "Choose a curated preset for your system",
+                theme::dim_style(),
+            )),
+        ],
+
+        Screen::Authorization => vec![
+            Line::from(Span::styled(
+                "Interactive Authorization",
+                theme::accent_style(),
+            )),
+            Line::from(Span::styled(
+                "Complete tool configuration in terminal",
                 theme::dim_style(),
             )),
         ],
@@ -247,6 +277,7 @@ fn build_info_lines(app: &TuiApp) -> Vec<Line<'static>> {
     }
 }
 
+#[allow(dead_code)]
 pub fn get_main_area_with_info_box(area: Rect) -> (Rect, Rect) {
     let vertical = Layout::default()
         .direction(Direction::Vertical)

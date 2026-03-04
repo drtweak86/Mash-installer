@@ -1,0 +1,384 @@
+=== wallpaper-downloader ===
+wallpaper-downloader v1.1.0-alpha.2 (/data/GitHub/Mash-installer/wallpaper-downloader)
+├── anyhow v1.0.102
+├── clap v4.5.60
+│   ├── clap_builder v4.5.60
+│   │   ├── anstream v0.6.21
+│   │   │   ├── anstyle v1.0.13
+│   │   │   ├── anstyle-parse v0.2.7
+│   │   │   │   └── utf8parse v0.2.2
+│   │   │   ├── anstyle-query v1.1.5
+│   │   │   ├── colorchoice v1.0.4
+│   │   │   ├── is_terminal_polyfill v1.70.2
+│   │   │   └── utf8parse v0.2.2
+│   │   ├── anstyle v1.0.13
+│   │   ├── clap_lex v1.0.0
+│   │   └── strsim v0.11.1
+│   └── clap_derive v4.5.55 (proc-macro)
+│       ├── heck v0.5.0
+│       ├── proc-macro2 v1.0.106
+│       │   └── unicode-ident v1.0.24
+│       ├── quote v1.0.44
+│       │   └── proc-macro2 v1.0.106 (*)
+│       └── syn v2.0.117
+│           ├── proc-macro2 v1.0.106 (*)
+│           ├── quote v1.0.44 (*)
+│           └── unicode-ident v1.0.24
+├── dirs v6.0.0
+│   └── dirs-sys v0.5.0
+│       ├── libc v0.2.182
+│       └── option-ext v0.2.0
+├── env_logger v0.11.9
+│   ├── anstream v0.6.21 (*)
+│   ├── anstyle v1.0.13
+│   ├── env_filter v1.0.0
+│   │   ├── log v0.4.29
+│   │   └── regex v1.12.3
+│   │       ├── aho-corasick v1.1.4
+│   │       │   └── memchr v2.8.0
+│   │       ├── memchr v2.8.0
+│   │       ├── regex-automata v0.4.14
+│   │       │   ├── aho-corasick v1.1.4 (*)
+│   │       │   ├── memchr v2.8.0
+│   │       │   └── regex-syntax v0.8.10
+│   │       └── regex-syntax v0.8.10
+│   ├── jiff v0.2.22
+│   └── log v0.4.29
+├── indicatif v0.18.4
+│   ├── console v0.16.2
+│   │   ├── libc v0.2.182
+│   │   ├── once_cell v1.21.3
+│   │   └── unicode-width v0.2.2
+│   ├── portable-atomic v1.13.1
+│   ├── unicode-width v0.2.2
+│   └── unit-prefix v0.5.2
+├── log v0.4.29
+├── once_cell v1.21.3
+├── reqwest v0.13.2
+│   ├── base64 v0.22.1
+│   ├── bytes v1.11.1
+│   ├── futures-core v0.3.32
+│   ├── futures-util v0.3.32
+│   │   ├── futures-core v0.3.32
+│   │   ├── futures-task v0.3.32
+│   │   ├── pin-project-lite v0.2.17
+│   │   └── slab v0.4.12
+│   ├── http v1.4.0
+│   │   ├── bytes v1.11.1
+│   │   └── itoa v1.0.17
+│   ├── http-body v1.0.1
+│   │   ├── bytes v1.11.1
+│   │   └── http v1.4.0 (*)
+│   ├── http-body-util v0.1.3
+│   │   ├── bytes v1.11.1
+│   │   ├── futures-core v0.3.32
+│   │   ├── http v1.4.0 (*)
+│   │   ├── http-body v1.0.1 (*)
+│   │   └── pin-project-lite v0.2.17
+│   ├── hyper v1.8.1
+│   │   ├── atomic-waker v1.1.2
+│   │   ├── bytes v1.11.1
+│   │   ├── futures-channel v0.3.32
+│   │   │   └── futures-core v0.3.32
+│   │   ├── futures-core v0.3.32
+│   │   ├── h2 v0.4.13
+│   │   │   ├── atomic-waker v1.1.2
+│   │   │   ├── bytes v1.11.1
+│   │   │   ├── fnv v1.0.7
+│   │   │   ├── futures-core v0.3.32
+│   │   │   ├── futures-sink v0.3.32
+│   │   │   ├── http v1.4.0 (*)
+│   │   │   ├── indexmap v2.13.0
+│   │   │   │   ├── equivalent v1.0.2
+│   │   │   │   └── hashbrown v0.16.1
+│   │   │   ├── slab v0.4.12
+│   │   │   ├── tokio v1.49.0
+│   │   │   │   ├── bytes v1.11.1
+│   │   │   │   ├── libc v0.2.182
+│   │   │   │   ├── mio v1.1.1
+│   │   │   │   │   └── libc v0.2.182
+│   │   │   │   ├── parking_lot v0.12.5
+│   │   │   │   │   ├── lock_api v0.4.14
+│   │   │   │   │   │   └── scopeguard v1.2.0
+│   │   │   │   │   └── parking_lot_core v0.9.12
+│   │   │   │   │       ├── cfg-if v1.0.4
+│   │   │   │   │       ├── libc v0.2.182
+│   │   │   │   │       └── smallvec v1.15.1
+│   │   │   │   ├── pin-project-lite v0.2.17
+│   │   │   │   ├── signal-hook-registry v1.4.8
+│   │   │   │   │   ├── errno v0.3.14
+│   │   │   │   │   │   └── libc v0.2.182
+│   │   │   │   │   └── libc v0.2.182
+│   │   │   │   ├── socket2 v0.6.2
+│   │   │   │   │   └── libc v0.2.182
+│   │   │   │   └── tokio-macros v2.6.1 (proc-macro)
+│   │   │   │       ├── proc-macro2 v1.0.106 (*)
+│   │   │   │       ├── quote v1.0.44 (*)
+│   │   │   │       └── syn v2.0.117 (*)
+│   │   │   ├── tokio-util v0.7.18
+│   │   │   │   ├── bytes v1.11.1
+│   │   │   │   ├── futures-core v0.3.32
+│   │   │   │   ├── futures-sink v0.3.32
+│   │   │   │   ├── pin-project-lite v0.2.17
+│   │   │   │   └── tokio v1.49.0 (*)
+│   │   │   └── tracing v0.1.44
+│   │   │       ├── pin-project-lite v0.2.17
+│   │   │       └── tracing-core v0.1.36
+│   │   │           └── once_cell v1.21.3
+│   │   ├── http v1.4.0 (*)
+│   │   ├── http-body v1.0.1 (*)
+│   │   ├── httparse v1.10.1
+│   │   ├── httpdate v1.0.3
+│   │   ├── itoa v1.0.17
+│   │   ├── pin-project-lite v0.2.17
+│   │   ├── pin-utils v0.1.0
+│   │   ├── smallvec v1.15.1
+│   │   ├── tokio v1.49.0 (*)
+│   │   └── want v0.3.1
+│   │       └── try-lock v0.2.5
+│   ├── hyper-rustls v0.27.7
+│   │   ├── http v1.4.0 (*)
+│   │   ├── hyper v1.8.1 (*)
+│   │   ├── hyper-util v0.1.20
+│   │   │   ├── base64 v0.22.1
+│   │   │   ├── bytes v1.11.1
+│   │   │   ├── futures-channel v0.3.32 (*)
+│   │   │   ├── futures-util v0.3.32 (*)
+│   │   │   ├── http v1.4.0 (*)
+│   │   │   ├── http-body v1.0.1 (*)
+│   │   │   ├── hyper v1.8.1 (*)
+│   │   │   ├── ipnet v2.11.0
+│   │   │   ├── libc v0.2.182
+│   │   │   ├── percent-encoding v2.3.2
+│   │   │   ├── pin-project-lite v0.2.17
+│   │   │   ├── socket2 v0.6.2 (*)
+│   │   │   ├── tokio v1.49.0 (*)
+│   │   │   ├── tower-service v0.3.3
+│   │   │   └── tracing v0.1.44 (*)
+│   │   ├── rustls v0.23.37
+│   │   │   ├── aws-lc-rs v1.16.1
+│   │   │   │   ├── aws-lc-sys v0.38.0
+│   │   │   │   │   [build-dependencies]
+│   │   │   │   │   ├── cc v1.2.56
+│   │   │   │   │   │   ├── find-msvc-tools v0.1.9
+│   │   │   │   │   │   ├── jobserver v0.1.34
+│   │   │   │   │   │   │   └── libc v0.2.182
+│   │   │   │   │   │   ├── libc v0.2.182
+│   │   │   │   │   │   └── shlex v1.3.0
+│   │   │   │   │   ├── cmake v0.1.57
+│   │   │   │   │   │   └── cc v1.2.56 (*)
+│   │   │   │   │   ├── dunce v1.0.5
+│   │   │   │   │   └── fs_extra v1.3.0
+│   │   │   │   └── zeroize v1.8.2
+│   │   │   ├── once_cell v1.21.3
+│   │   │   ├── rustls-pki-types v1.14.0
+│   │   │   │   └── zeroize v1.8.2
+│   │   │   ├── rustls-webpki v0.103.9
+│   │   │   │   ├── aws-lc-rs v1.16.1 (*)
+│   │   │   │   ├── rustls-pki-types v1.14.0 (*)
+│   │   │   │   └── untrusted v0.9.0
+│   │   │   ├── subtle v2.6.1
+│   │   │   └── zeroize v1.8.2
+│   │   ├── rustls-pki-types v1.14.0 (*)
+│   │   ├── tokio v1.49.0 (*)
+│   │   ├── tokio-rustls v0.26.4
+│   │   │   ├── rustls v0.23.37 (*)
+│   │   │   └── tokio v1.49.0 (*)
+│   │   └── tower-service v0.3.3
+│   ├── hyper-util v0.1.20 (*)
+│   ├── log v0.4.29
+│   ├── percent-encoding v2.3.2
+│   ├── pin-project-lite v0.2.17
+│   ├── rustls v0.23.37 (*)
+│   ├── rustls-pki-types v1.14.0 (*)
+│   ├── rustls-platform-verifier v0.6.2
+│   │   ├── log v0.4.29
+│   │   ├── rustls v0.23.37 (*)
+│   │   ├── rustls-native-certs v0.8.3
+│   │   │   ├── openssl-probe v0.2.1
+│   │   │   └── rustls-pki-types v1.14.0 (*)
+│   │   └── rustls-webpki v0.103.9 (*)
+│   ├── serde v1.0.228
+│   │   ├── serde_core v1.0.228
+│   │   └── serde_derive v1.0.228 (proc-macro)
+│   │       ├── proc-macro2 v1.0.106 (*)
+│   │       ├── quote v1.0.44 (*)
+│   │       └── syn v2.0.117 (*)
+│   ├── serde_json v1.0.149
+│   │   ├── itoa v1.0.17
+│   │   ├── memchr v2.8.0
+│   │   ├── serde_core v1.0.228
+│   │   └── zmij v1.0.21
+│   ├── serde_urlencoded v0.7.1
+│   │   ├── form_urlencoded v1.2.2
+│   │   │   └── percent-encoding v2.3.2
+│   │   ├── itoa v1.0.17
+│   │   ├── ryu v1.0.23
+│   │   └── serde v1.0.228 (*)
+│   ├── sync_wrapper v1.0.2
+│   │   └── futures-core v0.3.32
+│   ├── tokio v1.49.0 (*)
+│   ├── tokio-rustls v0.26.4 (*)
+│   ├── tokio-util v0.7.18 (*)
+│   ├── tower v0.5.3
+│   │   ├── futures-core v0.3.32
+│   │   ├── futures-util v0.3.32 (*)
+│   │   ├── pin-project-lite v0.2.17
+│   │   ├── sync_wrapper v1.0.2 (*)
+│   │   ├── tokio v1.49.0 (*)
+│   │   ├── tower-layer v0.3.3
+│   │   └── tower-service v0.3.3
+│   ├── tower-http v0.6.8
+│   │   ├── bitflags v2.11.0
+│   │   ├── bytes v1.11.1
+│   │   ├── futures-util v0.3.32 (*)
+│   │   ├── http v1.4.0 (*)
+│   │   ├── http-body v1.0.1 (*)
+│   │   ├── iri-string v0.7.10
+│   │   ├── pin-project-lite v0.2.17
+│   │   ├── tower v0.5.3 (*)
+│   │   ├── tower-layer v0.3.3
+│   │   └── tower-service v0.3.3
+│   ├── tower-service v0.3.3
+│   └── url v2.5.8
+│       ├── form_urlencoded v1.2.2 (*)
+│       ├── idna v1.1.0
+│       │   ├── idna_adapter v1.2.1
+│       │   │   ├── icu_normalizer v2.1.1
+│       │   │   │   ├── icu_collections v2.1.1
+│       │   │   │   │   ├── displaydoc v0.2.5 (proc-macro)
+│       │   │   │   │   │   ├── proc-macro2 v1.0.106 (*)
+│       │   │   │   │   │   ├── quote v1.0.44 (*)
+│       │   │   │   │   │   └── syn v2.0.117 (*)
+│       │   │   │   │   ├── potential_utf v0.1.4
+│       │   │   │   │   │   └── zerovec v0.11.5
+│       │   │   │   │   │       ├── yoke v0.8.1
+│       │   │   │   │   │       │   ├── stable_deref_trait v1.2.1
+│       │   │   │   │   │       │   ├── yoke-derive v0.8.1 (proc-macro)
+│       │   │   │   │   │       │   │   ├── proc-macro2 v1.0.106 (*)
+│       │   │   │   │   │       │   │   ├── quote v1.0.44 (*)
+│       │   │   │   │   │       │   │   ├── syn v2.0.117 (*)
+│       │   │   │   │   │       │   │   └── synstructure v0.13.2
+│       │   │   │   │   │       │   │       ├── proc-macro2 v1.0.106 (*)
+│       │   │   │   │   │       │   │       ├── quote v1.0.44 (*)
+│       │   │   │   │   │       │   │       └── syn v2.0.117 (*)
+│       │   │   │   │   │       │   └── zerofrom v0.1.6
+│       │   │   │   │   │       │       └── zerofrom-derive v0.1.6 (proc-macro)
+│       │   │   │   │   │       │           ├── proc-macro2 v1.0.106 (*)
+│       │   │   │   │   │       │           ├── quote v1.0.44 (*)
+│       │   │   │   │   │       │           ├── syn v2.0.117 (*)
+│       │   │   │   │   │       │           └── synstructure v0.13.2 (*)
+│       │   │   │   │   │       ├── zerofrom v0.1.6 (*)
+│       │   │   │   │   │       └── zerovec-derive v0.11.2 (proc-macro)
+│       │   │   │   │   │           ├── proc-macro2 v1.0.106 (*)
+│       │   │   │   │   │           ├── quote v1.0.44 (*)
+│       │   │   │   │   │           └── syn v2.0.117 (*)
+│       │   │   │   │   ├── yoke v0.8.1 (*)
+│       │   │   │   │   ├── zerofrom v0.1.6 (*)
+│       │   │   │   │   └── zerovec v0.11.5 (*)
+│       │   │   │   ├── icu_normalizer_data v2.1.1
+│       │   │   │   ├── icu_provider v2.1.1
+│       │   │   │   │   ├── displaydoc v0.2.5 (proc-macro) (*)
+│       │   │   │   │   ├── icu_locale_core v2.1.1
+│       │   │   │   │   │   ├── displaydoc v0.2.5 (proc-macro) (*)
+│       │   │   │   │   │   ├── litemap v0.8.1
+│       │   │   │   │   │   ├── tinystr v0.8.2
+│       │   │   │   │   │   │   ├── displaydoc v0.2.5 (proc-macro) (*)
+│       │   │   │   │   │   │   └── zerovec v0.11.5 (*)
+│       │   │   │   │   │   ├── writeable v0.6.2
+│       │   │   │   │   │   └── zerovec v0.11.5 (*)
+│       │   │   │   │   ├── writeable v0.6.2
+│       │   │   │   │   ├── yoke v0.8.1 (*)
+│       │   │   │   │   ├── zerofrom v0.1.6 (*)
+│       │   │   │   │   ├── zerotrie v0.2.3
+│       │   │   │   │   │   ├── displaydoc v0.2.5 (proc-macro) (*)
+│       │   │   │   │   │   ├── yoke v0.8.1 (*)
+│       │   │   │   │   │   └── zerofrom v0.1.6 (*)
+│       │   │   │   │   └── zerovec v0.11.5 (*)
+│       │   │   │   ├── smallvec v1.15.1
+│       │   │   │   └── zerovec v0.11.5 (*)
+│       │   │   └── icu_properties v2.1.2
+│       │   │       ├── icu_collections v2.1.1 (*)
+│       │   │       ├── icu_locale_core v2.1.1 (*)
+│       │   │       ├── icu_properties_data v2.1.2
+│       │   │       ├── icu_provider v2.1.1 (*)
+│       │   │       ├── zerotrie v0.2.3 (*)
+│       │   │       └── zerovec v0.11.5 (*)
+│       │   ├── smallvec v1.15.1
+│       │   └── utf8_iter v1.0.4
+│       └── percent-encoding v2.3.2
+├── serde v1.0.228 (*)
+├── serde_json v1.0.149 (*)
+├── sha2 v0.10.9
+│   ├── cfg-if v1.0.4
+│   ├── cpufeatures v0.2.17
+│   │   └── libc v0.2.182
+│   └── digest v0.10.7
+│       ├── block-buffer v0.10.4
+│       │   └── generic-array v0.14.7
+│       │       └── typenum v1.19.0
+│       │       [build-dependencies]
+│       │       └── version_check v0.9.5
+│       └── crypto-common v0.1.7
+│           ├── generic-array v0.14.7 (*)
+│           └── typenum v1.19.0
+├── thiserror v2.0.18
+│   └── thiserror-impl v2.0.18 (proc-macro)
+│       ├── proc-macro2 v1.0.106 (*)
+│       ├── quote v1.0.44 (*)
+│       └── syn v2.0.117 (*)
+├── tokio v1.49.0 (*)
+└── tokio-util v0.7.18 (*)
+[dev-dependencies]
+└── mockito v1.7.2
+    ├── assert-json-diff v2.0.2
+    │   ├── serde v1.0.228 (*)
+    │   └── serde_json v1.0.149 (*)
+    ├── bytes v1.11.1
+    ├── colored v3.1.1
+    ├── futures-core v0.3.32
+    ├── http v1.4.0 (*)
+    ├── http-body v1.0.1 (*)
+    ├── http-body-util v0.1.3 (*)
+    ├── hyper v1.8.1 (*)
+    ├── hyper-util v0.1.20 (*)
+    ├── log v0.4.29
+    ├── pin-project-lite v0.2.17
+    ├── rand v0.9.2
+    │   ├── rand_chacha v0.9.0
+    │   │   ├── ppv-lite86 v0.2.21
+    │   │   │   └── zerocopy v0.8.40
+    │   │   └── rand_core v0.9.5
+    │   │       └── getrandom v0.3.4
+    │   │           ├── cfg-if v1.0.4
+    │   │           └── libc v0.2.182
+    │   └── rand_core v0.9.5 (*)
+    ├── regex v1.12.3 (*)
+    ├── serde_json v1.0.149 (*)
+    ├── serde_urlencoded v0.7.1 (*)
+    ├── similar v2.7.0
+    └── tokio v1.49.0 (*)
+
+ File  .text    Size                Crate Name
+ 0.3%   1.1% 24.9KiB            [Unknown] Lp384_montjscalarmul_p384_montjadd
+ 0.2%   0.8% 17.1KiB            [Unknown] Lp384_montjscalarmul_alt_p384_montjadd
+ 0.2%   0.7% 16.2KiB       regex_automata regex_automata::meta::strategy::new
+ 0.2%   0.7% 15.4KiB           aws_lc_sys aws_lc_0_38_0_curve25519_x25519_byte_alt
+ 0.2%   0.7% 15.3KiB wallpaper_downloader wallpaper_downloader::download::Downloader::dow...
+ 0.2%   0.7% 14.7KiB         clap_builder clap_builder::parser::parser::Parser::get_match...
+ 0.1%   0.6% 13.5KiB              reqwest reqwest::async_impl::client::ClientBuilder::build
+ 0.1%   0.6% 12.4KiB wallpaper_downloader wallpaper_downloader::main::{{closure}}
+ 0.1%   0.5% 12.2KiB            [Unknown] Lp256_montjscalarmul_p256_montjadd
+ 0.1%   0.5% 12.1KiB            [Unknown] Lp384_montjscalarmul_p384_montjdouble
+ 0.1%   0.5% 12.1KiB           aws_lc_sys aws_lc_0_38_0_p384_montjdouble
+ 0.1%   0.5% 12.0KiB               rustls rustls::conn::ConnectionCore<Data>::process_msg
+ 0.1%   0.5% 11.8KiB           aws_lc_sys aws_lc_0_38_0_edwards25519_scalarmulbase
+ 0.1%   0.5% 11.6KiB                  std std::backtrace_rs::symbolize::gimli::Cache::wit...
+ 0.1%   0.5% 11.5KiB           aws_lc_sys aws_lc_0_38_0_curve25519_x25519base_byte
+ 0.1%   0.5% 11.4KiB           hyper_util hyper_util::client::legacy::client::Client<C,B>...
+ 0.1%   0.5% 10.9KiB               rustls <rustls::msgs::handshake::ClientHelloPayload as...
+ 0.1%   0.5% 10.8KiB                 http http::header::name::StandardHeader::from_bytes
+ 0.1%   0.5% 10.5KiB           aws_lc_sys aws_lc_0_38_0_p521_jdouble_alt
+ 0.1%   0.5% 10.3KiB wallpaper_downloader wallpaper_downloader::download::Downloader::dow...
+21.6%  87.5%  1.9MiB                      And 14110 smaller methods. Use -n N to show more.
+24.6% 100.0%  2.2MiB                      .text section size, the file size is 8.9MiB

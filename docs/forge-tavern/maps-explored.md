@@ -3,7 +3,74 @@
 
 ---
 
-## Session: 2026-03-01 — Shaft J, H, I (Phase 1) Completion
+## Session: 2026-03-04 — Shaft Y: Baseline Establishment & Verification
+
+### Summary
+Established a clean baseline for the `work-shaft-v-w` branch. Verified workspace integrity through a full clean build and exhaustive test suite execution.
+
+### Key Achievements
+- [x] **Workspace Integrity**: Confirmed all 10 crates compile successfully in the new workspace structure.
+- [x] **Test Verification**: Verified 110+ tests pass across the workspace, including doc-tests and integration harnesses.
+- [x] **CLI Validation**: Confirmed `mash-setup` binary interface and help-system are fully operational.
+- [x] **Source of Truth Sync**: Updated `maps.md` and `maps-explored.md` to reflect the verified state.
+
+---
+
+## Session: 2026-03-03 — Shaft Y: Planning & Quality Standards
+
+### Summary
+Established the planning foundation for macro optimization and dependency consolidation. Defined codebase quality metrics and implemented automated CI/CD performance monitoring.
+
+### Key Achievements
+- [x] **Macro Documentation**: Created a comprehensive procedural macro catalog documenting `serde`, `thiserror`, `clap`, `tokio`, and `async-trait`.
+- [x] **Dependency Strategy**: Drafted a consolidation plan to resolve `dirs` and `thiserror` version mismatches and migrate to workspace-wide dependency management.
+- [x] **Remediation Plan**: Prioritized technical debt tasks, targeting circular dependencies and file bloat (e.g., `app.rs`).
+- [x] **Quality Gates**: Implemented "Build Performance Monitoring" in CI and established quantitative metrics (50-line function limit).
+- [x] **Monitoring Setup**: Defined the roadmap for continuous technical debt tracking and regular quality audits.
+
+---
+
+## Session: 2026-03-02 — Shaft X: The Sharpened Toolchain
+
+### Summary
+Enhanced the Rust toolchain with modern distributed testing and auditing capabilities. Fixed a regression in the test suite where the `PlatformInfo` struct expansion (hardware detection) had broken all driver and phase runner tests.
+
+### Key Achievements
+- [x] **Distributed Testing**: Added `cargo-maelstrom` to the core Rust toolchain installation.
+- [x] **Audit and Watch**: Ensured `cargo-watch`, `cargo-audit`, `bacon`, and `just` are part of the standard installation.
+- [x] **Quality Control**: Added `cargo-nextest` to the `doctor` subsystem for verification.
+- [x] **Test Repair**: Fixed `PlatformInfo` struct initialization in 8 files across the workspace (`installer-core` and `installer-debian`), restoring the green build status.
+
+---
+
+## Session: 2026-03-02 — Shaft W: The Aesthetic Guild
+...
+
+### Summary
+Empowered the user with high-quality, opinionated configurations and aesthetic presets. Transitioned the installer from providing "bare binaries" to providing "living, beautiful environments" via the new Preset Engine and Wardrobe UI.
+
+### Key Achievements
+- [x] **The Preset Engine**: Created a data-driven system for bundling software, themes, and tweaks.
+- [x] **Dotfile Manager**: Built a robust, conflict-aware "Stow-like" system for safe configuration deployment with automatic timestamped backups.
+- [x] **The Wardrobe UI**: Implemented an interactive TUI screen for browsing and selecting system presets.
+- [x] **Refactored Themes**: Converted legacy hardcoded theme logic into the new data-driven `Theme` model.
+
+---\n\n## Session: 2026-03-02 — Shaft V: The Interactive Forge
+
+### Summary
+Transformed the installer from a binary-dropper into a "Living Installation" engine. Implemented dependency-first orchestration, a robust interactive authorization service for 10+ tools, and comprehensive post-install verification (The Doctor).
+
+### Key Achievements
+- [x] **Dependency-First Orchestration**: Phases now respect topological sort and prerequisite gates.
+- [x] **Interactive Authorization Service**:
+  - `gh auth login`, `ssh-keygen`, `git config`
+  - `rclone config`, `borg init`
+  - `tailscale up`, `ngrok config`, `cloudflared tunnel login`
+  - `docker login`, `argonone-config`
+- [x] **TUI Integration**: Clean modals for all interactive prompts.
+- [x] **The Doctor Reforged**: Added secret scrubbing, automatic cleanup, and detailed action tracking (Installed vs. Configured vs. Tweaked).
+
+---\n\n## Session: 2026-03-01 — Shaft J, H, I (Phase 1) Completion
 
 ### Summary
 Mastered the Overlord Protocols (Shaft J), overhauled the installer experience with fonts and DE support (Shaft H), and curated the new 10-category software catalog (Shaft I Phase 1).
@@ -670,5 +737,53 @@ Curated the new 10-category software catalog and forged the TOML databases.
 
 ---
 
+---
+
+## Session: 2026-03-01 — Shaft I: Software Catalog & Installation Flow Completion
+
+### Summary
+Transformed the installation experience into a dynamic, data-driven "Living Installation." Implemented a hierarchical catalog engine, three distinct installation modes (Manual, Auto, Bard's Recommendations), and optimized the entire TUI for a professional retro-station aesthetic.
+
+### Deliverables
+- [x] **Dynamic Catalog Engine**: Built a TOML-driven system in `installer-core` for curated software resolution across S-tier, Full, and Language catalogs.
+- [x] **Installation Modes**: Implemented Manual (per-category audit), Auto (quick baseline), and Bard's Recommendation (opinionated S-tier) paths.
+- [x] **Hierarchical TUI**: Reborn the software selection UI with subcategory support, global indexing, and rich program info panels (Tier, Reasoning).
+- [x] **Sequence Optimization**: Engineered a strategic installation order (Snapshots -> Core Tools -> Software Tiers) and optimized the 'dev' profile for high-performance Pi 4B development.
+- [x] **Visual Progress Tracking**: Enhanced the TUI with real-time completion percentage tracking and a detailed pre-install provisioning manifest.
+
+---
+
+## Session: 2026-03-01 — Shaft S: The All-Seeing Eye Completion
+
+### Summary
+Forged a comprehensive auto-detection and profiling system that scries the machine's true pedigree. The forge now understands its host hardware, OS landscape, and complex storage structures, recording its findings for future wisdom.
+
+### Deliverables
+- [x] **Deep System Scrying**: Implemented `SystemProfile` detection for hardware model, CPU details, and memory landscape (including ZRAM).
+- [x] **Storage & Btrfs Mastery**: Engineered a robust analysis engine mapping block devices, mountpoints, and deep Btrfs subvolume structures.
+- [x] **TUI Visualization**: Created the "System Pedigree Summary" screen to provide miners with full visibility before final commitment.
+- [x] **Persistence Rune**: Integrated JSON persistence to `~/.config/mash-installer/system_profile.json`.
+- [x] **Scry Command**: Added the `scry` sub-command to the CLI for standalone system auditing.
+
+---
+
+---
+
+## Session: 2026-03-01 — Shaft T: The Bard's Wisdom Completion
+
+### Summary
+Implemented an intelligent Advice Engine that translates the `SystemProfile` into actionable wisdom. The forge can now provide expert-level performance hints, stability warnings, and hardware-specific optimizations, drawing from the deep experience of the dwarf ancestors.
+
+### Deliverables
+- [x] **Advice Engine Core**: Forged the `Rule` trait and orchestration logic in `installer-core/src/advice.rs`.
+- [x] **16 Ancestral Wisdom Rules**:
+    - **Hardware**: Low RAM, missing swap, high-core optimizations, and laptop identification.
+    - **Storage**: Btrfs snapshots/compression, flash storage protection, and workspace relocation.
+    - **Stability**: ARM64 stability (Node v22), 32-bit limits, and NVIDIA-Wayland conflicts.
+- [x] **Pedigree Expansion**: Upgraded `SystemProfile` with GPU, network interface, and software version scythes.
+- [x] **Verified Integrity**: Every rule is backed by unit tests verifying logic against mock pedigrees.
+
+---
+
 *Document Status: ACTIVE* 🟢
-*Version: 4.0* (Updated 2026-03-01 with Shaft J/H/I completion)
+*Version: 7.0* (Updated 2026-03-01 with Shaft T completion)

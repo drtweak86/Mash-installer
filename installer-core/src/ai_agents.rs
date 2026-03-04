@@ -7,7 +7,8 @@
 //!
 //! Entry point: [`install_phase`], called from [`crate::phase_registry`].
 
-use crate::{cmd, package_manager, PhaseContext, PhaseResult};
+use crate::system::cmd;
+use crate::{package_manager, PhaseContext, PhaseResult};
 use anyhow::Result;
 use std::process::Command;
 
@@ -15,14 +16,14 @@ pub fn install_phase(ctx: &mut PhaseContext) -> Result<PhaseResult> {
     let selections = &ctx.options.software_plan.selections;
 
     // Check if any AI agents are selected in the "AI Spirits" category
-    let mut selected_agents = Vec::new();
+    let mut selected_agents: Vec<&str> = Vec::new();
     if let Some(pick) = selections.get("AI Spirits") {
-        selected_agents.push(*pick);
+        selected_agents.push(pick.as_str());
     } else {
         // Check all selections just in case
         for (cat, pick) in selections {
-            if cat == &"AI Spirits" || *pick == "Claude" || *pick == "Gemini" || *pick == "Vibe" {
-                selected_agents.push(*pick);
+            if cat == "AI Spirits" || pick == "Claude" || pick == "Gemini" || pick == "Vibe" {
+                selected_agents.push(pick.as_str());
             }
         }
     }

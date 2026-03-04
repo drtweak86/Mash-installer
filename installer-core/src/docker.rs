@@ -8,7 +8,8 @@ use std::process::Command;
 use crate::{
     apt_repo, cmd,
     driver::{RepoKind, ServiceName},
-    package_manager, systemd, PhaseContext, PhaseResult, PkgBackend,
+    package_manager, systemd, AuthType, AuthorizationService, PhaseContext, PhaseResult,
+    PkgBackend,
 };
 
 pub fn install_phase(ctx: &mut PhaseContext) -> Result<PhaseResult> {
@@ -53,6 +54,13 @@ pub fn install_phase(ctx: &mut PhaseContext) -> Result<PhaseResult> {
     };
     if let Some(data_root) = desired_data_root {
         configure_data_root(ctx, &data_root)?;
+    }
+
+    if ctx.options.interactive
+        && !AuthorizationService::new(ctx.observer, ctx.options).is_authorized(AuthType::DockerAuth)
+        && ctx.observer.request_auth(AuthType::DockerAuth)?
+    {
+        AuthorizationService::new(ctx.observer, ctx.options).authorize(AuthType::DockerAuth)?;
     }
 
     Ok(PhaseResult::Success)
@@ -304,6 +312,12 @@ mod tests {
         localization: Localization,
         rollback: RollbackManager,
         dry_run_log: DryRunLog,
+        observer: MockObserver,
+    }
+
+    struct MockObserver;
+    impl crate::PhaseObserver for MockObserver {
+        fn on_event(&mut self, _event: crate::PhaseEvent) {}
     }
 
     impl TestPhaseEnv {
@@ -316,6 +330,9 @@ mod tests {
                 distro_codename: "test".into(),
                 distro_family: "debian".into(),
                 pi_model: None,
+                cpu_model: "test".into(),
+                cpu_cores: 4,
+                ram_total_gb: 8.0,
             };
             let platform_ctx = PlatformContext {
                 config_service,
@@ -323,7 +340,7 @@ mod tests {
                 driver_name: TEST_DRIVER.name(),
                 driver: &TEST_DRIVER,
                 pkg_backend: PkgBackend::Apt,
-                system: &crate::system::REAL_SYSTEM,
+                system: &crate::sys_ops::REAL_SYSTEM,
             };
             let options = UserOptionsContext {
                 profile: ProfileLevel::Minimal,
@@ -345,6 +362,7 @@ mod tests {
                 localization,
                 rollback: RollbackManager::new(),
                 dry_run_log: DryRunLog::new(),
+                observer: MockObserver,
             })
         }
 
@@ -357,6 +375,7 @@ mod tests {
                 &self.localization,
                 &self.rollback,
                 &self.dry_run_log,
+                &mut self.observer,
             )
         }
     }

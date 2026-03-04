@@ -8,11 +8,65 @@ use std::path::Path;
 use std::process::Command;
 use std::time::Duration;
 
+use crate::system::cmd;
 use crate::{
-    cmd, config,
+    config,
     context::{ConfigOverrides, ConfigService},
-    system::{RealSystem, SystemOps},
+    scrubber,
+    system::system_ops::{RealSystem, SystemOps},
 };
+
+#[allow(dead_code)]
+pub struct Doctor<'a> {
+    system: &'a dyn SystemOps,
+    temp_files: Vec<std::path::PathBuf>,
+}
+
+#[allow(dead_code)]
+impl<'a> Doctor<'a> {
+    pub fn new(system: &'a dyn SystemOps) -> Self {
+        Self {
+            system,
+            temp_files: Vec::new(),
+        }
+    }
+
+    /// Register a temporary file for cleanup.
+    pub fn register_temp_file(&mut self, path: std::path::PathBuf) {
+        self.temp_files.push(path);
+    }
+
+    /// Clean up all registered temporary files.
+    pub fn cleanup(&mut self) -> Result<()> {
+        for path in self.temp_files.drain(..) {
+            if path.exists() {
+                if path.is_dir() {
+                    fs::remove_dir_all(&path)?;
+                } else {
+                    fs::remove_file(&path)?;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Run a diagnostic check and return a report.
+    pub fn run_diagnostics(&mut self, staging_override: Option<&Path>) -> Result<PreflightReport> {
+        let report = collect_preflight_checks(self.system, staging_override)?;
+        Ok(report)
+    }
+
+    /// Log a message while scrubbing secrets.
+    pub fn log_info(&self, out: &mut dyn Write, message: &str) -> std::io::Result<()> {
+        writeln!(out, "{}", scrubber::scrub(message))
+    }
+}
+
+impl<'a> Drop for Doctor<'a> {
+    fn drop(&mut self) {
+        let _ = self.cleanup();
+    }
+}
 
 #[derive(Clone, Copy, Debug, ValueEnum, Default)]
 #[value(rename_all = "lower")]
@@ -146,7 +200,12 @@ pub fn run_doctor(format: DoctorOutput, out: &mut dyn Write) -> Result<()> {
     let cargo_tools = [
         "cargo-watch",
         "cargo-audit",
+        "cargo-nextest",
         "cargo-maelstrom",
+        "cargo-machete",
+        "cargo-shear",
+        "cargo-deps",
+        "cargo-hakari",
         "cargo-add",
         "bacon",
         "just",
@@ -415,7 +474,9 @@ fn check_memory() -> PreflightCheck {
 }
 
 fn check_cpu() -> PreflightCheck {
-    let cores = num_cpus::get();
+    let cores = std::thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(1);
     let status = if cores < MIN_CPU_CORES {
         CheckStatus::Warning
     } else {
@@ -723,7 +784,7 @@ fn write_report(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::system::{RealSystem, SystemOps};
+    use crate::system::system_ops::{RealSystem, SystemOps};
     use std::net::{TcpListener, TcpStream};
     use std::path::Path;
     use std::process::Command;

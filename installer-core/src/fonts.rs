@@ -3,7 +3,8 @@
 //! This module provides comprehensive Nerd Fonts integration, allowing users to
 //! select and install Nerd Fonts from the official GitHub repository.
 
-use crate::{cmd, package_manager, PhaseContext, PhaseResult};
+use crate::system::cmd;
+use crate::{package_manager, PhaseContext, PhaseResult};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::fs;

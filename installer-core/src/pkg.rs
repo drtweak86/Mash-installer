@@ -96,6 +96,8 @@ fn system_package_specs() -> Vec<PackageSpec<'static>> {
         PackageSpec::required_for("python3", ProfileLevel::Dev),
         PackageSpec::required_for("python3-pip", ProfileLevel::Dev),
         PackageSpec::required_for("python3-venv", ProfileLevel::Dev),
+        PackageSpec::required_for("nodejs", ProfileLevel::Dev),
+        PackageSpec::required_for("npm", ProfileLevel::Dev),
         PackageSpec::required_for("ripgrep", ProfileLevel::Dev),
         PackageSpec::required_for("fd-find", ProfileLevel::Dev),
         PackageSpec::required_for("fzf", ProfileLevel::Dev),
@@ -104,19 +106,13 @@ fn system_package_specs() -> Vec<PackageSpec<'static>> {
         PackageSpec::required_for("ncdu", ProfileLevel::Dev),
         PackageSpec::required_for("neovim", ProfileLevel::Dev),
         PackageSpec::required_for("kitty", ProfileLevel::Dev),
-    ]);
-
-    specs.extend_from_slice(&[
-        PackageSpec::required_for("nodejs", ProfileLevel::Full),
-        PackageSpec::required_for("npm", ProfileLevel::Full),
-    ]);
-
-    specs.extend_from_slice(&[
-        PackageSpec::optional("lldb"),
-        PackageSpec::optional("btop"),
-        PackageSpec::optional("bat"),
-        PackageSpec::optional("eza"),
-        PackageSpec::optional("yq"),
+        PackageSpec::required_for("zsh", ProfileLevel::Dev),
+        PackageSpec::required_for("starship", ProfileLevel::Dev),
+        PackageSpec::required_for("lldb", ProfileLevel::Dev),
+        PackageSpec::required_for("btop", ProfileLevel::Dev),
+        PackageSpec::required_for("bat", ProfileLevel::Dev),
+        PackageSpec::required_for("eza", ProfileLevel::Dev),
+        PackageSpec::required_for("yq", ProfileLevel::Dev),
     ]);
 
     specs
