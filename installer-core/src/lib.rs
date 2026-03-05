@@ -59,7 +59,7 @@ mod zsh;
 use crate::localization::Localization;
 pub use advice::{AdviceEngine, AdviceEntry, Rule, Severity as AdviceSeverity};
 pub use system::artifact_cache::ArtifactCache;
-pub use system::ws_observer::{WebsocketObserver, CompositeObserver};
+pub use system::ws_observer::{CompositeObserver, WebsocketObserver};
 pub use system::{cmd, dry_run, logging as sys_logging, sudo, system_ops as sys_ops};
 
 // --- Core API ---

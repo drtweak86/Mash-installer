@@ -31,7 +31,13 @@ impl TuiApp {
             SoftwareMode::Manual => (self.software_picks.clone(), false, None),
         };
 
-        SoftwareTierPlan::new(is_recommended, picks, self.theme_plan.clone(), None, target_tier)
+        SoftwareTierPlan::new(
+            is_recommended,
+            picks,
+            self.theme_plan.clone(),
+            None,
+            target_tier,
+        )
     }
 
     pub fn apply_preset(&mut self, preset: &Preset) {

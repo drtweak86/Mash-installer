@@ -251,7 +251,8 @@ pub fn run_with_driver(
     };
 
     // ── Telemetry (Roaming Agent feature) ───────────────────────────────────
-    let telemetry = crate::system::telemetry::TelemetryService::new(ctx.platform.config().telemetry.clone());
+    let telemetry =
+        crate::system::telemetry::TelemetryService::new(ctx.platform.config().telemetry.clone());
     let _ = telemetry.report(&report);
 
     Ok(report)

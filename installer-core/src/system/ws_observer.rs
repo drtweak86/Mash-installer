@@ -4,13 +4,13 @@
 //! of the installation progress. It broadcasts `PhaseEvent`s to any connected
 //! clients, enabling a "live stream" of the TUI progress on a web-based dashboard.
 
+use futures_util::{SinkExt, StreamExt};
 use std::sync::Arc;
 use std::thread;
 use tokio::runtime::Runtime;
 use tokio::sync::broadcast;
+use tracing::{error, info};
 use warp::Filter;
-use futures_util::{StreamExt, SinkExt};
-use tracing::{info, error};
 
 pub use crate::model::phase::{PhaseEvent, PhaseObserver};
 
@@ -25,20 +25,19 @@ impl WebsocketObserver {
     pub fn new(port: u16) -> Self {
         let (tx, _) = broadcast::channel(100);
         let tx_cloned = tx.clone();
-        
+
         let rt = Arc::new(Runtime::new().expect("failed to create tokio runtime"));
         let rt_cloned = rt.clone();
 
         thread::spawn(move || {
             rt_cloned.block_on(async {
                 let events = warp::any().map(move || tx_cloned.clone());
-                
-                let ws_route = warp::path("ws")
-                    .and(warp::ws())
-                    .and(events)
-                    .map(|ws: warp::ws::Ws, tx: broadcast::Sender<PhaseEvent>| {
+
+                let ws_route = warp::path("ws").and(warp::ws()).and(events).map(
+                    |ws: warp::ws::Ws, tx: broadcast::Sender<PhaseEvent>| {
                         ws.on_upgrade(move |socket| handle_client(socket, tx))
-                    });
+                    },
+                );
 
                 info!("Websocket Scrying Server started on port {}", port);
                 warp::serve(ws_route).run(([0, 0, 0, 0], port)).await;
@@ -81,9 +80,17 @@ pub struct CompositeObserver {
     observers: Vec<Box<dyn PhaseObserver + Send>>,
 }
 
+impl Default for CompositeObserver {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CompositeObserver {
     pub fn new() -> Self {
-        Self { observers: Vec::new() }
+        Self {
+            observers: Vec::new(),
+        }
     }
 
     pub fn add<O: PhaseObserver + Send + 'static>(&mut self, observer: O) {

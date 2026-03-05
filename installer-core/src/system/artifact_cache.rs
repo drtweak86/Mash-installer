@@ -30,8 +30,9 @@ impl ArtifactCache {
     /// Ensure the cache directory exists.
     pub fn init(&self) -> Result<()> {
         if !self.base_dir.exists() {
-            fs::create_dir_all(&self.base_dir)
-                .with_context(|| format!("creating artifact cache at {}", self.base_dir.display()))?;
+            fs::create_dir_all(&self.base_dir).with_context(|| {
+                format!("creating artifact cache at {}", self.base_dir.display())
+            })?;
         }
         Ok(())
     }
@@ -68,10 +69,15 @@ impl ArtifactCache {
         if let Some(parent) = dest.parent() {
             fs::create_dir_all(parent)?;
         }
-        
-        fs::copy(source, &dest)
-            .with_context(|| format!("caching artifact from {} to {}", source.display(), dest.display()))?;
-        
+
+        fs::copy(source, &dest).with_context(|| {
+            format!(
+                "caching artifact from {} to {}",
+                source.display(),
+                dest.display()
+            )
+        })?;
+
         info!("Artifact cached: {}", key);
         Ok(dest)
     }
@@ -81,13 +87,15 @@ impl ArtifactCache {
         let mut file = fs::File::open(path)?;
         let mut hasher = Sha256::new();
         let mut buffer = [0u8; 8192];
-        
+
         loop {
             let n = file.read(&mut buffer)?;
-            if n == 0 { break; }
+            if n == 0 {
+                break;
+            }
             hasher.update(&buffer[..n]);
         }
-        
+
         let hash = format!("{:x}", hasher.finalize());
         Ok(hash == expected)
     }
@@ -119,11 +127,11 @@ mod tests {
         cache.put(key, &source_file)?;
 
         assert!(cache.exists(key, None));
-        
+
         // Expected SHA-256 of "the forge is hot"
         let expected = "4c57d1fcee6b9074f5b82a82bfd726d319b5222040595cf9d7ab1ab457185274";
         assert!(cache.exists(key, Some(expected)));
-        
+
         // Wrong hash
         assert!(!cache.exists(key, Some("wrong")));
 

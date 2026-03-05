@@ -24,7 +24,7 @@ pub fn install_phase(ctx: &mut PhaseContext<'_>) -> Result<PhaseResult> {
     // Redirect harvest to artifact cache if available
     let cache_key = "wallpapers/mash_harvest";
     harvest_config.dest = ctx.cache.resolve_path(cache_key);
-    
+
     let harvester = WallpaperHarvester::new(harvest_config)?;
 
     // We need to pass the observer from ctx

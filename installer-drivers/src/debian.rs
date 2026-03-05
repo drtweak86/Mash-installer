@@ -50,20 +50,34 @@ impl DistroDriver for DebianDriver {
     fn configure_local_mirror(&self, ctx: &mut installer_core::PhaseContext) -> Result<()> {
         // Detect apt-cacher-ng on localhost:3142
         let mut cmd = std::process::Command::new("curl");
-        cmd.args(["-I", "-s", "--connect-timeout", "1", "http://localhost:3142"]);
-        
+        cmd.args([
+            "-I",
+            "-s",
+            "--connect-timeout",
+            "1",
+            "http://localhost:3142",
+        ]);
+
         if let Ok(output) = ctx.platform.system.command_output(&mut cmd) {
             if output.status.success() {
-                ctx.record_action("Mirror Heuristics: Local apt-cacher-ng detected at localhost:3142");
-                
+                ctx.record_action(
+                    "Mirror Heuristics: Local apt-cacher-ng detected at localhost:3142",
+                );
+
                 let proxy_conf = "Acquire::http { Proxy \"http://localhost:3142\"; };";
                 let conf_path = "/etc/apt/apt.conf.d/01proxy";
-                
+
                 if ctx.options.dry_run {
-                    ctx.record_dry_run("mirror_heuristics", "Would configure apt proxy", Some(conf_path.to_string()));
+                    ctx.record_dry_run(
+                        "mirror_heuristics",
+                        "Would configure apt proxy",
+                        Some(conf_path.to_string()),
+                    );
                 } else {
                     let mut echo_cmd = std::process::Command::new("sh");
-                    echo_cmd.arg("-c").arg(format!("echo '{}' | sudo tee {}", proxy_conf, conf_path));
+                    echo_cmd
+                        .arg("-c")
+                        .arg(format!("echo '{}' | sudo tee {}", proxy_conf, conf_path));
                     ctx.platform.system.command_output(&mut echo_cmd)?;
                     ctx.record_tweaked("Configured local apt proxy at /etc/apt/apt.conf.d/01proxy");
                 }

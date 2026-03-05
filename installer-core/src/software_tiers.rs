@@ -33,7 +33,7 @@ pub fn install_phase(ctx: &mut PhaseContext<'_>) -> Result<PhaseResult> {
     let optional = BTreeSet::new();
 
     // Add explicit selections
-    for (_cat, programs) in &plan.selections {
+    for programs in plan.selections.values() {
         for prog_id in programs {
             required.insert(prog_id.clone());
         }
@@ -66,7 +66,7 @@ pub fn install_phase(ctx: &mut PhaseContext<'_>) -> Result<PhaseResult> {
     ctx.platform.driver.configure_local_mirror(ctx)?;
 
     install_packages(ctx, &required, &optional)?;
-    
+
     // 5. Apply Theme Plan
     if plan.theme_plan != crate::model::software::ThemePlan::None {
         let home = dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/root"));
@@ -127,19 +127,23 @@ fn apply_heuristics(ctx: &mut PhaseContext, required: &mut BTreeSet<String>) -> 
     // 3. Network Awareness
     let net = &_profile.network;
     if !net.online {
-        ctx.record_warning("Heuristics: System appears to be OFFLINE. Network-heavy tasks may fail.");
+        ctx.record_warning(
+            "Heuristics: System appears to be OFFLINE. Network-heavy tasks may fail.",
+        );
     } else if let Some(latency) = net.latency_ms {
         if latency > 200.0 {
-            ctx.record_warning(format!("Heuristics: High network latency detected ({:.0}ms). Downloads may be slow.", latency));
+            ctx.record_warning(format!(
+                "Heuristics: High network latency detected ({:.0}ms). Downloads may be slow.",
+                latency
+            ));
         }
     }
 
     // 4. Environment-aware Heuristics (Roaming Agent feature)
-    match ctx.options.environment {
-        EnvironmentTag::Traveling => {
-            ctx.record_warning("Heuristics: 'Traveling' environment identified. Postponing heavy background harvests.");
-        }
-        _ => {}
+    if ctx.options.environment == EnvironmentTag::Traveling {
+        ctx.record_warning(
+            "Heuristics: 'Traveling' environment identified. Postponing heavy background harvests.",
+        );
     }
 
     Ok(())
@@ -149,16 +153,20 @@ fn handle_interactive_auth(ctx: &mut PhaseContext, plan: &SoftwareTierPlan) -> R
     let all_selected_ids: BTreeSet<_> = plan.selections.values().flatten().collect();
 
     let has_borg = all_selected_ids.contains(&"borgbackup".to_string());
-    if has_borg {
-        if ctx.interaction.confirm(
+    if has_borg
+        && ctx.interaction.confirm(
             "borg_init",
             "Would you like to initialize a Borg backup repository now?",
             true,
-            || Ok(ctx.observer.confirm("Would you like to initialize a Borg backup repository now?")),
-        )? {
-            ctx.record_action("Initializing Borg backup repository...");
-            // Trigger actual borg init logic here
-        }
+            || {
+                Ok(ctx
+                    .observer
+                    .confirm("Would you like to initialize a Borg backup repository now?"))
+            },
+        )?
+    {
+        ctx.record_action("Initializing Borg backup repository...");
+        // Trigger actual borg init logic here
     }
 
     Ok(())
@@ -189,7 +197,10 @@ mod tests {
     use crate::context::PlatformContext;
     use crate::profile::SystemProfile;
     use crate::system::dry_run::DryRunLog;
-    use crate::{InstallContext, InstallOptions, Localization, PhaseObserver, RollbackManager, UIContext, UserOptionsContext};
+    use crate::{
+        InstallContext, InstallOptions, Localization, PhaseObserver, RollbackManager, UIContext,
+        UserOptionsContext,
+    };
     use std::collections::BTreeSet;
 
     struct TestObserver;
@@ -199,10 +210,18 @@ mod tests {
 
     struct TestDriver;
     impl crate::DistroDriver for TestDriver {
-        fn name(&self) -> &'static str { "test" }
-        fn description(&self) -> &'static str { "test" }
-        fn matches(&self, _: &crate::PlatformInfo) -> bool { true }
-        fn pkg_backend(&self) -> crate::PkgBackend { crate::PkgBackend::Apt }
+        fn name(&self) -> &'static str {
+            "test"
+        }
+        fn description(&self) -> &'static str {
+            "test"
+        }
+        fn matches(&self, _: &crate::PlatformInfo) -> bool {
+            true
+        }
+        fn pkg_backend(&self) -> crate::PkgBackend {
+            crate::PkgBackend::Apt
+        }
     }
     static TEST_DRIVER: TestDriver = TestDriver;
 
@@ -218,8 +237,10 @@ mod tests {
             cpu_cores: 4,
             ram_total_gb: 8.0,
         };
-        let mut opts = InstallOptions::default();
-        opts.system_profile = Some(SystemProfile::default());
+        let opts = InstallOptions {
+            system_profile: Some(SystemProfile::default()),
+            ..InstallOptions::default()
+        };
 
         let platform_ctx = PlatformContext {
             config_service: crate::context::ConfigService::load().unwrap(),
@@ -307,6 +328,9 @@ mod tests {
         apply_heuristics(&mut p_ctx, &mut required).unwrap();
 
         let metadata = p_ctx.take_metadata();
-        assert!(metadata.warnings.iter().any(|w| w.contains("High network latency")));
+        assert!(metadata
+            .warnings
+            .iter()
+            .any(|w| w.contains("High network latency")));
     }
 }

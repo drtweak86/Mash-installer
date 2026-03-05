@@ -3,9 +3,10 @@ use installer_core::dry_run::DryRunLog;
 use installer_core::localization::Localization;
 use installer_core::RollbackManager;
 use installer_core::{
-    ConfigService, DistroDriver, EnvironmentTag, ErrorSeverity, InstallContext, Phase, PhaseContext,
-    PhaseErrorPolicy, PhaseEvent, PhaseObserver, PhaseResult, PhaseRunner, PkgBackend,
-    PlatformContext, PlatformInfo, ProfileLevel, SoftwareTierPlan, UIContext, UserOptionsContext,
+    ConfigService, DistroDriver, EnvironmentTag, ErrorSeverity, InstallContext, Phase,
+    PhaseContext, PhaseErrorPolicy, PhaseEvent, PhaseObserver, PhaseResult, PhaseRunner,
+    PkgBackend, PlatformContext, PlatformInfo, ProfileLevel, SoftwareTierPlan, UIContext,
+    UserOptionsContext,
 };
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};

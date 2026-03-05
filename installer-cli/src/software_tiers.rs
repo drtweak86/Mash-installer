@@ -108,11 +108,7 @@ fn run_custom_selection(interaction: &InteractionService) -> Result<SoftwareTier
     let theme_plan = run_theme_menu(interaction)?;
 
     Ok(SoftwareTierPlan::new(
-        false,
-        selections,
-        theme_plan,
-        None,
-        None,
+        false, selections, theme_plan, None, None,
     ))
 }
 

@@ -7,18 +7,18 @@
 //!
 //! Entry point: [`install_phase`], called from [`crate::phase_registry`].
 
+use crate::model::software::SoftwareCategory;
 use crate::system::cmd;
 use crate::{package_manager, PhaseContext, PhaseResult};
-use crate::model::software::SoftwareCategory;
 use anyhow::Result;
 use std::process::Command;
 
 pub fn install_phase(ctx: &mut PhaseContext) -> Result<PhaseResult> {
     let plan = &ctx.options.software_plan;
-    
+
     // Check if any AI agents are selected
     let mut selected_agents: Vec<&str> = Vec::new();
-    
+
     // Check explicit selections in Development category
     if let Some(picks) = plan.selections.get(&SoftwareCategory::Development) {
         for pick in picks {
@@ -27,14 +27,26 @@ pub fn install_phase(ctx: &mut PhaseContext) -> Result<PhaseResult> {
             }
         }
     }
-    
+
     // Check all selections just in case they are under a different category or name
     for picks in plan.selections.values() {
         for pick in picks {
             match pick.as_str() {
-                "claude" | "Claude" => if !selected_agents.contains(&"claude") { selected_agents.push("claude") },
-                "gemini" | "Gemini" => if !selected_agents.contains(&"gemini") { selected_agents.push("gemini") },
-                "vibe" | "Vibe" => if !selected_agents.contains(&"vibe") { selected_agents.push("vibe") },
+                "claude" | "Claude" => {
+                    if !selected_agents.contains(&"claude") {
+                        selected_agents.push("claude")
+                    }
+                }
+                "gemini" | "Gemini" => {
+                    if !selected_agents.contains(&"gemini") {
+                        selected_agents.push("gemini")
+                    }
+                }
+                "vibe" | "Vibe" => {
+                    if !selected_agents.contains(&"vibe") {
+                        selected_agents.push("vibe")
+                    }
+                }
                 _ => {}
             }
         }

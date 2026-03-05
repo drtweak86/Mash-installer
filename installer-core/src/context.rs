@@ -7,8 +7,8 @@ use crate::localization::Localization;
 pub use crate::model::options::UserOptionsContext;
 use crate::platform::PlatformInfo;
 use crate::rollback::RollbackManager;
-pub use crate::system::artifact_cache::ArtifactCache;
 use crate::staging;
+pub use crate::system::artifact_cache::ArtifactCache;
 use crate::system::dry_run::DryRunLog;
 use anyhow::Result;
 
