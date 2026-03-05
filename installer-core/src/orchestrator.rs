@@ -115,6 +115,39 @@ pub fn run_with_driver(
 
     let localization = Localization::load_default().map_err(Box::<InstallerRunError>::from)?;
 
+    let staging_dir = opts
+        .staging_dir
+        .clone()
+        .unwrap_or_else(|| UserOptionsContext::from_options(&opts).staging_dir);
+    let cache = crate::ArtifactCache::new(&staging_dir);
+    cache.init().map_err(|e| {
+        let err = InstallerError::new(
+            "cache",
+            "artifact cache initialization",
+            ErrorSeverity::Fatal,
+            e,
+            InstallerStateSnapshot::default(),
+            Some("Ensure the staging directory is writable and has sufficient space.".to_string()),
+        );
+        Box::new(InstallerRunError {
+            report: Box::new(InstallationReport {
+                completed_phases: Vec::new(),
+                staging_dir,
+                errors: vec![err.clone()],
+                outputs: Vec::new(),
+                events: Vec::new(),
+                options: opts.clone(),
+                driver: DriverInfo {
+                    name: driver.name().to_string(),
+                    description: driver.description().to_string(),
+                },
+                dry_run_log: Vec::new(),
+                audit_report: crate::system::dry_run::PreflightAuditReport::default(),
+            }),
+            source: err,
+        })
+    })?;
+
     let ctx = InstallContext {
         options: UserOptionsContext::from_options(&opts),
         platform: platform_ctx,
@@ -126,6 +159,7 @@ pub fn run_with_driver(
         localization,
         rollback: RollbackManager::new(),
         dry_run_log: DryRunLog::new(),
+        cache,
     };
 
     // Ask for sudo password up front if needed
@@ -201,7 +235,7 @@ pub fn run_with_driver(
         result.completed_phases.len()
     );
 
-    Ok(InstallationReport {
+    let report = InstallationReport {
         completed_phases: result.completed_phases,
         staging_dir: staging_final,
         errors: result.errors,
@@ -214,7 +248,13 @@ pub fn run_with_driver(
         },
         dry_run_log: ctx.dry_run_log.entries(),
         audit_report: crate::system::dry_run::PreflightAuditReport::default(),
-    })
+    };
+
+    // ── Telemetry (Roaming Agent feature) ───────────────────────────────────
+    let telemetry = crate::system::telemetry::TelemetryService::new(ctx.platform.config().telemetry.clone());
+    let _ = telemetry.report(&report);
+
+    Ok(report)
 }
 
 #[allow(dead_code)]
@@ -245,6 +285,7 @@ pub fn run_preflight_audit(
         localization: Localization::load_default()?,
         rollback: RollbackManager::new(),
         dry_run_log: DryRunLog::new(),
+        cache: crate::ArtifactCache::new(&UserOptionsContext::from_options(opts).staging_dir),
     };
 
     let phases = registry.build_phases(&ctx.options, &ctx.localization);

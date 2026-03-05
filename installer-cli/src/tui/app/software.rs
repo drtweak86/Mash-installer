@@ -3,7 +3,7 @@ use crate::tui::state::{LogLevel, Screen, TuiApp};
 use crossterm::event::KeyCode;
 use installer_core::catalog::Program;
 use installer_core::preset::Preset;
-use installer_core::{InstallOptions, SoftwareCategory, SoftwareTierPlan, ThemePlan, Tier};
+use installer_core::{InstallOptions, SoftwareTierPlan, ThemePlan, Tier};
 use std::collections::BTreeMap;
 use std::time::Instant;
 
@@ -19,6 +19,8 @@ impl TuiApp {
             docker_data_root: self.modules.docker_data_root,
             continue_on_error: self.continue_on_error,
             software_plan: self.build_software_plan(),
+            system_profile: self.system_profile.clone(),
+            environment: installer_core::model::options::EnvironmentTag::Home, // Default for TUI for now
         }
     }
 

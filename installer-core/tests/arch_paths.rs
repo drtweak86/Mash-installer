@@ -3,8 +3,8 @@
 
 use anyhow::Result;
 use installer_core::{
-    dry_run::DryRunLog, ConfigService, DistroDriver, InstallContext, Phase, PhaseContext,
-    PhaseObserver, PhaseResult, PhaseRunner, PkgBackend, PlatformInfo, ProfileLevel,
+    dry_run::DryRunLog, ConfigService, DistroDriver, EnvironmentTag, InstallContext, Phase,
+    PhaseContext, PhaseObserver, PhaseResult, PhaseRunner, PkgBackend, PlatformInfo, ProfileLevel,
     SoftwareTierPlan, UIContext, UserOptionsContext,
 };
 use std::path::PathBuf;
@@ -57,8 +57,13 @@ fn build_mock_context(arch: &'static str) -> Result<InstallContext> {
         enable_p10k: false,
         docker_data_root: false,
         software_plan: SoftwareTierPlan::default(),
+        system_profile: None,
+        environment: EnvironmentTag::Home,
     };
     let localization = installer_core::localization::Localization::load_default()?;
+
+    let cache_dir = PathBuf::from("/tmp/mash-test-cache");
+    let cache = installer_core::ArtifactCache::new(&cache_dir);
 
     Ok(InstallContext {
         options,
@@ -78,6 +83,7 @@ fn build_mock_context(arch: &'static str) -> Result<InstallContext> {
         localization,
         rollback: installer_core::RollbackManager::new(),
         dry_run_log: DryRunLog::new(),
+        cache,
     })
 }
 

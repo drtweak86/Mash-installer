@@ -402,7 +402,7 @@ mod tests {
         localization::Localization,
         platform::PlatformInfo,
         rollback::RollbackManager,
-        InstallContext, ProfileLevel, SoftwareTierPlan,
+        EnvironmentTag, InstallContext, ProfileLevel, SoftwareTierPlan,
     };
     use anyhow::{anyhow, Result};
     use std::path::PathBuf;
@@ -556,8 +556,13 @@ mod tests {
             enable_p10k: false,
             docker_data_root: false,
             software_plan: SoftwareTierPlan::default(),
+            system_profile: None,
+            environment: EnvironmentTag::Home,
         };
         let localization = Localization::load_default()?;
+
+        let cache_dir = PathBuf::from("/tmp/mash-test-cache");
+        let cache = crate::ArtifactCache::new(&cache_dir);
 
         Ok(InstallContext {
             options,
@@ -567,6 +572,7 @@ mod tests {
             localization,
             rollback: RollbackManager::new(),
             dry_run_log: DryRunLog::new(),
+            cache,
         })
     }
 

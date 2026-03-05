@@ -60,6 +60,11 @@ pub trait DistroDriver: Sync + Send {
     fn is_package_installed(&self, package: &str) -> bool {
         crate::package_manager::check_installed(self.pkg_backend(), package)
     }
+
+    /// (Optional) Attempt to configure a local package mirror if one is detected.
+    fn configure_local_mirror(&self, _ctx: &mut crate::PhaseContext) -> Result<()> {
+        Ok(())
+    }
 }
 
 #[cfg(test)]

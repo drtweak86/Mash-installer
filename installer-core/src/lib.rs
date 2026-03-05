@@ -58,6 +58,8 @@ mod zsh;
 
 use crate::localization::Localization;
 pub use advice::{AdviceEngine, AdviceEntry, Rule, Severity as AdviceSeverity};
+pub use system::artifact_cache::ArtifactCache;
+pub use system::ws_observer::{WebsocketObserver, CompositeObserver};
 pub use system::{cmd, dry_run, logging as sys_logging, sudo, system_ops as sys_ops};
 
 // --- Core API ---
@@ -71,7 +73,7 @@ pub use doctor::{run_doctor, DoctorOutput};
 pub use driver::{AptRepoConfig, DistroDriver, RepoKind, ServiceName};
 pub use model::phase::AuthType;
 pub use model::software::{SoftwareCategory, SoftwareTierPlan, ThemePlan, Tier};
-pub use options::{InstallOptions, ProfileLevel};
+pub use options::{EnvironmentTag, InstallOptions, ProfileLevel};
 pub use orchestrator::run_with_driver;
 pub use package_spec::{PackageIntent, PackageSpec};
 pub use phase_registry::PhaseRegistry;
@@ -120,6 +122,7 @@ pub struct InstallContext {
     pub localization: Localization,
     pub rollback: RollbackManager,
     pub dry_run_log: system::dry_run::DryRunLog,
+    pub cache: ArtifactCache,
 }
 
 impl InstallContext {
@@ -132,6 +135,7 @@ impl InstallContext {
             &self.localization,
             &self.rollback,
             &self.dry_run_log,
+            &self.cache,
             observer,
         )
     }

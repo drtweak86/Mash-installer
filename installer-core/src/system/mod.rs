@@ -1,3 +1,4 @@
+pub mod artifact_cache;
 pub mod cmd;
 pub mod dry_run;
 pub mod error;
@@ -7,3 +8,5 @@ pub mod proc;
 pub mod sudo;
 pub mod sudo_password;
 pub mod system_ops;
+pub mod telemetry;
+pub mod ws_observer;

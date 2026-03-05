@@ -10,7 +10,7 @@ use super::menu::run_theme_menu;
 use crate::software_catalog;
 use anyhow::Result;
 use installer_core::interaction::InteractionService;
-pub use installer_core::{SoftwareCategory, SoftwareTierPlan, ThemePlan, Tier};
+pub use installer_core::{SoftwareTierPlan, ThemePlan, Tier};
 use std::collections::BTreeMap;
 use std::io::{self, Write};
 

@@ -58,6 +58,18 @@ struct Cli {
     #[arg(long)]
     no_tui: bool,
 
+    /// Enable remote scrying (websocket observer) on port 3030
+    #[arg(long)]
+    scry: bool,
+
+    /// Port for the remote scrying server
+    #[arg(long, default_value_t = 3030)]
+    scry_port: u16,
+
+    /// Environment tag: home, work, traveling
+    #[arg(long, value_name = "TAG", default_value = "home")]
+    env: String,
+
     /// Hidden bardic rune — you found it, traveler (not shown in --help)
     #[arg(long, hide = true)]
     bard: bool,
@@ -164,8 +176,14 @@ fn main() -> Result<()> {
 
     // ── TUI path (default) ───────────────────────────────────────────────────
     if !cli.no_tui && !cli.non_interactive {
-        return tui::run(drivers, cli.dry_run || cli.demo, cli.continue_on_error)
-            .context("TUI exited with error");
+        return tui::run(
+            drivers,
+            cli.dry_run || cli.demo,
+            cli.continue_on_error,
+            cli.scry,
+            cli.scry_port,
+        )
+        .context("TUI exited with error");
     }
 
     // ── Legacy stdio path (--no-tui or --non-interactive) ────────────────────
@@ -199,6 +217,13 @@ fn main() -> Result<()> {
         menu::run_profile_menu(&interaction)?
     };
 
+    let environment = match cli.env.to_lowercase().as_str() {
+        "home" => installer_core::model::options::EnvironmentTag::Home,
+        "work" => installer_core::model::options::EnvironmentTag::Work,
+        "traveling" => installer_core::model::options::EnvironmentTag::Traveling,
+        _ => installer_core::model::options::EnvironmentTag::Home,
+    };
+
     let options = InstallOptions {
         profile,
         staging_dir: cli.staging_dir,
@@ -209,6 +234,8 @@ fn main() -> Result<()> {
         docker_data_root: modules.docker_data_root,
         continue_on_error: cli.continue_on_error,
         software_plan,
+        system_profile: None,
+        environment,
     };
 
     info!(
@@ -219,8 +246,20 @@ fn main() -> Result<()> {
         modules
     );
 
-    let mut observer = ui::CliPhaseObserver::new();
-    run_installer_with_ui(driver, options, &mut observer).context("installer failed")
+    let mut composite = installer_core::CompositeObserver::new();
+
+    // 1. CLI/TUI Observer
+    let cli_observer = ui::CliPhaseObserver::new();
+    composite.add(cli_observer);
+
+    // 2. Remote Scrying (Websocket)
+    if cli.scry {
+        info!("🔮  Enabling remote scrying on port {}...", cli.scry_port);
+        let scryer = installer_core::WebsocketObserver::new(cli.scry_port);
+        composite.add(scryer);
+    }
+
+    run_installer_with_ui(driver, options, &mut composite).context("installer failed")
 }
 
 fn print_scry_pretty(profile: &installer_core::SystemProfile) {
@@ -426,12 +465,11 @@ fn write_multiline(out: &mut dyn Write, label: &str, text: &str) -> std::io::Res
 fn run_installer_with_ui(
     driver: &'static dyn DistroDriver,
     options: InstallOptions,
-    observer: &mut ui::CliPhaseObserver,
+    observer: &mut dyn installer_core::PhaseObserver,
 ) -> Result<()> {
     ui::print_banner();
     let dry_run = options.dry_run;
     let run_result = installer_core::run_with_driver(driver, options, observer);
-    observer.finish();
 
     match run_result {
         Ok(report) => {

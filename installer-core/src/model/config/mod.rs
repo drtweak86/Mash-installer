@@ -1,3 +1,4 @@
+use crate::system::telemetry::TelemetryConfig;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::env;
@@ -78,6 +79,9 @@ pub struct MashConfig {
 
     #[serde(default)]
     pub logging: LoggingConfig,
+
+    #[serde(default)]
+    pub telemetry: TelemetryConfig,
 }
 
 impl crate::Validator for MashConfig {
@@ -289,6 +293,7 @@ impl Default for MashConfig {
             git: GitConfig::default(),
             interaction: InteractionConfig::default(),
             logging: LoggingConfig::default(),
+            telemetry: TelemetryConfig::default(),
         }
     }
 }

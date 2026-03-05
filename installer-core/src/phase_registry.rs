@@ -267,6 +267,7 @@ impl PhaseGate {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::model::options::EnvironmentTag;
     use std::path::PathBuf;
 
     fn dummy_run(_ctx: &mut PhaseContext) -> Result<PhaseResult> {
@@ -290,6 +291,8 @@ mod tests {
             enable_p10k: false,
             docker_data_root: false,
             software_plan: Default::default(),
+            system_profile: None,
+            environment: EnvironmentTag::Home,
         };
         let strings = Localization::load_default()?;
 

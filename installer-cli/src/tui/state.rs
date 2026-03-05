@@ -8,8 +8,7 @@ pub use installer_core::platform::PlatformInfo;
 pub use installer_core::preset::Preset;
 pub use installer_core::SystemProfile;
 pub use installer_core::{
-    AuthType, DistroDriver, InstallationReport, PhaseEvent, SoftwareCategory, SoftwareTierPlan,
-    ThemePlan, Tier,
+    AuthType, DistroDriver, InstallationReport, PhaseEvent, SoftwareCategory, ThemePlan,
 };
 
 // ── Message bus ──────────────────────────────────────────────────────────────
@@ -275,6 +274,9 @@ pub struct TuiApp {
     pub log_scroll: usize,
     // Summary scroll
     pub summary_scroll: usize,
+    // Scry state
+    pub scry: bool,
+    pub scry_port: u16,
     // Should quit
     pub should_quit: bool,
 }

@@ -80,6 +80,8 @@ impl TuiApp {
             tx,
             log_scroll: 0,
             summary_scroll: 0,
+            scry: false,
+            scry_port: 3030,
             should_quit: false,
         }
     }
@@ -130,9 +132,23 @@ impl TuiApp {
     pub fn spawn_installer(&self, driver: &'static dyn DistroDriver) {
         let options = self.build_options();
         let tx = self.tx.clone();
+        let scry = self.scry;
+        let scry_port = self.scry_port;
+
         thread::spawn(move || {
-            let mut observer = RatatuiPhaseObserver::new(tx.clone());
-            match installer_core::run_with_driver(driver, options, &mut observer) {
+            let mut composite = installer_core::CompositeObserver::new();
+
+            // 1. TUI Observer
+            let tui_observer = RatatuiPhaseObserver::new(tx.clone());
+            composite.add(tui_observer);
+
+            // 2. Remote Scrying (Websocket)
+            if scry {
+                let scryer = installer_core::WebsocketObserver::new(scry_port);
+                composite.add(scryer);
+            }
+
+            match installer_core::run_with_driver(driver, options, &mut composite) {
                 Ok(report) => {
                     let _ = tx.send(TuiMessage::Done(Box::new(report)));
                 }
@@ -183,6 +199,8 @@ pub fn run(
     drivers: Vec<&'static dyn DistroDriver>,
     dry_run: bool,
     continue_on_error: bool,
+    scry: bool,
+    scry_port: u16,
 ) -> anyhow::Result<()> {
     let _guard = TerminalGuard::enter()?;
     let backend = CrosstermBackend::new(io::stdout());
@@ -197,6 +215,8 @@ pub fn run(
     let mut app = TuiApp::new(tx, drivers);
     app.dry_run = dry_run;
     app.continue_on_error = continue_on_error;
+    app.scry = scry;
+    app.scry_port = scry_port;
 
     match detect_platform().ok().and_then(|info| {
         let matches: Vec<usize> = app

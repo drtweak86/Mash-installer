@@ -31,6 +31,8 @@ pub struct GpuInfo {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct NetworkInfo {
     pub interfaces: Vec<String>,
+    pub online: bool,
+    pub latency_ms: Option<f32>,
 }
 
 /// Hardware platform classification.
