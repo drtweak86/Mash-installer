@@ -18,10 +18,13 @@ pub fn install_phase(ctx: &mut PhaseContext<'_>) -> Result<PhaseResult> {
         || config.api_keys.pexels.is_some()
         || config.api_keys.pixabay.is_some();
 
-    // First, try the harvest method (no API keys required)
     ctx.record_action("🌾  Attempting wallpaper harvest (no API keys required)...");
 
-    let harvest_config = HarvestConfig::default();
+    let mut harvest_config = HarvestConfig::default();
+    // Redirect harvest to artifact cache if available
+    let cache_key = "wallpapers/mash_harvest";
+    harvest_config.dest = ctx.cache.resolve_path(cache_key);
+
     let harvester = WallpaperHarvester::new(harvest_config)?;
 
     // We need to pass the observer from ctx

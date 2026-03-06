@@ -1,1 +1,1 @@
-pub use crate::model::options::{InstallOptions, ProfileLevel};
+pub use crate::model::options::{EnvironmentTag, InstallOptions, ProfileLevel};

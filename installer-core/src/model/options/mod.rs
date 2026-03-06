@@ -1,7 +1,28 @@
 use crate::model::software::SoftwareTierPlan;
-use crate::Validator;
+use crate::model::Validator;
+use crate::profile::SystemProfile;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+    Default,
+    Serialize,
+    Deserialize,
+    strum::Display,
+    strum::EnumString,
+)]
+#[strum(serialize_all = "snake_case")]
+pub enum EnvironmentTag {
+    #[default]
+    Home,
+    Work,
+    Traveling,
+}
 
 /// Options provided by the CLI that drive `run_with_driver`.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -15,6 +36,8 @@ pub struct InstallOptions {
     pub docker_data_root: bool,
     pub continue_on_error: bool,
     pub software_plan: SoftwareTierPlan,
+    pub system_profile: Option<SystemProfile>,
+    pub environment: EnvironmentTag,
 }
 
 impl Validator for InstallOptions {
@@ -45,6 +68,8 @@ impl Default for InstallOptions {
             docker_data_root: false,
             continue_on_error: false,
             software_plan: SoftwareTierPlan::default(),
+            system_profile: None,
+            environment: EnvironmentTag::Home,
         }
     }
 }
@@ -68,6 +93,8 @@ pub struct UserOptionsContext {
     pub enable_p10k: bool,
     pub docker_data_root: bool,
     pub software_plan: SoftwareTierPlan,
+    pub system_profile: Option<SystemProfile>,
+    pub environment: EnvironmentTag,
 }
 
 impl UserOptionsContext {
@@ -84,6 +111,8 @@ impl UserOptionsContext {
             enable_p10k: opts.enable_p10k,
             docker_data_root: opts.docker_data_root,
             software_plan: opts.software_plan.clone(),
+            system_profile: opts.system_profile.clone(),
+            environment: opts.environment,
         }
     }
 }

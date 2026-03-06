@@ -1,5 +1,6 @@
 use installer_core::catalog::Catalog;
 
+#[allow(dead_code)]
 pub fn load_s_tier() -> Catalog {
     Catalog::load_s_tier().unwrap_or_default()
 }

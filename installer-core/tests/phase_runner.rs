@@ -3,9 +3,10 @@ use installer_core::dry_run::DryRunLog;
 use installer_core::localization::Localization;
 use installer_core::RollbackManager;
 use installer_core::{
-    ConfigService, DistroDriver, ErrorSeverity, InstallContext, Phase, PhaseContext,
-    PhaseErrorPolicy, PhaseEvent, PhaseObserver, PhaseResult, PhaseRunner, PkgBackend,
-    PlatformContext, PlatformInfo, ProfileLevel, SoftwareTierPlan, UIContext, UserOptionsContext,
+    ConfigService, DistroDriver, EnvironmentTag, ErrorSeverity, InstallContext, Phase,
+    PhaseContext, PhaseErrorPolicy, PhaseEvent, PhaseObserver, PhaseResult, PhaseRunner,
+    PkgBackend, PlatformContext, PlatformInfo, ProfileLevel, SoftwareTierPlan, UIContext,
+    UserOptionsContext,
 };
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -132,8 +133,13 @@ fn build_install_context() -> Result<InstallContext> {
         enable_p10k: false,
         docker_data_root: false,
         software_plan: SoftwareTierPlan::default(),
+        system_profile: None,
+        environment: EnvironmentTag::Home,
     };
     let localization = Localization::load_default()?;
+
+    let cache_dir = PathBuf::from("/tmp/mash-test-cache");
+    let cache = installer_core::ArtifactCache::new(&cache_dir);
 
     Ok(InstallContext {
         options,
@@ -146,6 +152,7 @@ fn build_install_context() -> Result<InstallContext> {
         localization,
         rollback: RollbackManager::new(),
         dry_run_log: DryRunLog::new(),
+        cache,
     })
 }
 

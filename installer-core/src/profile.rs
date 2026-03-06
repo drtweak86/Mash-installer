@@ -411,7 +411,7 @@ impl GpuInfoExt for GpuInfo {
 }
 
 impl NetworkInfoExt for NetworkInfo {
-    fn detect(_system: &dyn SystemOps) -> Result<Self> {
+    fn detect(system: &dyn SystemOps) -> Result<Self> {
         let mut interfaces = Vec::new();
         if let Ok(entries) = std::fs::read_dir("/sys/class/net") {
             for entry in entries.flatten() {
@@ -420,7 +420,33 @@ impl NetworkInfoExt for NetworkInfo {
                 }
             }
         }
-        Ok(Self { interfaces })
+
+        // Detect online status and latency via ping
+        let mut online = false;
+        let mut latency_ms = None;
+
+        let mut cmd = std::process::Command::new("ping");
+        cmd.args(["-c", "1", "-W", "2", "8.8.8.8"]);
+        if let Ok(output) = system.command_output(&mut cmd) {
+            if output.status.success() {
+                online = true;
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                if let Some(time_idx) = stdout.find("time=") {
+                    let rest = &stdout[time_idx + 5..];
+                    if let Some(ms_idx) = rest.find(" ms") {
+                        if let Ok(ms) = rest[..ms_idx].parse::<f32>() {
+                            latency_ms = Some(ms);
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(Self {
+            interfaces,
+            online,
+            latency_ms,
+        })
     }
 }
 

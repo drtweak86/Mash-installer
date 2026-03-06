@@ -1,4 +1,4 @@
-mod model;
+pub mod model;
 mod system;
 mod wallpaper;
 
@@ -58,6 +58,8 @@ mod zsh;
 
 use crate::localization::Localization;
 pub use advice::{AdviceEngine, AdviceEntry, Rule, Severity as AdviceSeverity};
+pub use system::artifact_cache::ArtifactCache;
+pub use system::ws_observer::{CompositeObserver, WebsocketObserver};
 pub use system::{cmd, dry_run, logging as sys_logging, sudo, system_ops as sys_ops};
 
 // --- Core API ---
@@ -70,7 +72,8 @@ pub use context::{
 pub use doctor::{run_doctor, DoctorOutput};
 pub use driver::{AptRepoConfig, DistroDriver, RepoKind, ServiceName};
 pub use model::phase::AuthType;
-pub use options::{InstallOptions, ProfileLevel};
+pub use model::software::{SoftwareCategory, SoftwareTierPlan, ThemePlan, Tier};
+pub use options::{EnvironmentTag, InstallOptions, ProfileLevel};
 pub use orchestrator::run_with_driver;
 pub use package_spec::{PackageIntent, PackageSpec};
 pub use phase_registry::PhaseRegistry;
@@ -85,8 +88,7 @@ pub use profile::{
     PlatformType, SessionInfo, StorageInfo, SystemProfile, SystemProfileExt,
 };
 pub use rollback::RollbackManager;
-pub use software_tiers::SoftwareTierPlan;
-pub use software_tiers::ThemePlan;
+pub use software_tiers::install_phase as run_software_install;
 pub use status::{run_status, StatusOutput};
 pub use system::error::{
     DriverInfo, ErrorSeverity, InstallationReport, InstallerError, InstallerRunError,
@@ -120,6 +122,7 @@ pub struct InstallContext {
     pub localization: Localization,
     pub rollback: RollbackManager,
     pub dry_run_log: system::dry_run::DryRunLog,
+    pub cache: ArtifactCache,
 }
 
 impl InstallContext {
@@ -132,6 +135,7 @@ impl InstallContext {
             &self.localization,
             &self.rollback,
             &self.dry_run_log,
+            &self.cache,
             observer,
         )
     }

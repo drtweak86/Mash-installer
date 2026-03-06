@@ -50,6 +50,32 @@ impl DistroDriver for ArchDriver {
             _ => Some(canonical.to_string()),
         }
     }
+
+    fn configure_local_mirror(&self, ctx: &mut installer_core::PhaseContext) -> anyhow::Result<()> {
+        // Arch Mirror Heuristic: Check for local proxy or cache
+        // If pacman.conf has XferCommand or if we can detect a local proxy
+        let mut cmd = std::process::Command::new("curl");
+        cmd.args([
+            "-I",
+            "-s",
+            "--connect-timeout",
+            "1",
+            "http://localhost:3142",
+        ]);
+
+        if let Ok(output) = ctx.platform.system.command_output(&mut cmd) {
+            if output.status.success() {
+                ctx.record_action(
+                    "Mirror Heuristics: Local pacman-compatible proxy detected at localhost:3142",
+                );
+
+                // For Arch, we'd typically use 'XferCommand' in pacman.conf or a proxy env
+                // We'll record the intent here as Arch mirror management is usually more manual
+                ctx.record_tweaked("Mirror Heuristics: Local proxy detected. Manual pacman.conf 'XferCommand' optimization recommended.");
+            }
+        }
+        Ok(())
+    }
 }
 
 pub static ARCH_DRIVER: ArchDriver = ArchDriver;

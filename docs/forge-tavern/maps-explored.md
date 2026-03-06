@@ -3,6 +3,105 @@
 
 ---
 
+## Session: 2026-03-04 — Shaft AA: Phase 5 Roaming Agent Completion
+
+### Summary
+Completed the "Roaming Agent" phase and finalized **Shaft AA: The Ascended Architecture**. MASH is now equipped with "Remote Scrying" capabilities and a highly modular observer system, allowing it to act as a truly intelligent and observable provisioning agent.
+
+### Key Achievements
+- [x] **Remote Scrying**: Implemented `WebsocketObserver` in `installer-core`, enabling real-time event broadcasting over port 3030 (default).
+- [x] **Observer Multiplexing**: Added `CompositeObserver` to allow simultaneous TUI and Websocket monitoring.
+- [x] **Async Foundations**: Upgraded workspace dependencies (`tokio`, `warp`, `futures-util`) to support modern networking features in the core logic.
+- [x] **Final Integration**: Verified that all five phases of Shaft AA are harmonized and the workspace is stable.
+
+---
+
+## Session: 2026-03-04 — Shaft AA: Phase 4 Zero-HTTP Completion
+
+### Summary
+Completed the "Zero-HTTP" phase. The installer is now capable of caching its own artifacts and autonomously discovering local package mirrors, significantly improving resilience in restricted or high-latency network environments.
+
+### Key Achievements
+- [x] **Local Hoard Service**: Finalized the `ArtifactCache` service with SHA-256 hash verification.
+- [x] **Context Awareness**: Threaded the cache through the entire installation lifecycle via `PhaseContext`.
+- [x] **Mirror Heuristics**: 
+    - Implemented automated `apt-cacher-ng` detection in the Debian driver.
+    - Added logic to auto-configure `/etc/apt/apt.conf.d/01proxy` if a local mirror is found at `localhost:3142`.
+- [x] **Wallpaper Retention**: Integrated the wallpaper harvest system with the new artifact cache to prevent redundant downloads.
+- [x] **Stability**: Verified all core tests pass with the new cache and mirror logic.
+
+---
+
+## Session: 2026-03-04 — Shaft AA: Phase 4 Artifact Caching
+
+### Summary
+Initiated the "Zero-HTTP" architecture by implementing a workspace-wide `ArtifactCache`. The forge can now "hoard" its artifacts (wallpapers, themes, scripts) and verify them using SHA-256 hashes, drastically reducing network dependency for repeated provisions.
+
+### Key Achievements
+- [x] **Artifact Cache**: Forged `installer-core/src/system/artifact_cache.rs` with SHA-256 verification and atomic caching logic.
+- [x] **Context Integration**: Threaded the `ArtifactCache` through `InstallContext` and `PhaseContext`, making it available to all installation phases.
+- [x] **Hoarding Implementation**: Updated the Wallpaper installation phase to redirect its "plasma harvest" into the artifact hoard.
+- [x] **Verification**: Implemented unit tests for the artifact cache and verified that all core contexts (mock and real) are correctly initialized.
+
+---
+
+## Session: 2026-03-04 — Shaft AA: Phase 3 Dynamic Heuristics Completion
+
+### Summary
+Completed the "Dynamic Heuristics" phase of the Ascended Architecture. The installer is now "context-aware" and can adapt its provisioning logic based on the machine's hardware pedigree and network environment.
+
+### Key Achievements
+- [x] **Network Scrying**: Integrated `ping`-based connectivity and latency detection into the `SystemProfile` detection suite.
+- [x] **Contextual Intelligence**:
+    - **Pi 4B**: Automated enforcement of `zram` optimization based on hardware model and distro family.
+    - **Hardware Guardrails**: Implemented heuristics to warn about performance-intensive software (Electron apps) on low-RAM (<8GB) systems.
+    - **Network Guardrails**: Added logic to warn about high latency or offline status during the software installation phase.
+- [x] **Software Tier Integration**: Refactored the `install_phase` to apply dynamic heuristics after user selection but before execution.
+- [x] **Verification**: Extended the `software_tiers` test suite with unit tests for Pi-specific zram additions and network-aware warnings. All 5 tests passed.
+
+---
+
+## Session: 2026-03-04 — Shaft AA: Phase 3 Heuristic Infrastructure
+
+### Summary
+Successfully laid the groundwork for "The Ascended Architecture" by integrating the `SystemProfile` deep into the installer core. This allows for context-aware "Heuristics" that automatically tune the installation based on hardware and environment.
+
+### Key Achievements
+- [x] **Context Awareness**: Extended `InstallOptions`, `UserOptionsContext`, and `PhaseContext` to carry the detailed `SystemProfile` scrying results.
+- [x] **Heuristic Engine**: Implemented `apply_heuristics` in `software_tiers.rs`, enabling dynamic package selection.
+- [x] **Hardware Optimizations**:
+    - Automated `zram` enforcement for Pi 4B units (debian/arch/fedora).
+    - Context-aware performance warnings for heavy Electron apps on low-RAM systems.
+- [x] **Workspace Reliability**: Fixed manual `UserOptionsContext` initializations in 10+ test sites and core modules to accommodate the new profile field.
+- [x] **Verification**: All core tests and new heuristic unit tests passing.
+
+---
+
+## Session: 2026-03-04 — Shaft AA: Phase 2 Grimoire Completion
+
+### Summary
+Completed the "Grimoire Architecture" phase. Verified the structural integrity of the software catalog and enforced driver mapping consistency across all supported distributions.
+
+### Key Achievements
+- [x] **Typed Catalog**: Confirmed `SoftwareCategory` enum usage in `installer-core` and `installer-cli`.
+- [x] **Driver Enforcement**: Implemented `catalog::tests::enforce_driver_mappings_s_tier` to ensure 100% driver coverage for S-Tier packages (Arch, Debian, Fedora).
+- [x] **Verification**: All tests passed, including the new enforcement gate.
+
+---
+
+## Session: 2026-03-04 — Shaft Y: Build Optimization & Workspace Finalization
+
+### Summary
+Finalized the workspace restructuring by optimizing the build configuration and cleaning up technical debt in `installer-cli`. Verified the workspace is clean, compiles quickly, and is ready for the next phase of development.
+
+### Key Achievements
+- [x] **Build Optimization**: Verified incremental build times (~3.85s for dev profile) and workspace configuration.
+- [x] **Code Cleanup**: Removed unused imports and dead code in `installer-cli` (`software_tiers.rs`, `tui/app/software.rs`, `tui/state.rs`, `software_catalog.rs`).
+- [x] **Green Build**: Achieved a warning-free build across the entire workspace.
+- [x] **Documentation Sync**: Updated `maps.md` to reflect the completion of Shaft Y's workspace tasks and the activation of Shaft AA's Grimoire phase.
+
+---
+
 ## Session: 2026-03-04 — Shaft Y: Baseline Establishment & Verification
 
 ### Summary

@@ -42,6 +42,46 @@ impl DistroDriver for FedoraDriver {
             _ => Some(canonical.to_string()),
         }
     }
+
+    fn configure_local_mirror(&self, ctx: &mut installer_core::PhaseContext) -> anyhow::Result<()> {
+        // Fedora DNF Mirror Heuristic
+        let mut cmd = std::process::Command::new("curl");
+        cmd.args([
+            "-I",
+            "-s",
+            "--connect-timeout",
+            "1",
+            "http://localhost:3142",
+        ]);
+
+        if let Ok(output) = ctx.platform.system.command_output(&mut cmd) {
+            if output.status.success() {
+                ctx.record_action(
+                    "Mirror Heuristics: Local dnf-compatible proxy detected at localhost:3142",
+                );
+
+                // For Fedora, we can add 'proxy=http://localhost:3142' to dnf.conf
+                let proxy_line = "proxy=http://localhost:3142";
+                let conf_path = "/etc/dnf/dnf.conf";
+
+                if ctx.options.dry_run {
+                    ctx.record_dry_run(
+                        "mirror_heuristics",
+                        "Would configure dnf proxy",
+                        Some(conf_path.to_string()),
+                    );
+                } else {
+                    let mut append_cmd = std::process::Command::new("sh");
+                    append_cmd
+                        .arg("-c")
+                        .arg(format!("echo '{}' | sudo tee -a {}", proxy_line, conf_path));
+                    ctx.platform.system.command_output(&mut append_cmd)?;
+                    ctx.record_tweaked("Configured local dnf proxy in /etc/dnf/dnf.conf");
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 pub static FEDORA_DRIVER: FedoraDriver = FedoraDriver;

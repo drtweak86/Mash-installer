@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use installer_core::cmd::{CommandExecutionDetails, CommandExecutionError};
 use installer_core::{
-    DriverInfo, ErrorSeverity, InstallOptions, InstallationReport, InstallerError,
+    DriverInfo, EnvironmentTag, ErrorSeverity, InstallOptions, InstallationReport, InstallerError,
     InstallerStateSnapshot, ProfileLevel, SoftwareTierPlan, UserOptionsContext,
 };
 use std::path::PathBuf;
@@ -16,6 +16,8 @@ fn build_user_options() -> UserOptionsContext {
         enable_p10k: false,
         docker_data_root: false,
         software_plan: SoftwareTierPlan::default(),
+        system_profile: None,
+        environment: EnvironmentTag::Home,
     }
 }
 

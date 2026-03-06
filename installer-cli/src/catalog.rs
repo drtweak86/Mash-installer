@@ -6,7 +6,7 @@ pub fn catalog_to_text(catalog: &Catalog) -> String {
     for category in &catalog.categories {
         output.push_str(&format!(
             "Category: {} ({})\n",
-            category.display_name, category.name
+            category.display_name, category.id
         ));
         if let Some(desc) = &category.description.split('\n').next() {
             output.push_str(&format!("  {}\n", desc));

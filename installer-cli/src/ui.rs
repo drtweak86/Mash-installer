@@ -98,11 +98,6 @@ impl CliPhaseObserver {
             }
         }
     }
-
-    pub fn finish(&mut self) {
-        self.finish_spinner(" ", "");
-        self.overall.finish_and_clear();
-    }
 }
 
 impl PhaseObserver for CliPhaseObserver {

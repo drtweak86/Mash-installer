@@ -82,8 +82,10 @@ pub fn draw_software_select(f: &mut Frame, area: Rect, app: &TuiApp) {
         .enumerate()
         .map(|(i, p)| {
             let selected = i == app.menu_cursor;
-            let current_pick = app.software_picks.get(&category.display_name);
-            let is_picked = current_pick.map(|id| id == &p.id).unwrap_or(false);
+            let current_picks = app.software_picks.get(&category.id);
+            let is_picked = current_picks
+                .map(|ids| ids.contains(&p.id))
+                .unwrap_or(false);
 
             software_status_line(p, i + 1, selected, is_picked)
         })

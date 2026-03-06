@@ -480,12 +480,11 @@ pub fn draw_wardrobe(f: &mut Frame, area: Rect, app: &TuiApp) {
             Line::from(Span::styled("COMPONENTS:", theme::accent_style())),
         ];
 
-        for (cat, prog) in &preset.software_plan.selections {
-            let cat: &String = cat;
+        for (cat, progs) in &preset.software_plan.selections {
             detail_lines.push(Line::from(format!(
                 "  + {:<12} : {}",
-                cat.to_uppercase(),
-                prog
+                cat.to_string().to_uppercase(),
+                progs.join(", ")
             )));
         }
 

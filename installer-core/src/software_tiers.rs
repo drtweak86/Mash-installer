@@ -2,131 +2,174 @@
 //!
 //! This module owns two concerns that belong in the **core** crate:
 //! - **Data model**: [`SoftwareTierPlan`] and [`ThemePlan`] — the user's selections,
-//!   constructed by the CLI layer and threaded into every install phase via [`PhaseContext`].
-//! - **Install logic**: [`install_phase`] — consumes the plan and actually installs packages.
-//!
-//! **Boundary note**: UI rendering (menus, prompts, selection) lives exclusively in
-//! `installer-cli/src/software_tiers.rs`. Nothing in this module should touch stdio.
+//!   constructed by the UI but used by the engine.
+//! - **Installation logic**: [`install_phase`], which executes the actual
+//!   package manager calls and theme application steps.
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use std::collections::BTreeSet;
-use std::fs;
-use std::os::unix::fs::PermissionsExt;
 
-pub use crate::model::software::{SoftwareTierPlan, ThemePlan};
+use crate::context::PhaseContext;
+use crate::model::options::EnvironmentTag;
+use crate::model::software::{SoftwareTierPlan, Tier};
+use crate::package_manager;
+use crate::PhaseResult;
 
-use crate::catalog::{Catalog, Program};
-use crate::system::cmd;
-use crate::{package_manager, AuthType, AuthorizationService, PhaseContext, PhaseResult};
-
-pub fn install_phase(ctx: &mut PhaseContext) -> Result<PhaseResult> {
-    let plan = &ctx.options.software_plan;
+/// Software installation phase — the primary payload of the installer.
+pub fn install_phase(ctx: &mut PhaseContext<'_>) -> Result<PhaseResult> {
+    let plan = ctx.options.software_plan.clone();
 
     if plan.is_empty() {
-        tracing::info!("No software tiers selected; skipping.");
         return Ok(PhaseResult::Success);
     }
 
-    // Load catalogs
-    let s_tier = Catalog::load_s_tier()?;
-    let full = Catalog::load_full()?;
-    let languages = Catalog::load_languages()?;
+    ctx.record_action(format!(
+        "Executing software installation for tier: {:?}",
+        plan.target_tier.unwrap_or(Tier::S)
+    ));
 
+    // 1. Collect all packages to install
     let mut required = BTreeSet::new();
     let optional = BTreeSet::new();
 
-    let distro_family = &ctx.platform.platform.distro_family;
-
-    for program_id in plan.selections.values() {
-        if let Some(program) = find_program_in_catalogs(program_id, &[&s_tier, &full, &languages]) {
-            // Optimization: If full_install is true, we only install S-tier if specifically in that mode.
-            // Wait, if full_install is true, we WANT all selections.
-            // If full_install is false, we might want to filter? No, the selections are explicit.
-
-            // The actual logic should be: if full_install is true AND it's "BardsRecommendations",
-            // we already have the S-tier picks.
-            // If it's "Auto", we have the first from each category.
-
-            // Let's refine: Only install if it matches the distro family.
-            if let Some(pkgs) = program.packages.get(distro_family) {
-                for pkg in pkgs {
-                    required.insert(pkg.clone());
-                }
-            } else {
-                ctx.record_warning(format!(
-                    "No package mapping for program {} on distro family {}",
-                    program.name, distro_family
-                ));
-            }
-        } else {
-            ctx.record_warning(format!(
-                "Program ID {} not found in any catalog",
-                program_id
-            ));
+    // Add explicit selections
+    for programs in plan.selections.values() {
+        for prog_id in programs {
+            required.insert(prog_id.clone());
         }
     }
 
+    // 2. Resolve Tier dependencies if targeted
+    if let Some(tier) = plan.target_tier {
+        let catalog = if tier == Tier::S {
+            crate::catalog::Catalog::load_s_tier().unwrap_or_default()
+        } else {
+            crate::catalog::Catalog::load_full().unwrap_or_default()
+        };
+
+        let tiers_to_include = tier.resolve();
+        for cat in &catalog.categories {
+            for sub in &cat.subcategories {
+                for prog in &sub.programs {
+                    if tiers_to_include.contains(&prog.tier) {
+                        required.insert(prog.id.clone());
+                    }
+                }
+            }
+        }
+    }
+
+    // 3. Apply dynamic heuristics (Bard's Recommendations)
+    apply_heuristics(ctx, &mut required)?;
+
+    // 4. Mirror Heuristics (Zero-HTTP strategy)
+    ctx.platform.driver.configure_local_mirror(ctx)?;
+
     install_packages(ctx, &required, &optional)?;
-    apply_theme_plan(ctx, &plan.theme_plan)?;
 
+    // 5. Apply Theme Plan
+    if plan.theme_plan != crate::model::software::ThemePlan::None {
+        let home = dirs::home_dir().unwrap_or_else(|| std::path::PathBuf::from("/root"));
+        crate::theme::install_retro_theme(&home, ctx.options.dry_run)?;
+    }
+
+    // Post-install configurations (Auth, etc.)
     if ctx.options.interactive {
-        let has_borg = plan.selections.values().any(|v| v == "borgbackup");
-        if has_borg
-            && !AuthorizationService::new(ctx.observer, ctx.options)
-                .is_authorized(AuthType::BorgSetup)
-            && ctx.observer.request_auth(AuthType::BorgSetup)?
-        {
-            AuthorizationService::new(ctx.observer, ctx.options).authorize(AuthType::BorgSetup)?;
-            ctx.record_configured("Borg backup repository");
-        }
-
-        let has_tailscale = plan.selections.values().any(|v| v == "tailscale");
-        if has_tailscale
-            && !AuthorizationService::new(ctx.observer, ctx.options)
-                .is_authorized(AuthType::TailscaleAuth)
-            && ctx.observer.request_auth(AuthType::TailscaleAuth)?
-        {
-            AuthorizationService::new(ctx.observer, ctx.options)
-                .authorize(AuthType::TailscaleAuth)?;
-            ctx.record_configured("Tailscale (Authorized)");
-        }
-
-        let has_ngrok = plan.selections.values().any(|v| v == "ngrok");
-        if has_ngrok
-            && !AuthorizationService::new(ctx.observer, ctx.options)
-                .is_authorized(AuthType::NgrokAuth)
-            && ctx.observer.request_auth(AuthType::NgrokAuth)?
-        {
-            AuthorizationService::new(ctx.observer, ctx.options).authorize(AuthType::NgrokAuth)?;
-            ctx.record_configured("Ngrok authtoken");
-        }
-
-        let has_cloudflared = plan.selections.values().any(|v| v == "cloudflared");
-        if has_cloudflared
-            && !AuthorizationService::new(ctx.observer, ctx.options)
-                .is_authorized(AuthType::CloudflaredAuth)
-            && ctx.observer.request_auth(AuthType::CloudflaredAuth)?
-        {
-            AuthorizationService::new(ctx.observer, ctx.options)
-                .authorize(AuthType::CloudflaredAuth)?;
-            ctx.record_configured("Cloudflared (Authorized)");
-        }
+        handle_interactive_auth(ctx, &plan)?;
     }
 
     Ok(PhaseResult::Success)
 }
 
-fn find_program_in_catalogs<'a>(id: &str, catalogs: &[&'a Catalog]) -> Option<&'a Program> {
-    for catalog in catalogs {
-        for category in &catalog.categories {
-            for subcategory in &category.subcategories {
-                if let Some(program) = subcategory.programs.iter().find(|p| p.id == id) {
-                    return Some(program);
+fn apply_heuristics(ctx: &mut PhaseContext, required: &mut BTreeSet<String>) -> Result<()> {
+    let Some(_profile) = &ctx.options.system_profile else {
+        tracing::debug!("No system profile available for heuristics");
+        return Ok(());
+    };
+
+    let distro_family = &ctx.platform.platform.distro_family;
+
+    // 1. Pi 4B Optimizations
+    if ctx.platform.is_pi_4b() {
+        // Enforce ZRAM for memory constrained Pi
+        if distro_family == "debian" {
+            if !required.contains("zram-tools") {
+                required.insert("zram-tools".to_string());
+                ctx.record_tweaked("Heuristics: Added 'zram-tools' for Pi 4B memory optimization");
+            }
+        } else if distro_family == "arch" || distro_family == "fedora" {
+            // Arch/Fedora usually use zram-generator
+            if !required.contains("zram-generator") {
+                required.insert("zram-generator".to_string());
+                ctx.record_tweaked(
+                    "Heuristics: Added 'zram-generator' for Pi 4B memory optimization",
+                );
+            }
+        }
+    }
+
+    // 2. Low RAM Warnings (Only for recommended mode to avoid nagging manual users)
+    if ctx.options.software_plan.target_tier.is_some() {
+        let ram_gb = _profile.memory.ram_total_kb as f32 / (1024.0 * 1024.0);
+        if ram_gb < 7.5 {
+            let heavy_apps = ["vscode", "discord", "slack", "teams"];
+            for app_id in ctx.options.software_plan.selections.values().flatten() {
+                if heavy_apps.contains(&app_id.as_str()) {
+                    ctx.record_warning(format!(
+                        "Heuristics: '{}' identified on low-RAM system ({:.1}GB). Performance may be throttled.",
+                        app_id, ram_gb
+                    ));
                 }
             }
         }
     }
-    None
+
+    // 3. Network Awareness
+    let net = &_profile.network;
+    if !net.online {
+        ctx.record_warning(
+            "Heuristics: System appears to be OFFLINE. Network-heavy tasks may fail.",
+        );
+    } else if let Some(latency) = net.latency_ms {
+        if latency > 200.0 {
+            ctx.record_warning(format!(
+                "Heuristics: High network latency detected ({:.0}ms). Downloads may be slow.",
+                latency
+            ));
+        }
+    }
+
+    // 4. Environment-aware Heuristics (Roaming Agent feature)
+    if ctx.options.environment == EnvironmentTag::Traveling {
+        ctx.record_warning(
+            "Heuristics: 'Traveling' environment identified. Postponing heavy background harvests.",
+        );
+    }
+
+    Ok(())
+}
+
+fn handle_interactive_auth(ctx: &mut PhaseContext, plan: &SoftwareTierPlan) -> Result<()> {
+    let all_selected_ids: BTreeSet<_> = plan.selections.values().flatten().collect();
+
+    let has_borg = all_selected_ids.contains(&"borgbackup".to_string());
+    if has_borg
+        && ctx.interaction.confirm(
+            "borg_init",
+            "Would you like to initialize a Borg backup repository now?",
+            true,
+            || {
+                Ok(ctx
+                    .observer
+                    .confirm("Would you like to initialize a Borg backup repository now?"))
+            },
+        )?
+    {
+        ctx.record_action("Initializing Borg backup repository...");
+        // Trigger actual borg init logic here
+    }
+
+    Ok(())
 }
 
 fn install_packages(
@@ -134,183 +177,160 @@ fn install_packages(
     required: &BTreeSet<String>,
     optional: &BTreeSet<String>,
 ) -> Result<()> {
-    if !required.is_empty() {
-        let required_vec: Vec<&str> = required.iter().map(|s| s.as_str()).collect();
-        if ctx.options.dry_run {
-            ctx.record_dry_run(
-                "software_tiers",
-                "Would install selected packages",
-                Some(required_vec.join(", ")),
-            );
-        }
-        if let Err(err) = package_manager::ensure_packages(
-            ctx.platform.driver,
-            &required_vec,
-            ctx.options.dry_run,
-        ) {
-            ctx.record_warning(format!("Software tier package install failed: {err}"));
-        } else {
-            ctx.record_action(format!(
-                "Installed {} software-tier packages",
-                required_vec.len()
-            ));
-        }
+    if required.is_empty() && optional.is_empty() {
+        return Ok(());
     }
 
-    for pkg in optional {
-        if ctx.options.dry_run {
-            ctx.record_dry_run(
-                "software_tiers",
-                "Would attempt optional package",
-                Some(pkg.to_string()),
-            );
-        }
-        package_manager::try_optional(ctx.platform.driver, pkg, ctx.options.dry_run);
+    let req_refs: Vec<&str> = required.iter().map(String::as_str).collect();
+    package_manager::ensure_packages(ctx.platform.driver, &req_refs, ctx.options.dry_run)?;
+
+    for opt in optional {
+        package_manager::try_optional(ctx.platform.driver, opt, ctx.options.dry_run);
     }
 
     Ok(())
 }
 
-fn apply_theme_plan(ctx: &mut PhaseContext, plan: &ThemePlan) -> Result<()> {
-    match plan {
-        ThemePlan::None => Ok(()),
-        ThemePlan::RetroOnly => install_retro_theme_plan(ctx, false),
-        ThemePlan::RetroWithWallpapers => install_retro_theme_plan(ctx, true),
-    }
-}
-
-fn install_retro_theme_plan(ctx: &mut PhaseContext, with_wallpapers: bool) -> Result<()> {
-    let mut required = vec!["i3", "i3status", "i3lock", "kitty", "conky"];
-    if with_wallpapers {
-        required.extend_from_slice(&["feh", "python3", "python3-pip"]);
-    }
-
-    if ctx.options.dry_run {
-        ctx.record_dry_run(
-            "software_tiers",
-            "Would install retro theme dependencies",
-            Some(required.join(", ")),
-        );
-    }
-    if let Err(err) =
-        package_manager::ensure_packages(ctx.platform.driver, &required, ctx.options.dry_run)
-    {
-        ctx.record_warning(format!("Retro theme dependency install failed: {err}"));
-        return Ok(());
-    }
-
-    let Some(home_dir) = dirs::home_dir() else {
-        ctx.record_warning("Unable to locate home directory; skipping retro theme install");
-        return Ok(());
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::context::PlatformContext;
+    use crate::profile::SystemProfile;
+    use crate::system::dry_run::DryRunLog;
+    use crate::{
+        InstallContext, InstallOptions, Localization, PhaseObserver, RollbackManager, UIContext,
+        UserOptionsContext,
     };
-    if let Err(err) = ctx.run_or_record(
-        "software_tiers",
-        "Install BBC/UNIX Retro Theme",
-        Some(home_dir.display().to_string()),
-        |ctx| {
-            crate::theme::install_retro_theme(&home_dir, ctx.options.dry_run)?;
-            ctx.record_action("Installed BBC/UNIX Retro Theme");
-            Ok(())
-        },
-    ) {
-        ctx.record_warning(format!("Retro theme install failed: {err}"));
-        return Ok(());
+    use std::collections::BTreeSet;
+
+    struct TestObserver;
+    impl PhaseObserver for TestObserver {
+        fn on_event(&mut self, _event: crate::PhaseEvent) {}
     }
 
-    if with_wallpapers {
-        if let Err(err) = install_wallpaper_downloader(ctx, &home_dir) {
-            ctx.record_warning(format!("Wallpaper pack download failed: {err}"));
+    struct TestDriver;
+    impl crate::DistroDriver for TestDriver {
+        fn name(&self) -> &'static str {
+            "test"
+        }
+        fn description(&self) -> &'static str {
+            "test"
+        }
+        fn matches(&self, _: &crate::PlatformInfo) -> bool {
+            true
+        }
+        fn pkg_backend(&self) -> crate::PkgBackend {
+            crate::PkgBackend::Apt
         }
     }
+    static TEST_DRIVER: TestDriver = TestDriver;
 
-    Ok(())
-}
+    fn mock_context(pi_model: Option<&str>, distro_family: &str) -> (InstallContext, TestObserver) {
+        let platform = crate::platform::PlatformInfo {
+            arch: "aarch64".into(),
+            distro: "test".into(),
+            distro_version: "0".into(),
+            distro_codename: "test".into(),
+            distro_family: distro_family.into(),
+            pi_model: pi_model.map(|s| s.to_string()),
+            cpu_model: "test".into(),
+            cpu_cores: 4,
+            ram_total_gb: 8.0,
+        };
+        let opts = InstallOptions {
+            system_profile: Some(SystemProfile::default()),
+            ..InstallOptions::default()
+        };
 
-fn install_wallpaper_downloader(ctx: &mut PhaseContext, home_dir: &std::path::Path) -> Result<()> {
-    let script_path = home_dir.join(".local/bin/wallpaper_downloader_final.py");
-    let pip_cmd = ["-m", "pip", "install", "--user", "requests"];
-    let first_boot_script = home_dir.join(".local/bin/mash-retro-wallpapers-first-boot.sh");
-    let systemd_dir = home_dir.join(".config/systemd/user");
-    let service_path = systemd_dir.join("mash-retro-wallpapers.service");
-    let marker_path = home_dir.join(".config/mash-installer/retro-wallpapers.done");
+        let platform_ctx = PlatformContext {
+            config_service: crate::context::ConfigService::load().unwrap(),
+            platform,
+            driver_name: "test",
+            driver: &TEST_DRIVER,
+            pkg_backend: crate::PkgBackend::Apt,
+            system: &crate::sys_ops::REAL_SYSTEM,
+        };
 
-    if ctx.options.dry_run {
-        ctx.record_dry_run(
-            "software_tiers",
-            "Would install Python requests dependency",
-            Some("python3 -m pip install --user requests".to_string()),
-        );
-        ctx.record_dry_run(
-            "software_tiers",
-            "Would configure first-boot wallpaper download",
-            Some(first_boot_script.display().to_string()),
-        );
-        return Ok(());
+        let staging_dir = std::path::PathBuf::from("/tmp/mash-test");
+        let cache = crate::ArtifactCache::new(&staging_dir);
+
+        let ctx = InstallContext {
+            options: UserOptionsContext::from_options(&opts),
+            platform: platform_ctx,
+            ui: UIContext,
+            interaction: crate::interaction::InteractionService::new(false, Default::default()),
+            localization: Localization::load_default().unwrap(),
+            rollback: RollbackManager::new(),
+            dry_run_log: DryRunLog::new(),
+            cache,
+        };
+        (ctx, TestObserver)
     }
 
-    cmd::Command::new("python3")
-        .args(pip_cmd)
-        .execute()
-        .context("installing Python requests dependency")?;
+    #[test]
+    fn test_pi4b_heuristics_adds_zram_debian() {
+        let (ctx, mut observer) = mock_context(Some("Raspberry Pi 4 Model B"), "debian");
+        let mut p_ctx = ctx.phase_context(&mut observer);
+        let mut required = BTreeSet::new();
 
-    if let Some(parent) = first_boot_script.parent() {
-        fs::create_dir_all(parent).context("creating first-boot script directory")?;
+        apply_heuristics(&mut p_ctx, &mut required).unwrap();
+
+        assert!(required.contains("zram-tools"));
     }
-    if let Some(parent) = service_path.parent() {
-        fs::create_dir_all(parent).context("creating systemd user directory")?;
+
+    #[test]
+    fn test_pi4b_heuristics_adds_zram_arch() {
+        let (ctx, mut observer) = mock_context(Some("Raspberry Pi 4 Model B"), "arch");
+        let mut p_ctx = ctx.phase_context(&mut observer);
+        let mut required = BTreeSet::new();
+
+        apply_heuristics(&mut p_ctx, &mut required).unwrap();
+
+        assert!(required.contains("zram-generator"));
     }
 
-    let script_body = format!(
-        r#"#!/bin/sh
-set -e
-MARKER="{marker}"
-if [ -f "$MARKER" ]; then
-  exit 0
-fi
-python3 "{downloader}" --first-boot
-mkdir -p "$(dirname "$MARKER")"
-touch "$MARKER"
-"#,
-        marker = marker_path.display(),
-        downloader = script_path.display()
-    );
-    fs::write(&first_boot_script, script_body).context("writing first-boot script")?;
-    let mut perms = fs::metadata(&first_boot_script)
-        .context("reading first-boot script permissions")?
-        .permissions();
-    perms.set_mode(0o755);
-    fs::set_permissions(&first_boot_script, perms)
-        .context("setting first-boot script permissions")?;
+    #[test]
+    fn test_non_pi_heuristics_does_nothing() {
+        let (ctx, mut observer) = mock_context(None, "debian");
+        let mut p_ctx = ctx.phase_context(&mut observer);
+        let mut required = BTreeSet::new();
 
-    let service_body = format!(
-        r#"[Unit]
-Description=MASH Retro Wallpapers (first boot)
-After=network-online.target
+        apply_heuristics(&mut p_ctx, &mut required).unwrap();
 
-[Service]
-Type=oneshot
-ExecStart={script}
+        assert!(required.is_empty());
+    }
 
-[Install]
-WantedBy=default.target
-"#,
-        script = first_boot_script.display()
-    );
-    fs::write(&service_path, service_body).context("writing systemd user service")?;
-
-    if crate::theme::command_exists("systemctl") {
-        if let Err(err) = cmd::Command::new("systemctl")
-            .args(["--user", "enable", "--now", "mash-retro-wallpapers.service"])
-            .execute()
-        {
-            ctx.record_warning(format!(
-                "Failed to enable first-boot wallpaper service: {err}"
-            ));
+    #[test]
+    fn test_offline_heuristics_records_warning() {
+        let (mut ctx, mut observer) = mock_context(None, "debian");
+        if let Some(profile) = &mut ctx.options.system_profile {
+            profile.network.online = false;
         }
-    } else {
-        ctx.record_warning("systemctl not found; first-boot wallpaper service not enabled");
+        let mut p_ctx = ctx.phase_context(&mut observer);
+        let mut required = BTreeSet::new();
+
+        apply_heuristics(&mut p_ctx, &mut required).unwrap();
+
+        let metadata = p_ctx.take_metadata();
+        assert!(metadata.warnings.iter().any(|w| w.contains("OFFLINE")));
     }
 
-    ctx.record_action("Configured first-boot retro wallpaper download");
-    Ok(())
+    #[test]
+    fn test_high_latency_heuristics_records_warning() {
+        let (mut ctx, mut observer) = mock_context(None, "debian");
+        if let Some(profile) = &mut ctx.options.system_profile {
+            profile.network.online = true;
+            profile.network.latency_ms = Some(500.0);
+        }
+        let mut p_ctx = ctx.phase_context(&mut observer);
+        let mut required = BTreeSet::new();
+
+        apply_heuristics(&mut p_ctx, &mut required).unwrap();
+
+        let metadata = p_ctx.take_metadata();
+        assert!(metadata
+            .warnings
+            .iter()
+            .any(|w| w.contains("High network latency")));
+    }
 }

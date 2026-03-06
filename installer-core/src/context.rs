@@ -8,6 +8,7 @@ pub use crate::model::options::UserOptionsContext;
 use crate::platform::PlatformInfo;
 use crate::rollback::RollbackManager;
 use crate::staging;
+pub use crate::system::artifact_cache::ArtifactCache;
 use crate::system::dry_run::DryRunLog;
 use anyhow::Result;
 
@@ -240,6 +241,7 @@ pub struct PhaseContext<'a> {
     pub localization: &'a Localization,
     pub rollback: &'a RollbackManager,
     pub dry_run_log: &'a DryRunLog,
+    pub cache: &'a ArtifactCache,
     pub observer: &'a mut dyn crate::PhaseObserver,
     actions_taken: Vec<String>,
     configured_actions: Vec<String>,
@@ -258,6 +260,7 @@ impl<'a> PhaseContext<'a> {
         localization: &'a Localization,
         rollback: &'a RollbackManager,
         dry_run_log: &'a DryRunLog,
+        cache: &'a ArtifactCache,
         observer: &'a mut dyn crate::PhaseObserver,
     ) -> Self {
         PhaseContext {
@@ -268,6 +271,7 @@ impl<'a> PhaseContext<'a> {
             localization,
             rollback,
             dry_run_log,
+            cache,
             observer,
             actions_taken: Vec::new(),
             configured_actions: Vec::new(),

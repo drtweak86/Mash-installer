@@ -3,7 +3,7 @@ use crate::tui::state::{LogLevel, Screen, TuiApp};
 use crossterm::event::KeyCode;
 use installer_core::catalog::Program;
 use installer_core::preset::Preset;
-use installer_core::{InstallOptions, SoftwareTierPlan, ThemePlan};
+use installer_core::{InstallOptions, SoftwareTierPlan, ThemePlan, Tier};
 use std::collections::BTreeMap;
 use std::time::Instant;
 
@@ -19,41 +19,25 @@ impl TuiApp {
             docker_data_root: self.modules.docker_data_root,
             continue_on_error: self.continue_on_error,
             software_plan: self.build_software_plan(),
+            system_profile: self.system_profile.clone(),
+            environment: installer_core::model::options::EnvironmentTag::Home, // Default for TUI for now
         }
     }
 
     pub fn build_software_plan(&self) -> SoftwareTierPlan {
-        let (picks, is_recommended) = match self.software_mode {
-            SoftwareMode::BardsRecommendations => {
-                let mut picks = BTreeMap::new();
-                for category in &self.catalog.categories {
-                    for subcategory in &category.subcategories {
-                        if let Some(recommended) =
-                            subcategory.programs.iter().find(|p| p.recommended)
-                        {
-                            picks.insert(category.display_name.clone(), recommended.id.clone());
-                        } else if let Some(first) = subcategory.programs.first() {
-                            picks.insert(category.display_name.clone(), first.id.clone());
-                        }
-                    }
-                }
-                (picks, true)
-            }
-            SoftwareMode::Auto => {
-                let mut picks = BTreeMap::new();
-                for category in &self.catalog.categories {
-                    for subcategory in &category.subcategories {
-                        if let Some(first) = subcategory.programs.first() {
-                            picks.insert(category.display_name.clone(), first.id.clone());
-                        }
-                    }
-                }
-                (picks, false)
-            }
-            SoftwareMode::Manual => (self.software_picks.clone(), false),
+        let (picks, is_recommended, target_tier) = match self.software_mode {
+            SoftwareMode::BardsRecommendations => (BTreeMap::new(), true, Some(Tier::S)),
+            SoftwareMode::Auto => (BTreeMap::new(), false, Some(Tier::A)),
+            SoftwareMode::Manual => (self.software_picks.clone(), false, None),
         };
 
-        SoftwareTierPlan::new(is_recommended, picks, self.theme_plan.clone(), None)
+        SoftwareTierPlan::new(
+            is_recommended,
+            picks,
+            self.theme_plan.clone(),
+            None,
+            target_tier,
+        )
     }
 
     pub fn apply_preset(&mut self, preset: &Preset) {
@@ -68,8 +52,9 @@ impl TuiApp {
         self.modules.enable_argon = preset.tweaks.iter().any(|t| t == "enable_argon");
         self.modules.docker_data_root = preset.tweaks.iter().any(|t| t == "docker_data_root");
 
-        for (cat, id) in &preset.software_plan.selections {
-            self.software_picks.insert(cat.clone(), id.clone());
+        self.software_picks.clear();
+        for (cat, ids) in &preset.software_plan.selections {
+            self.software_picks.insert(*cat, ids.clone());
         }
     }
 
@@ -103,7 +88,7 @@ impl TuiApp {
             KeyCode::Enter => {
                 let chosen = all_programs[self.menu_cursor];
                 self.software_picks
-                    .insert(category.display_name.clone(), chosen.id.clone());
+                    .insert(category.id, vec![chosen.id.clone()]);
 
                 if self.software_category_idx + 1 >= self.catalog.categories.len() {
                     self.screen = Screen::Confirm;
@@ -122,7 +107,8 @@ impl TuiApp {
 
     pub fn selected_option_index(&self, category_idx: usize) -> Option<usize> {
         let category = self.catalog.categories.get(category_idx)?;
-        let picked = self.software_picks.get(&category.display_name)?;
+        let picked_vec = self.software_picks.get(&category.id)?;
+        let picked = picked_vec.first()?;
 
         let all_programs: Vec<&Program> = category
             .subcategories
@@ -153,7 +139,7 @@ impl TuiApp {
     pub fn software_plan_label(&self) -> String {
         match self.software_mode {
             SoftwareMode::BardsRecommendations => "Bard's Recommendations (S-tier)".to_string(),
-            SoftwareMode::Auto => "Automatic (Baseline)".to_string(),
+            SoftwareMode::Auto => "Automatic (Baseline S+A)".to_string(),
             SoftwareMode::Manual => format!(
                 "Manual ({}/{})",
                 self.software_picks.len(),

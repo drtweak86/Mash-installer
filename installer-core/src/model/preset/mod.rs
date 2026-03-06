@@ -1,4 +1,4 @@
-use crate::model::software::SoftwareTierPlan;
+use crate::model::software::{SoftwareCategory, SoftwareTierPlan};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -18,15 +18,20 @@ impl Preset {
     /// Applies the preset to the given software plan and options.
     pub fn apply(&self, software_plan: &mut SoftwareTierPlan) {
         // Overlay preset selections onto the existing plan
-        for (category, program_id) in &self.software_plan.selections {
+        for (category, program_ids) in &self.software_plan.selections {
             software_plan
                 .selections
-                .insert(category.to_string(), program_id.to_string());
+                .insert(*category, program_ids.clone());
         }
 
         // Merge theme plan if specified
         if self.software_plan.theme_plan != crate::model::software::ThemePlan::None {
             software_plan.theme_plan = self.software_plan.theme_plan.clone();
+        }
+
+        // Merge target tier if specified
+        if let Some(tier) = self.software_plan.target_tier {
+            software_plan.target_tier = Some(tier);
         }
     }
 }
@@ -50,14 +55,15 @@ impl PresetRegistry {
             software_plan: SoftwareTierPlan {
                 full_install: true,
                 selections: [
-                    ("Terminal".into(), "kitty".into()),
-                    ("Editor".into(), "neovim".into()),
-                    ("Shell".into(), "zsh".into()),
+                    (SoftwareCategory::Terminals, vec!["kitty".into()]),
+                    (SoftwareCategory::Editors, vec!["neovim".into()]),
+                    (SoftwareCategory::Development, vec!["zsh".into()]),
                 ]
                 .into_iter()
                 .collect(),
                 theme_plan: crate::model::software::ThemePlan::None, // Will be managed by theme_id
                 preset_id: Some("cyberpunk".into()),
+                target_tier: Some(crate::model::software::Tier::S),
             },
             tweaks: vec!["enable_p10k".into(), "terminal_transparency".into()],
         };
