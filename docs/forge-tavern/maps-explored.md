@@ -3,6 +3,19 @@
 
 ---
 
+## Session: 2026-03-06 — Shaft AC: Chezmoi Integration
+
+### Summary
+Successfully integrated `chezmoi` as a first-class dotfile management option. This enables users to restore their personal configurations automatically during the MASH provisioning flow.
+
+### Key Achievements
+- **Core Engine**: Implemented `chezmoi` phase with automatic tool installation and `init`/`apply` logic.
+- **TUI Flow**: Added a dedicated `ChezmoiConfig` screen between software selection and final confirmation.
+- **Intelligent Advice**: Added a heuristic rule to suggest `chezmoi` for Developer profiles missing dotfile configuration.
+- **Verified Integrity**: 100% test pass rate across the workspace, including new `chezmoi` and `advice` unit tests.
+
+---
+
 ## Session: 2026-03-05 — Shaft AB: Menu Flow Overhaul Completion
 
 ### Summary

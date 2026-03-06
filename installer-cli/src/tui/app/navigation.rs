@@ -1,6 +1,7 @@
 use crate::tui::app::SoftwareMode;
 use crate::tui::state::{Screen, TuiApp};
 use installer_core::desktop::DesktopEnvironment;
+use strum::IntoEnumIterator;
 
 impl TuiApp {
     pub fn advance_from_list(&mut self) {
@@ -70,9 +71,24 @@ impl TuiApp {
                     self.software_category_idx = 0;
                     self.menu_cursor = 0;
                 } else {
-                    self.navigate_to(Screen::Confirm, "Final Provisioning Summary");
+                    self.navigate_to(Screen::ChezmoiConfig, "Dotfile Restoration");
                     self.menu_cursor = 0;
                 }
+            }
+            Screen::SoftwareSelect => {
+                // If we finished all categories, move to chezmoi
+                if self.software_category_idx >= installer_core::SoftwareCategory::iter().count().saturating_sub(1) {
+                    self.navigate_to(Screen::ChezmoiConfig, "Dotfile Restoration");
+                    self.menu_cursor = 0;
+                } else {
+                    // This logic is usually handled in handle_key but for completeness:
+                    self.software_category_idx += 1;
+                    self.menu_cursor = 0;
+                }
+            }
+            Screen::ChezmoiConfig => {
+                self.navigate_to(Screen::Confirm, "Final Provisioning Summary");
+                self.menu_cursor = 0;
             }
             _ => {}
         }
@@ -113,6 +129,7 @@ impl TuiApp {
             Screen::DeConfirm => "Desktop Environment Confirmation",
             Screen::FontPrep => "Font Curation",
             Screen::Wardrobe => "The Wardrobe (Presets)",
+            Screen::ChezmoiConfig => "Dotfile Restoration",
             Screen::SystemSummary => "System Results & Wisdom",
             Screen::Password => "Password Prompt",
             Screen::Authorization => "Interactive Authorization",
@@ -148,8 +165,16 @@ impl TuiApp {
                     self.software_category_idx = self.software_category_idx.saturating_sub(1);
                 }
             }
+            Screen::ChezmoiConfig => {
+                if self.software_mode == SoftwareMode::Manual {
+                    self.screen = Screen::SoftwareSelect;
+                    self.software_category_idx = installer_core::SoftwareCategory::iter().count().saturating_sub(1);
+                } else {
+                    self.screen = Screen::SoftwareMode;
+                }
+            }
             Screen::Confirm => {
-                self.screen = Screen::SoftwareMode;
+                self.screen = Screen::ChezmoiConfig;
                 self.menu_cursor = 0;
             }
             _ => {}

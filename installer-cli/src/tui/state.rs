@@ -62,6 +62,7 @@ pub enum Screen {
     DeConfirm,
     FontPrep,
     Wardrobe,
+    ChezmoiConfig,
     SystemSummary,
     Password,
     Authorization,
@@ -238,6 +239,10 @@ pub struct TuiApp {
     pub catalog: Catalog,
     pub software_picks: BTreeMap<SoftwareCategory, Vec<String>>,
     pub software_category_idx: usize,
+    // Chezmoi configuration
+    pub chezmoi_enabled: bool,
+    pub chezmoi_repo: String,
+    pub chezmoi_branch: String,
     // Dry-run flag
     pub dry_run: bool,
     pub continue_on_error: bool,

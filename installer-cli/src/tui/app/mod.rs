@@ -43,6 +43,9 @@ impl TuiApp {
             catalog: installer_core::catalog::Catalog::load_s_tier().unwrap_or_default(),
             software_picks: BTreeMap::new(),
             software_category_idx: 0,
+            chezmoi_enabled: false,
+            chezmoi_repo: String::new(),
+            chezmoi_branch: String::new(),
             dry_run: false,
             continue_on_error: false,
             platform_info: installer_core::platform::PlatformInfo {

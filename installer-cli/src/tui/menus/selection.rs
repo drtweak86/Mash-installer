@@ -368,9 +368,20 @@ pub fn draw_pre_install_confirm(f: &mut Frame, area: Rect, app: &TuiApp) {
         Line::from(vec![
             Span::styled("THEME:       ", theme::dim_style()),
             Span::styled(
-                app.theme_plan_label().to_uppercase(),
+                format!("{:?}", app.theme_plan).to_uppercase(),
                 theme::success_style(),
             ),
+        ]),
+        Line::from(vec![
+            Span::styled("DOTFILES:    ", theme::dim_style()),
+            if app.chezmoi_enabled {
+                Span::styled(
+                    format!("CHEZMOI ({})", app.chezmoi_repo),
+                    theme::success_style(),
+                )
+            } else {
+                Span::styled("SKIPPED", theme::dim_style())
+            },
         ]),
         Line::from(vec![
             Span::styled("SOFTWARE:    ", theme::dim_style()),
@@ -621,7 +632,8 @@ pub fn draw_system_summary(f: &mut Frame, area: Rect, app: &TuiApp) {
 
     if let Some(ref profile) = app.system_profile {
         let engine = installer_core::advice::AdviceEngine::default();
-        let advice = engine.run(profile);
+        let options = app.build_options();
+        let advice = engine.run(profile, &installer_core::UserOptionsContext::from_options(&options));
 
         if advice.is_empty() {
             wisdom.push(Line::from("  THE FORGE IS OPTIMAL. NO CRITICAL OMENS DETECTED."));
@@ -754,4 +766,81 @@ pub fn draw_password_screen(f: &mut Frame, area: Rect, app: &TuiApp) {
             .alignment(Alignment::Center),
         chunks[2],
     );
+}
+
+pub fn draw_chezmoi_config(f: &mut Frame, area: Rect, app: &TuiApp) {
+    let block = station_block("DOTFILE_RESTORATION_SIGIL");
+    f.render_widget(&block, area);
+    let inner = block.inner(area);
+
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(2),
+            Constraint::Min(0),
+            Constraint::Length(3), // Help text
+            Constraint::Length(3),
+        ])
+        .split(inner);
+
+    f.render_widget(Paragraph::new("CONFIGURE CHEZMOI DOTFILE RECOVERY:"), chunks[0]);
+
+    let mut items = Vec::new();
+    items.push(command_prompt_line(
+        format!("Enable Chezmoi: [{}]", if app.chezmoi_enabled { "X" } else { " " }),
+        1,
+        app.menu_cursor == 0,
+    ));
+
+    if app.chezmoi_enabled {
+        items.push(command_prompt_line(
+            format!("Repository URL: {}", app.chezmoi_repo),
+            2,
+            app.menu_cursor == 1,
+        ));
+        items.push(command_prompt_line(
+            format!("Branch (Optional): {}", app.chezmoi_branch),
+            3,
+            app.menu_cursor == 2,
+        ));
+        items.push(command_prompt_line(
+            "Proceed to Summary".to_string(),
+            4,
+            app.menu_cursor == 3,
+        ));
+    } else {
+        items.push(command_prompt_line(
+            "Skip to Summary".to_string(),
+            2,
+            app.menu_cursor == 1,
+        ));
+    }
+
+    let list = List::new(items).style(theme::default_style());
+    f.render_widget(list, chunks[1]);
+
+    let help_text = if app.chezmoi_enabled {
+        match app.menu_cursor {
+            0 => "Toggle dotfile restoration using chezmoi.",
+            1 => "Enter the Git repository URL (e.g., https://github.com/user/dotfiles).",
+            2 => "Enter the branch to use (optional, leave empty for default).",
+            3 => "Save configuration and proceed to the final summary.",
+            _ => "Configuring dotfiles...",
+        }
+    } else {
+        match app.menu_cursor {
+            0 => "Toggle dotfile restoration using chezmoi.",
+            1 => "Skip dotfile restoration and proceed to the summary.",
+            _ => "Skipping dotfiles...",
+        }
+    };
+
+    f.render_widget(
+        Paragraph::new(help_text)
+            .style(theme::dim_style())
+            .wrap(Wrap { trim: true }),
+        chunks[2],
+    );
+
+    draw_navigation_info(f, area, app);
 }

@@ -165,6 +165,17 @@ fn build_info_lines(app: &TuiApp) -> Vec<Line<'static>> {
             )),
         ],
 
+        Screen::ChezmoiConfig => vec![
+            Line::from(Span::styled(
+                "Dotfile Restoration Configuration",
+                theme::accent_style(),
+            )),
+            Line::from(Span::styled(
+                "Provide a Git repository to recover your personal environment",
+                theme::dim_style(),
+            )),
+        ],
+
         Screen::Confirm => vec![
             Line::from(Span::styled(
                 "Final provision confirmation",
