@@ -521,7 +521,7 @@ mod tests {
     fn test_hardware_rules() {
         let engine = AdviceEngine::default();
         let mut profile = SystemProfile::default();
-        let mut options = default_options();
+        let options = default_options();
 
         // Test: Low RAM
         profile.memory.ram_total_kb = 4 * 1024 * 1024;

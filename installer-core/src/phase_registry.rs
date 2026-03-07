@@ -278,7 +278,6 @@ impl PhaseGate {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::options::EnvironmentTag;
     use crate::SoftwareTierPlan;
     use std::path::PathBuf;
 
